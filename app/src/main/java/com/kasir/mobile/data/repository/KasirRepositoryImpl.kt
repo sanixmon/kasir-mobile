@@ -1,91 +1,78 @@
 package com.kasir.mobile.data.repository
 
 import com.kasir.mobile.data.model.ActionSuccessResponse
+import com.kasir.mobile.data.model.DeletionLogDto
 import com.kasir.mobile.data.model.DeletionLogsResponse
 import com.kasir.mobile.data.model.FetchAllDataResponse
-import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.KasirRpcRequest
+import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.VerifyAdminResponse
 import com.kasir.mobile.data.remote.KasirApiService
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.addJsonObject
 
 class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirRepository {
+
+    private val json = Json { ignoreUnknownKeys = true }
+
     override suspend fun fetchAllData(): Result<FetchAllDataResponse> = runCatching {
-        apiService.fetchAllData(KasirRpcRequest(action = "fetch_data"))
+        apiService.fetchAllDataPost(KasirRpcRequest(action = "fetch_data"))
     }
 
-    override suspend fun verifyAdmin(pin: String): Result<VerifyAdminResponse> = runCatching {
-        apiService.verifyAdmin(KasirRpcRequest(action = "verify_admin", payload = buildJsonObject { put("password", pin) }))
+    override suspend fun addSession(session: SessionDto): Result<ActionSuccessResponse> = runCatching {
+        val payload = json.encodeToJsonElement(SessionDto.serializer(), session)
+        apiService.addSession(KasirRpcRequest(action = "add_session", payload = payload))
     }
 
-    override suspend fun addItem(name: String, price: Double, category: String, stock: Int): Result<ActionSuccessResponse> = runCatching {
-        apiService.addItem(KasirRpcRequest(action = "add_item", payload = buildJsonObject { 
-            put("name", name)
-            put("price", price)
-            put("category", category)
-            put("stock", stock)
-        }))
+    override suspend fun editSession(session: SessionDto): Result<ActionSuccessResponse> = runCatching {
+        val payload = json.encodeToJsonElement(SessionDto.serializer(), session)
+        apiService.editSession(KasirRpcRequest(action = "edit_session", payload = payload))
     }
 
-    override suspend fun updateItem(id: String, name: String, price: Double, category: String, stock: Int): Result<ActionSuccessResponse> = runCatching {
-        apiService.updateItem(KasirRpcRequest(action = "update_item", payload = buildJsonObject { 
-            put("id", id)
-            put("name", name)
-            put("price", price)
-            put("category", category)
-            put("stock", stock)
-        }))
+    override suspend fun deleteSession(id: String): Result<ActionSuccessResponse> = runCatching {
+        apiService.deleteSession(KasirRpcRequest(action = "delete_session", payload = buildJsonObject { put("id", id) }))
     }
 
-    override suspend fun deleteItem(id: String): Result<ActionSuccessResponse> = runCatching {
-        apiService.deleteItem(KasirRpcRequest(action = "delete_item", payload = buildJsonObject { put("id", id) }))
-    }
-
-    override suspend fun checkIn(userId: String, shiftDate: String): Result<ActionSuccessResponse> = runCatching {
-        apiService.checkIn(KasirRpcRequest(action = "check_in", payload = buildJsonObject { 
-            put("userId", userId)
-            put("shiftDate", shiftDate)
-        }))
-    }
-
-    override suspend fun checkOut(sessionId: String): Result<ActionSuccessResponse> = runCatching {
-        apiService.checkOut(KasirRpcRequest(action = "check_out", payload = buildJsonObject { put("sessionId", sessionId) }))
-    }
-
-    override suspend fun sellItems(items: List<ItemDto>): Result<ActionSuccessResponse> = runCatching {
-        apiService.sellItems(KasirRpcRequest(action = "sell_items", payload = buildJsonObject {
-            putJsonArray("items") {
-                items.forEach { item ->
-                    addJsonObject {
-                        put("itemId", item.code)
-                        put("qty", item.qty)
-                    }
+    override suspend fun claimSession(claimPayload: Map<String, Any?>): Result<ActionSuccessResponse> = runCatching {
+        apiService.claimSession(KasirRpcRequest(action = "claim_session", payload = buildJsonObject {
+            claimPayload.forEach { (k, v) ->
+                when (v) {
+                    is String -> put(k, v)
+                    is Number -> put(k, v.toDouble())
+                    is Boolean -> put(k, v)
+                    else -> put(k, v.toString())
                 }
             }
         }))
     }
 
-    override suspend fun rentItem(itemId: String, qty: Int, customerId: String): Result<ActionSuccessResponse> = runCatching {
-        apiService.rentItem(KasirRpcRequest(action = "rent_item", payload = buildJsonObject { 
-            put("itemId", itemId)
-            put("qty", qty)
-            put("customerId", customerId)
+    override suspend fun deleteTxn(id: String?, no: Long?): Result<ActionSuccessResponse> = runCatching {
+        apiService.deleteTxn(KasirRpcRequest(action = "delete_txn", payload = buildJsonObject {
+            id?.let { put("id", it) }
+            no?.let { put("no", it) }
         }))
     }
 
-    override suspend fun returnRental(rentalId: String): Result<ActionSuccessResponse> = runCatching {
-        apiService.returnRental(KasirRpcRequest(action = "return_rental", payload = buildJsonObject { put("rentalId", rentalId) }))
+    override suspend fun clearAllTxns(): Result<ActionSuccessResponse> = runCatching {
+        apiService.clearAllTxns(KasirRpcRequest(action = "clear_all_txns"))
     }
 
-    override suspend fun addDeletion(targetType: String, targetId: String, reason: String): Result<ActionSuccessResponse> = runCatching {
-        apiService.addDeletion(KasirRpcRequest(action = "add_deletion_log", payload = buildJsonObject { 
-            put("targetType", targetType)
-            put("targetId", targetId)
-            put("reason", reason)
+    override suspend fun verifyAdmin(password: String): Result<VerifyAdminResponse> = runCatching {
+        apiService.verifyAdmin(KasirRpcRequest(action = "verify_admin", payload = buildJsonObject { put("password", password) }))
+    }
+
+    override suspend fun changeAdminPass(oldPass: String, newPass: String): Result<ActionSuccessResponse> = runCatching {
+        apiService.changeAdminPass(KasirRpcRequest(action = "change_admin_pass", payload = buildJsonObject {
+            put("old_password", oldPass)
+            put("new_password", newPass)
         }))
+    }
+
+    override suspend fun addDeletionLog(log: DeletionLogDto): Result<ActionSuccessResponse> = runCatching {
+        val payload = json.encodeToJsonElement(DeletionLogDto.serializer(), log)
+        apiService.addDeletionLog(KasirRpcRequest(action = "add_deletion_log", payload = payload))
     }
 
     override suspend fun getDeletionLogs(): Result<DeletionLogsResponse> = runCatching {
