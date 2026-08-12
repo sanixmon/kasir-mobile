@@ -1,5 +1,6 @@
 package com.kasir.mobile.ui.screen.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -7,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -28,10 +30,16 @@ import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
 import com.kasir.mobile.ui.navigation.NavRoutes
 import com.kasir.mobile.ui.theme.KasirAccent
+import com.kasir.mobile.ui.theme.KasirDisplay
 import com.kasir.mobile.ui.theme.KasirGreen
+import com.kasir.mobile.ui.theme.KasirLine
+import com.kasir.mobile.ui.theme.KasirMono
+import com.kasir.mobile.ui.theme.KasirOnSurface
+import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
+import com.kasir.mobile.ui.theme.KasirTextLow
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
 import com.kasir.mobile.ui.viewmodel.PaymentCalcData
 import java.text.NumberFormat
@@ -83,15 +91,22 @@ fun DashboardScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("💰 Kasir Mobile", fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "Kasir Mobile",
+                            fontFamily = KasirDisplay,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                        Spacer(Modifier.width(10.dp))
                         Surface(
-                            color = KasirGreen.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(6.dp)
+                            color = KasirGreen.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(1.dp, KasirGreen.copy(alpha = 0.25f))
                         ) {
                             Text(
-                                text = "Shift: ${uiState.currentShiftUser ?: "Kasir"} | ${ShiftDateUtil.getShiftDateFromNow()}",
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                text = "${uiState.currentShiftUser ?: "Kasir"} · ${ShiftDateUtil.getShiftDateFromNow()}",
+                                fontFamily = KasirMono,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = KasirGreen
                             )
@@ -100,15 +115,28 @@ fun DashboardScreen(
                 },
                 actions = {
                     // Connection status badge
-                    Surface(
-                        color = if (uiState.apiConnected) KasirGreen.copy(alpha = 0.2f) else KasirAccent.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(6.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .background(
+                                color = if (uiState.apiConnected) KasirGreen.copy(alpha = 0.12f) else KasirAccent.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .background(
+                                    color = if (uiState.apiConnected) KasirGreen else KasirAccent,
+                                    shape = CircleShape
+                                )
+                        )
+                        Spacer(Modifier.width(6.dp))
                         Text(
-                            text = if (uiState.isSyncing) "SYNC…" else if (uiState.apiConnected) "ONLINE" else "OFFLINE",
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            text = if (uiState.isSyncing) "SYNC" else if (uiState.apiConnected) "ONLINE" else "OFFLINE",
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
+                            fontFamily = KasirMono,
                             color = if (uiState.apiConnected) KasirGreen else KasirAccent
                         )
                     }
@@ -167,12 +195,12 @@ fun DashboardScreen(
                     Tab(
                         selected = mobileSelectedTab == 0,
                         onClick = { mobileSelectedTab = 0 },
-                        text = { Text("✨ Sewa Baru", fontWeight = FontWeight.Bold) }
+                        text = { Text("Sewa Baru", fontFamily = KasirDisplay, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = mobileSelectedTab == 1,
                         onClick = { mobileSelectedTab = 1 },
-                        text = { Text("⏱️ Sesi Aktif (${filteredSessions.size})", fontWeight = FontWeight.Bold) }
+                        text = { Text("Sesi Aktif (${filteredSessions.size})", fontFamily = KasirDisplay, fontWeight = FontWeight.Bold) }
                     )
                 }
 
@@ -328,7 +356,7 @@ fun SewaBaruContent(
     onStartRental: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        Text("✨ Sewa Baru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = KasirGreen)
+        Text("Sewa Baru", style = MaterialTheme.typography.titleMedium, fontFamily = KasirDisplay, fontWeight = FontWeight.Bold, color = KasirGreen)
         Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
@@ -412,7 +440,7 @@ fun SesiAktifContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("⏱️ Sesi Aktif (${filteredSessions.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Sesi Aktif (${filteredSessions.size})", style = MaterialTheme.typography.titleMedium, fontFamily = KasirDisplay, fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
@@ -451,39 +479,83 @@ fun ItemCatalogCard(
     idrFormat: NumberFormat,
     onQuantityChange: (Int) -> Unit
 ) {
+    val selected = qty > 0
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (qty > 0) KasirGreen.copy(alpha = 0.15f) else KasirSurfaceCard,
-        modifier = Modifier.fillMaxWidth().clickable { onQuantityChange(1) }
+        shape = RoundedCornerShape(14.dp),
+        color = if (selected) KasirGreen.copy(alpha = 0.12f) else KasirSurfaceCard,
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (selected) KasirGreen.copy(alpha = 0.6f) else KasirLine
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onQuantityChange(1) }
     ) {
         Column(
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(item.emoji, fontSize = 28.sp)
-            Spacer(Modifier.height(4.dp))
-            Text(item.code, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            Text(item.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Box(contentAlignment = Alignment.TopEnd) {
+                Text(item.emoji, fontSize = 26.sp)
+                if (selected) {
+                    Surface(
+                        color = KasirGreen,
+                        shape = CircleShape,
+                        modifier = Modifier.size(16.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = KasirSurface,
+                            modifier = Modifier.size(10.dp).padding(1.dp)
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
             Text(
-                text = if (item.isPackage) "Paket ${item.packageHours}j ${idrFormat.format(item.priceHour)}" else "${idrFormat.format(item.priceHour)}/j",
-                style = MaterialTheme.typography.bodySmall,
-                color = KasirGreen,
-                fontSize = 10.sp
+                text = item.code,
+                fontFamily = KasirMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = if (selected) KasirGreen else KasirOnSurfaceVariant
+            )
+            Text(item.name, style = MaterialTheme.typography.labelSmall, maxLines = 1, color = KasirOnSurface)
+            Spacer(Modifier.height(3.dp))
+            Text(
+                text = if (item.isPackage) "Paket ${item.packageHours}j" else "/ jam",
+                style = MaterialTheme.typography.labelSmall,
+                color = KasirTextLow
+            )
+            Text(
+                text = idrFormat.format(item.priceHour),
+                fontFamily = KasirMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp,
+                color = KasirGreen
             )
             Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { onQuantityChange(-1) }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Filled.Remove, contentDescription = null, modifier = Modifier.size(14.dp))
+                IconButton(onClick = { onQuantityChange(-1) }, modifier = Modifier.size(26.dp)) {
+                    Icon(Icons.Filled.Remove, contentDescription = null, modifier = Modifier.size(14.dp), tint = KasirOnSurfaceVariant)
                 }
-                Text("$qty", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp))
-                IconButton(onClick = { onQuantityChange(1) }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                Text(
+                    "$qty",
+                    fontFamily = KasirMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = if (qty > 0) KasirGreen else KasirOnSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 6.dp)
+                )
+                IconButton(onClick = { onQuantityChange(1) }, modifier = Modifier.size(26.dp)) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = KasirGreen)
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActiveSessionCard(
     session: SessionDto,
@@ -505,111 +577,190 @@ fun ActiveSessionCard(
     val elapsedMin = elapsedSec / 60
     val isZombie = elapsedSec > 28800 // > 8h
 
-    val timerColor = when {
-        elapsedMin >= 71 -> Color(0xFFE53935) // Red
-        elapsedMin >= 60 -> KasirAccent // Orange
-        else -> Color(0xFF00E676) // Cyan/Green
+    // Status → one clear color signal: normal (teal) → grace (amber) → overtime (red) → zombie (red + tag)
+    val statusColor = when {
+        isZombie -> KasirError
+        elapsedMin >= 71 -> KasirError
+        elapsedMin >= 60 -> KasirAccent
+        else -> KasirGreen
     }
+    val statusLabel = when {
+        isZombie -> "ZOMBIE"
+        elapsedMin >= 71 -> "OVERTIME"
+        elapsedMin >= 60 -> "GRACE"
+        else -> "NORMAL"
+    }
+    val urgency = (elapsedMin.toFloat() / 60f).coerceIn(0f, 1f)
 
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = KasirSurfaceCard,
+        border = BorderStroke(1.dp, KasirLine),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f, fill = false)) {
+                    // Ticket-style queue number
                     Surface(
-                        color = KasirAccent.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(4.dp)
+                        color = KasirAccent.copy(alpha = 0.14f),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, KasirAccent.copy(alpha = 0.35f))
                     ) {
                         Text(
-                            "#${session.queueNo}",
+                            "NO. ${session.queueNo.toString().padStart(3, '0')}",
+                            fontFamily = KasirMono,
                             fontWeight = FontWeight.Bold,
                             color = KasirAccent,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
-                    Spacer(Modifier.width(6.dp))
-                    Text(session.nama, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(10.dp))
+                    Text(session.nama, fontWeight = FontWeight.Bold, color = KasirOnSurface, maxLines = 1)
                     if (isZombie) {
                         Spacer(Modifier.width(6.dp))
-                        Surface(color = Color(0xFFFF9800), shape = RoundedCornerShape(4.dp)) {
-                            Text("⚠️ ZOMBIE", fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
+                        Surface(color = KasirError.copy(alpha = 0.15f), shape = RoundedCornerShape(4.dp)) {
+                            Text("⚠ ZOMBIE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = KasirError, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                         }
                     }
                 }
                 Surface(
-                    color = if (session.payAwal == "qris") Color(0xFF7C4DFF).copy(alpha = 0.2f) else KasirGreen.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(4.dp)
+                    color = if (session.payAwal == "qris") Color(0xFFA78BFA).copy(alpha = 0.15f) else KasirGreen.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, (if (session.payAwal == "qris") Color(0xFFA78BFA) else KasirGreen).copy(alpha = 0.4f))
                 ) {
                     Text(
                         session.payAwal.uppercase(),
+                        fontFamily = KasirMono,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        color = if (session.payAwal == "qris") Color(0xFFA78BFA) else KasirGreen,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.height(6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 session.items.forEach { item ->
                     Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(4.dp)
+                        color = KasirSurfaceVariant,
+                        shape = RoundedCornerShape(6.dp),
+                        border = BorderStroke(1.dp, KasirLine)
                     ) {
                         Text(
                             "${item.code}×${item.qty}",
+                            fontFamily = KasirMono,
                             fontSize = 11.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            color = KasirOnSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
+
+            // ── Signature: the live rental timer ──────────────────────────
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Bottom
             ) {
-                Text(
-                    text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(safeStart)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = String.format("%02d:%02d:%02d", elapsedSec / 3600, (elapsedSec % 3600) / 60, elapsedSec % 60),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = timerColor
+                Column {
+                    Text(
+                        text = "MULAI ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(safeStart))}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = KasirTextLow,
+                        fontFamily = KasirMono,
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = String.format("%02d:%02d:%02d", elapsedSec / 3600, (elapsedSec % 3600) / 60, elapsedSec % 60),
+                        fontFamily = KasirMono,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 26.sp,
+                        letterSpacing = 1.sp,
+                        color = statusColor
+                    )
+                }
+                Surface(
+                    color = statusColor.copy(alpha = 0.14f),
+                    shape = RoundedCornerShape(6.dp),
+                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.35f))
+                ) {
+                    Text(
+                        statusLabel,
+                        fontFamily = KasirMono,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelSmall,
+                        letterSpacing = 1.sp,
+                        color = statusColor,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Urgency bar — how much of the free 60-minute window is spent
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(KasirSurfaceVariant, RoundedCornerShape(2.dp))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(urgency)
+                        .height(3.dp)
+                        .background(statusColor, RoundedCornerShape(2.dp))
                 )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
                     onClick = onSelesai,
-                    modifier = Modifier.weight(1f).height(38.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                    modifier = Modifier.weight(1f).height(42.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isZombie || elapsedMin >= 71) KasirError else KasirGreen,
+                        contentColor = KasirSurface
+                    )
                 ) {
-                    Text("Selesai & Bayar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("Selesai & Bayar", fontFamily = KasirDisplay, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
-                IconButton(onClick = onEdit, modifier = Modifier.size(38.dp)) {
-                    Icon(Icons.Filled.Edit, contentDescription = "Edit Sesi")
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = KasirSurfaceVariant,
+                    border = BorderStroke(1.dp, KasirLine),
+                    modifier = Modifier.size(42.dp),
+                    onClick = onEdit
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Edit Sesi", tint = KasirOnSurfaceVariant, modifier = Modifier.size(18.dp))
+                    }
                 }
-                IconButton(onClick = onShowQR, modifier = Modifier.size(38.dp)) {
-                    Icon(Icons.Filled.QrCode, contentDescription = "QR Code")
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = KasirSurfaceVariant,
+                    border = BorderStroke(1.dp, KasirLine),
+                    modifier = Modifier.size(42.dp),
+                    onClick = onShowQR
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.QrCode, contentDescription = "QR Code", tint = KasirOnSurfaceVariant, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }

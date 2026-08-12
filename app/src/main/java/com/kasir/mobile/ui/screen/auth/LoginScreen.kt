@@ -1,13 +1,12 @@
 package com.kasir.mobile.ui.screen.auth
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ElectricScooter
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
@@ -16,19 +15,29 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.kasir.mobile.ui.navigation.NavRoutes
+import com.kasir.mobile.ui.theme.KasirDisplay
+import com.kasir.mobile.ui.theme.KasirError
 import com.kasir.mobile.ui.theme.KasirGreen
+import com.kasir.mobile.ui.theme.KasirGreenDark
+import com.kasir.mobile.ui.theme.KasirLine
+import com.kasir.mobile.ui.theme.KasirOnSurface
+import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
 import com.kasir.mobile.ui.theme.KasirSurface
+import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
+import com.kasir.mobile.ui.theme.KasirTextLow
 import com.kasir.mobile.ui.viewmodel.AuthViewModel
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
 
@@ -66,75 +75,93 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 28.dp),
+                .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo / Title
-            AnimatedVisibility(
-                visible = true,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { -40 })
+            // ── Brand block ────────────────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .background(KasirGreenDark.copy(alpha = 0.35f), RoundedCornerShape(22.dp))
+                    .border(1.dp, KasirGreen.copy(alpha = 0.4f), RoundedCornerShape(22.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "💰",
-                        fontSize = 56.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Kasir Mobile",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = KasirGreen
-                    )
-                    Text(
-                        text = "Point of Sale & Rental System",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Filled.ElectricScooter,
+                    contentDescription = null,
+                    tint = KasirGreen,
+                    modifier = Modifier.size(36.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Portal selector (mirrors kasir-db RoleSelection)
+            Text(
+                text = "EVREN HOUSE",
+                style = MaterialTheme.typography.headlineLarge,
+                fontFamily = KasirDisplay,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 3.sp,
+                color = KasirOnSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "RENTAL MANAGEMENT POS",
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 2.sp,
+                color = KasirGreen
+            )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // ── Portal selector (Kasir / Admin) ───────────────────────────
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(KasirSurfaceVariant, RoundedCornerShape(12.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                FilterChip(
+                PortalButton(
                     selected = portal == "cashier",
+                    label = "Kasir",
+                    icon = Icons.Filled.Person,
                     onClick = { portal = "cashier" },
-                    label = { Text("Portal Kasir (POS)", fontWeight = FontWeight.SemiBold) },
-                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
-                    modifier = Modifier.weight(1f),
-                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+                    modifier = Modifier.weight(1f)
                 )
-                FilterChip(
+                PortalButton(
                     selected = portal == "admin",
+                    label = "Admin",
+                    icon = Icons.Filled.Lock,
                     onClick = { portal = "admin" },
-                    label = { Text("Portal Admin", fontWeight = FontWeight.SemiBold) },
-                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
-                    modifier = Modifier.weight(1f),
-                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+                    modifier = Modifier.weight(1f)
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Login Card
+            // ── Login card ─────────────────────────────────────────────────
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = KasirSurfaceVariant,
-                tonalElevation = 4.dp
+                shape = RoundedCornerShape(20.dp),
+                color = KasirSurfaceCard,
+                border = androidx.compose.foundation.BorderStroke(1.dp, KasirLine)
             ) {
-                Column(modifier = Modifier.padding(24.dp)) {
+                Column(modifier = Modifier.padding(22.dp)) {
                     Text(
                         text = if (portal == "cashier") "Login Shift Kasir" else "Verifikasi Keamanan Admin",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = if (portal == "cashier")
+                            "Masuk dengan akun kasir untuk membuka shift."
+                        else
+                            "Aksi admin memerlukan password admin.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = KasirTextLow
                     )
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -146,10 +173,8 @@ fun LoginScreen(
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = KasirGreen,
-                                focusedLabelColor = KasirGreen,
-                            )
+                            shape = RoundedCornerShape(12.dp),
+                            colors = kasirFieldColors()
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
@@ -160,6 +185,7 @@ fun LoginScreen(
                         label = { Text(if (portal == "cashier") "Password Shift" else "Password Admin") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
@@ -173,10 +199,7 @@ fun LoginScreen(
                                 )
                             }
                         },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = KasirGreen,
-                            focusedLabelColor = KasirGreen,
-                        )
+                        colors = kasirFieldColors()
                     )
 
                     // Server URL toggle
@@ -191,34 +214,38 @@ fun LoginScreen(
                         )
                     }
 
-                    AnimatedVisibility(visible = showServerField) {
+                    if (showServerField) {
                         OutlinedTextField(
                             value = uiState.serverUrl,
                             onValueChange = { authViewModel.setServerUrl(it) },
                             label = { Text("Server URL") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
                             placeholder = { Text("https://utara.evrenhouse.online") },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = KasirGreen,
-                                focusedLabelColor = KasirGreen,
-                            )
+                            colors = kasirFieldColors()
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Error
                     if (uiState.error != null) {
-                        Text(
-                            text = uiState.error!!,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            color = KasirError.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = uiState.error!!,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
                         onClick = {
@@ -230,26 +257,82 @@ fun LoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
+                            .height(52.dp),
                         enabled = !uiState.isLoading && password.isNotBlank() && (portal == "admin" || username.isNotBlank()),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = KasirGreen,
+                            contentColor = KasirSurface,
+                            disabledContainerColor = KasirGreen.copy(alpha = 0.25f)
+                        )
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = KasirSurface
                             )
                         } else {
                             Text(
                                 text = if (portal == "cashier") "Mulai Shift" else "Masuk Admin",
-                                fontWeight = FontWeight.SemiBold
+                                fontFamily = KasirDisplay,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
                             )
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Konter sewa Evren House · akses terbatas kasir",
+                style = MaterialTheme.typography.labelSmall,
+                color = KasirTextLow
+            )
         }
     }
 }
+
+@Composable
+private fun PortalButton(
+    selected: Boolean,
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.height(44.dp),
+        shape = RoundedCornerShape(10.dp),
+        color = if (selected) KasirGreen else Color.Transparent,
+        contentColor = if (selected) KasirSurface else KasirOnSurfaceVariant,
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontFamily = KasirDisplay,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun kasirFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = KasirGreen,
+    unfocusedBorderColor = KasirLine,
+    focusedLabelColor = KasirGreen,
+    unfocusedLabelColor = KasirTextLow,
+    focusedContainerColor = KasirSurfaceVariant,
+    unfocusedContainerColor = KasirSurfaceVariant,
+    cursorColor = KasirGreen
+)

@@ -17,9 +17,13 @@ import androidx.navigation.NavController
 import com.kasir.mobile.data.model.TransactionDto
 import com.kasir.mobile.ui.theme.KasirAccent
 import com.kasir.mobile.ui.theme.KasirGreen
+import com.kasir.mobile.ui.theme.KasirLine
+import com.kasir.mobile.ui.theme.KasirMono
+import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
+import com.kasir.mobile.ui.theme.KasirTextLow
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -160,17 +164,27 @@ fun HistoryScreen(
 @Composable
 fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier, highlight: Boolean = false) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = if (highlight) KasirGreen.copy(alpha = 0.2f) else KasirSurfaceCard,
+        shape = RoundedCornerShape(12.dp),
+        color = if (highlight) KasirGreen.copy(alpha = 0.12f) else KasirSurfaceCard,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (highlight) KasirGreen.copy(alpha = 0.4f) else KasirLine
+        ),
         modifier = modifier
     ) {
-        Column(modifier = Modifier.padding(10.dp)) {
-            Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                title.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 1.sp,
+                color = KasirTextLow
+            )
             Spacer(Modifier.height(4.dp))
             Text(
                 value,
+                fontFamily = KasirMono,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 color = if (highlight) KasirGreen else MaterialTheme.colorScheme.onSurface
             )
         }
@@ -184,8 +198,9 @@ fun TransactionCard(
     onDelete: () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(14.dp),
         color = KasirSurfaceCard,
+        border = androidx.compose.foundation.BorderStroke(1.dp, KasirLine),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -195,26 +210,27 @@ fun TransactionCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(color = KasirGreen.copy(alpha = 0.2f), shape = RoundedCornerShape(4.dp)) {
+                    Surface(color = KasirGreen.copy(alpha = 0.12f), shape = RoundedCornerShape(6.dp), border = androidx.compose.foundation.BorderStroke(1.dp, KasirGreen.copy(alpha = 0.35f))) {
                         Text(
-                            "#${txn.no}",
+                            "#${txn.no.toString().padStart(3, '0')}",
+                            fontFamily = KasirMono,
                             fontWeight = FontWeight.Bold,
                             color = KasirGreen,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                     Spacer(Modifier.width(8.dp))
                     Text(txn.nama, fontWeight = FontWeight.Bold)
                 }
-                Text(txn.tanggal, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(txn.tanggal, fontFamily = KasirMono, style = MaterialTheme.typography.labelSmall, color = KasirTextLow)
             }
 
             Spacer(Modifier.height(6.dp))
-            Text("Items: ${txn.items}", style = MaterialTheme.typography.bodyMedium)
+            Text("Items: ${txn.items}", style = MaterialTheme.typography.bodyMedium, color = KasirOnSurfaceVariant)
 
             if (txn.ot != "-") {
-                Text("OT: ${txn.ot} (${txn.otDur})", style = MaterialTheme.typography.bodySmall, color = KasirAccent)
+                Text("OT: ${txn.ot} (${txn.otDur})", fontFamily = KasirMono, style = MaterialTheme.typography.bodySmall, color = KasirAccent)
             }
 
             Spacer(Modifier.height(8.dp))
@@ -227,14 +243,20 @@ fun TransactionCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Pokok: ${idrFormat.format(txn.totalBase)} (${txn.payAwal.uppercase()})", style = MaterialTheme.typography.bodySmall)
+                    Text("Pokok: ${idrFormat.format(txn.totalBase)} (${txn.payAwal.uppercase()})", style = MaterialTheme.typography.bodySmall, color = KasirOnSurfaceVariant)
                     if (txn.totalOT > 0) {
                         Text("Overtime: ${idrFormat.format(txn.totalOT)}", style = MaterialTheme.typography.bodySmall, color = KasirAccent)
                     }
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("TOTAL: ${idrFormat.format(txn.totalAll)}", fontWeight = FontWeight.Bold, color = KasirGreen, fontSize = 16.sp)
-                    Text("Shift: ${txn.shift}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "${idrFormat.format(txn.totalAll)}",
+                        fontFamily = KasirMono,
+                        fontWeight = FontWeight.Bold,
+                        color = KasirGreen,
+                        fontSize = 16.sp
+                    )
+                    Text("SHIFT ${txn.shift}", fontFamily = KasirMono, style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp, color = KasirTextLow)
                 }
             }
 
