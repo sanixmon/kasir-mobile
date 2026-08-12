@@ -8,15 +8,15 @@
         android:name=".KasirApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="Kasir Mobile"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="Kasir Mobile"
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
-        android:theme="@android:style/Theme.Material.NoTitleBar">
+        android:theme="@style/Theme.KasirMobile">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.Material.NoTitleBar">
+            android:theme="@style/Theme.KasirMobile">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
