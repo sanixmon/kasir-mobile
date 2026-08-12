@@ -9,11 +9,6 @@ import com.kasir.mobile.ui.screen.auth.LoginScreen
 import com.kasir.mobile.ui.screen.dashboard.DashboardScreen
 import com.kasir.mobile.ui.screen.deletion.DeletionLogScreen
 import com.kasir.mobile.ui.screen.history.HistoryScreen
-import com.kasir.mobile.ui.screen.inventory.InventoryAddScreen
-import com.kasir.mobile.ui.screen.inventory.InventoryScreen
-import com.kasir.mobile.ui.screen.rental.RentalReturnScreen
-import com.kasir.mobile.ui.screen.rental.RentalScreen
-import com.kasir.mobile.ui.screen.session.SessionScreen
 import com.kasir.mobile.ui.screen.settings.SettingsScreen
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
 
@@ -39,21 +34,6 @@ fun KasirNavHost(navController: NavHostController) {
         }
         composable(NavRoutes.SETTINGS) {
             SettingsScreen(navController = navController, viewModel = kasirViewModel)
-        }
-        composable(NavRoutes.RENTAL) {
-            RentalScreen(navController = navController)
-        }
-        composable(NavRoutes.RENTAL_RETURN) {
-            RentalReturnScreen(navController = navController)
-        }
-        composable(NavRoutes.INVENTORY) {
-            InventoryScreen(navController = navController)
-        }
-        composable(NavRoutes.INVENTORY_ADD) {
-            InventoryAddScreen(navController = navController)
-        }
-        composable(NavRoutes.SESSION) {
-            SessionScreen(navController = navController)
         }
     }
 }

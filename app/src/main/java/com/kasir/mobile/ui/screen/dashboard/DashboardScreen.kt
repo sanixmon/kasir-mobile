@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +53,10 @@ fun DashboardScreen(
     var payAwal by remember { mutableStateOf("cash") }
     var selectedQty by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var searchQuery by remember { mutableStateOf("") }
+    var mobileSelectedTab by remember { mutableStateOf(0) } // 0: Sewa Baru, 1: Sesi Aktif
+
+    val configuration = LocalConfiguration.current
+    val isSmallScreen = configuration.screenWidthDp < 600
 
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
 
@@ -67,14 +72,14 @@ fun DashboardScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("💰 Kasir Mobile", fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.width(12.dp))
+                        Spacer(Modifier.width(8.dp))
                         Surface(
                             color = KasirGreen.copy(alpha = 0.2f),
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
                                 text = "Shift: ${uiState.currentShiftUser ?: "Kasir"} | ${ShiftDateUtil.getShiftDateFromNow()}",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = KasirGreen
                             )
@@ -109,174 +114,120 @@ fun DashboardScreen(
                     icon = { Icon(Icons.Filled.History, contentDescription = "Riwayat") },
                     label = { Text("Riwayat") }
                 )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { navController.navigate(NavRoutes.SESSION) },
-                    icon = { Icon(Icons.Filled.Badge, contentDescription = "Shift") },
-                    label = { Text("Shift") }
-                )
             }
         },
         containerColor = KasirSurface
     ) { padding ->
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Left Panel: Form Sewa Baru (Catalog & Selection)
-            Surface(
-                modifier = Modifier
-                    .weight(0.45f)
-                    .fillMaxHeight(),
-                shape = RoundedCornerShape(16.dp),
-                color = KasirSurfaceVariant
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxHeight()
+            if (isSmallScreen) {
+                // Mobile layout with tabs
+                TabRow(
+                    selectedTabIndex = mobileSelectedTab,
+                    containerColor = KasirSurfaceVariant,
+                    contentColor = KasirGreen
                 ) {
-                    Text(
-                        "✨ Sewa Baru",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = KasirGreen
+                    Tab(
+                        selected = mobileSelectedTab == 0,
+                        onClick = { mobileSelectedTab = 0 },
+                        text = { Text("✨ Sewa Baru", fontWeight = FontWeight.Bold) }
                     )
-                    Spacer(Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = inputNama,
-                        onValueChange = { inputNama = it },
-                        label = { Text("Nama Penyewa") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
+                    Tab(
+                        selected = mobileSelectedTab == 1,
+                        onClick = { mobileSelectedTab = 1 },
+                        text = { Text("⏱️ Sesi Aktif (${filteredSessions.size})", fontWeight = FontWeight.Bold) }
                     )
+                }
 
-                    Spacer(Modifier.height(12.dp))
-                    Text("Metode Bayar Awal (Pokok)", style = MaterialTheme.typography.labelMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = payAwal == "cash",
-                            onClick = { payAwal = "cash" },
-                            label = { Text("Cash") },
-                            leadingIcon = { Icon(Icons.Filled.Payments, contentDescription = null) },
-                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+                Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
+                    if (mobileSelectedTab == 0) {
+                        SewaBaruContent(
+                            inputNama = inputNama,
+                            onNamaChange = { inputNama = it },
+                            payAwal = payAwal,
+                            onPayAwalChange = { payAwal = it },
+                            selectedQty = selectedQty,
+                            onQuantityChange = { code, delta ->
+                                val current = selectedQty[code] ?: 0
+                                selectedQty = selectedQty + (code to (current + delta).coerceAtLeast(0))
+                            },
+                            idrFormat = idrFormat,
+                            onStartRental = {
+                                val items = ItemCatalog.ITEMS
+                                    .filter { (selectedQty[it.code] ?: 0) > 0 }
+                                    .map { ItemDto(code = it.code, qty = selectedQty[it.code] ?: 1) }
+                                if (inputNama.isNotBlank() && items.isNotEmpty()) {
+                                    viewModel.startRental(inputNama.trim(), items, payAwal)
+                                    inputNama = ""
+                                    selectedQty = emptyMap()
+                                }
+                            }
                         )
-                        FilterChip(
-                            selected = payAwal == "qris",
-                            onClick = { payAwal = "qris" },
-                            label = { Text("QRIS") },
-                            leadingIcon = { Icon(Icons.Filled.QrCode, contentDescription = null) },
-                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+                    } else {
+                        SesiAktifContent(
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { searchQuery = it },
+                            filteredSessions = filteredSessions,
+                            onSelesai = { viewModel.activeCheckoutSession.value = it },
+                            onShowQR = { viewModel.activeQrSession.value = it }
                         )
                     }
-
-                    Spacer(Modifier.height(12.dp))
-                    Text("Pilih Item & Jumlah", style = MaterialTheme.typography.labelMedium)
-                    Spacer(Modifier.height(6.dp))
-
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
+                }
+            } else {
+                // Tablet / Desktop side-by-side layout
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Surface(
+                        modifier = Modifier.weight(0.45f).fillMaxHeight(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = KasirSurfaceVariant
                     ) {
-                        items(ItemCatalog.ITEMS.size) { index ->
-                            val item = ItemCatalog.ITEMS[index]
-                            val qty = selectedQty[item.code] ?: 0
-                            ItemCatalogCard(
-                                item = item,
-                                qty = qty,
+                        Box(modifier = Modifier.padding(16.dp)) {
+                            SewaBaruContent(
+                                inputNama = inputNama,
+                                onNamaChange = { inputNama = it },
+                                payAwal = payAwal,
+                                onPayAwalChange = { payAwal = it },
+                                selectedQty = selectedQty,
+                                onQuantityChange = { code, delta ->
+                                    val current = selectedQty[code] ?: 0
+                                    selectedQty = selectedQty + (code to (current + delta).coerceAtLeast(0))
+                                },
                                 idrFormat = idrFormat,
-                                onQuantityChange = { delta ->
-                                    val current = selectedQty[item.code] ?: 0
-                                    val next = (current + delta).coerceAtLeast(0)
-                                    selectedQty = selectedQty + (item.code to next)
+                                onStartRental = {
+                                    val items = ItemCatalog.ITEMS
+                                        .filter { (selectedQty[it.code] ?: 0) > 0 }
+                                        .map { ItemDto(code = it.code, qty = selectedQty[it.code] ?: 1) }
+                                    if (inputNama.isNotBlank() && items.isNotEmpty()) {
+                                        viewModel.startRental(inputNama.trim(), items, payAwal)
+                                        inputNama = ""
+                                        selectedQty = emptyMap()
+                                    }
                                 }
                             )
                         }
                     }
 
-                    Spacer(Modifier.height(12.dp))
-
-                    Button(
-                        onClick = {
-                            val items = ItemCatalog.ITEMS
-                                .filter { (selectedQty[it.code] ?: 0) > 0 }
-                                .map { ItemDto(code = it.code, qty = selectedQty[it.code] ?: 1) }
-
-                            if (inputNama.isNotBlank() && items.isNotEmpty()) {
-                                viewModel.startRental(inputNama.trim(), items, payAwal)
-                                inputNama = ""
-                                selectedQty = emptyMap()
-                            }
-                        },
-                        enabled = inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                    Surface(
+                        modifier = Modifier.weight(0.55f).fillMaxHeight(),
+                        shape = RoundedCornerShape(16.dp),
+                        color = KasirSurfaceVariant
                     ) {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                        Spacer(Modifier.width(6.dp))
-                        Text("Mulai Sewa", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            // Right Panel: Sesi Sewa Aktif
-            Surface(
-                modifier = Modifier
-                    .weight(0.55f)
-                    .fillMaxHeight(),
-                shape = RoundedCornerShape(16.dp),
-                color = KasirSurfaceVariant
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "⏱️ Sesi Aktif (${filteredSessions.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = { Text("Cari penyewa...") },
-                            singleLine = true,
-                            modifier = Modifier.width(180.dp),
-                            textStyle = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    if (filteredSessions.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "Tidak ada sesi sewa aktif saat ini",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        Box(modifier = Modifier.padding(16.dp)) {
+                            SesiAktifContent(
+                                searchQuery = searchQuery,
+                                onSearchQueryChange = { searchQuery = it },
+                                filteredSessions = filteredSessions,
+                                onSelesai = { viewModel.activeCheckoutSession.value = it },
+                                onShowQR = { viewModel.activeQrSession.value = it }
                             )
-                        }
-                    } else {
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            items(filteredSessions, key = { it.id }) { session ->
-                                ActiveSessionCard(
-                                    session = session,
-                                    onSelesai = { viewModel.activeCheckoutSession.value = session },
-                                    onShowQR = { viewModel.activeQrSession.value = session }
-                                )
-                            }
                         }
                     }
                 }
@@ -317,167 +268,125 @@ fun DashboardScreen(
 }
 
 @Composable
-fun ItemCatalogCard(
-    item: CatalogItem,
-    qty: Int,
+fun SewaBaruContent(
+    inputNama: String,
+    onNamaChange: (String) -> Unit,
+    payAwal: String,
+    onPayAwalChange: (String) -> Unit,
+    selectedQty: Map<String, Int>,
+    onQuantityChange: (String, Int) -> Unit,
     idrFormat: NumberFormat,
-    onQuantityChange: (Int) -> Unit
+    onStartRental: () -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (qty > 0) KasirGreen.copy(alpha = 0.15f) else KasirSurfaceCard,
-        modifier = Modifier.fillMaxWidth().clickable { onQuantityChange(1) }
-    ) {
-        Column(
-            modifier = Modifier.padding(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(item.emoji, fontSize = 28.sp)
-            Spacer(Modifier.height(4.dp))
-            Text(item.code, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            Text(item.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
-            Text(
-                text = if (item.isPackage) "Paket ${item.packageHours}j ${idrFormat.format(item.priceHour)}" else "${idrFormat.format(item.priceHour)}/j",
-                style = MaterialTheme.typography.bodySmall,
-                color = KasirGreen,
-                fontSize = 10.sp
+    Column(modifier = Modifier.fillMaxSize()) {
+        Text("✨ Sewa Baru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = KasirGreen)
+        Spacer(Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = inputNama,
+            onValueChange = onNamaChange,
+            label = { Text("Nama Penyewa") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
+        )
+
+        Spacer(Modifier.height(8.dp))
+        Text("Metode Bayar Awal (Pokok)", style = MaterialTheme.typography.labelMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = payAwal == "cash",
+                onClick = { onPayAwalChange("cash") },
+                label = { Text("Cash") },
+                leadingIcon = { Icon(Icons.Filled.Payments, contentDescription = null) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
             )
-            Spacer(Modifier.height(6.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { onQuantityChange(-1) }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Filled.Remove, contentDescription = null, modifier = Modifier.size(14.dp))
-                }
-                Text("$qty", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp))
-                IconButton(onClick = { onQuantityChange(1) }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                }
+            FilterChip(
+                selected = payAwal == "qris",
+                onClick = { onPayAwalChange("qris") },
+                label = { Text("QRIS") },
+                leadingIcon = { Icon(Icons.Filled.QrCode, contentDescription = null) },
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Text("Pilih Item & Jumlah", style = MaterialTheme.typography.labelMedium)
+        Spacer(Modifier.height(4.dp))
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            items(ItemCatalog.ITEMS.size) { index ->
+                val item = ItemCatalog.ITEMS[index]
+                val qty = selectedQty[item.code] ?: 0
+                ItemCatalogCard(
+                    item = item,
+                    qty = qty,
+                    idrFormat = idrFormat,
+                    onQuantityChange = { delta -> onQuantityChange(item.code, delta) }
+                )
             }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Button(
+            onClick = onStartRental,
+            enabled = inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
+            modifier = Modifier.fillMaxWidth().height(46.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+        ) {
+            Icon(Icons.Filled.PlayArrow, contentDescription = null)
+            Spacer(Modifier.width(6.dp))
+            Text("Mulai Sewa", fontWeight = FontWeight.Bold)
         }
     }
 }
 
 @Composable
-fun ActiveSessionCard(
-    session: SessionDto,
-    onSelesai: () -> Unit,
-    onShowQR: () -> Unit
+fun SesiAktifContent(
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    filteredSessions: List<SessionDto>,
+    onSelesai: (SessionDto) -> Unit,
+    onShowQR: (SessionDto) -> Unit
 ) {
-    var now by remember { mutableStateOf(System.currentTimeMillis()) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = System.currentTimeMillis()
-            kotlinx.coroutines.delay(1000)
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("⏱️ Sesi Aktif (${filteredSessions.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text("Cari...") },
+                singleLine = true,
+                modifier = Modifier.width(140.dp),
+                textStyle = MaterialTheme.typography.bodySmall
+            )
         }
-    }
 
-    val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
-    val elapsedSec = ((now - safeStart) / 1000).coerceAtLeast(0)
-    val elapsedMin = elapsedSec / 60
-    val isZombie = elapsedSec > 28800 // > 8h
+        Spacer(Modifier.height(8.dp))
 
-    val timerColor = when {
-        elapsedMin >= 71 -> Color(0xFFE53935) // Red
-        elapsedMin >= 60 -> KasirAccent // Orange
-        else -> Color(0xFF00E676) // Cyan/Green
-    }
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = KasirSurfaceCard,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        color = KasirAccent.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            "#${session.queueNo}",
-                            fontWeight = FontWeight.Bold,
-                            color = KasirAccent,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                    Spacer(Modifier.width(6.dp))
-                    Text(session.nama, fontWeight = FontWeight.Bold)
-                    if (isZombie) {
-                        Spacer(Modifier.width(6.dp))
-                        Surface(color = Color(0xFFFF9800), shape = RoundedCornerShape(4.dp)) {
-                            Text("⚠️ ZOMBIE", fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
-                        }
-                    }
-                }
-                Surface(
-                    color = if (session.payAwal == "qris") Color(0xFF7C4DFF).copy(alpha = 0.2f) else KasirGreen.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(4.dp)
-                ) {
-                    Text(
-                        session.payAwal.uppercase(),
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        if (filteredSessions.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Tidak ada sesi sewa aktif", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(filteredSessions, key = { it.id }) { session ->
+                    ActiveSessionCard(
+                        session = session,
+                        onSelesai = { onSelesai(session) },
+                        onShowQR = { onShowQR(session) }
                     )
-                }
-            }
-
-            Spacer(Modifier.height(6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                session.items.forEach { item ->
-                    Surface(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            "${item.code}×${item.qty}",
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(safeStart)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = String.format("%02d:%02d:%02d", elapsedSec / 3600, (elapsedSec % 3600) / 60, elapsedSec % 60),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = timerColor
-                )
-            }
-
-            Spacer(Modifier.height(10.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Button(
-                    onClick = onSelesai,
-                    modifier = Modifier.weight(1f).height(38.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
-                ) {
-                    Text("Selesai & Bayar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-                IconButton(onClick = onShowQR, modifier = Modifier.size(38.dp)) {
-                    Icon(Icons.Filled.QrCode, contentDescription = "QR Code")
                 }
             }
         }

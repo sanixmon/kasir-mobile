@@ -1,22 +1,23 @@
 package com.kasir.mobile.data.repository
 
 import com.kasir.mobile.data.model.ActionSuccessResponse
+import com.kasir.mobile.data.model.DeletionLogDto
 import com.kasir.mobile.data.model.DeletionLogsResponse
 import com.kasir.mobile.data.model.FetchAllDataResponse
-import com.kasir.mobile.data.model.ItemDto
+import com.kasir.mobile.data.model.SessionDto
+import com.kasir.mobile.data.model.TransactionDto
 import com.kasir.mobile.data.model.VerifyAdminResponse
 
 interface KasirRepository {
     suspend fun fetchAllData(): Result<FetchAllDataResponse>
-    suspend fun verifyAdmin(pin: String): Result<VerifyAdminResponse>
-    suspend fun addItem(name: String, price: Double, category: String, stock: Int): Result<ActionSuccessResponse>
-    suspend fun updateItem(id: String, name: String, price: Double, category: String, stock: Int): Result<ActionSuccessResponse>
-    suspend fun deleteItem(id: String): Result<ActionSuccessResponse>
-    suspend fun checkIn(userId: String, shiftDate: String): Result<ActionSuccessResponse>
-    suspend fun checkOut(sessionId: String): Result<ActionSuccessResponse>
-    suspend fun sellItems(items: List<ItemDto>): Result<ActionSuccessResponse>
-    suspend fun rentItem(itemId: String, qty: Int, customerId: String): Result<ActionSuccessResponse>
-    suspend fun returnRental(rentalId: String): Result<ActionSuccessResponse>
-    suspend fun addDeletion(targetType: String, targetId: String, reason: String): Result<ActionSuccessResponse>
+    suspend fun addSession(session: SessionDto): Result<ActionSuccessResponse>
+    suspend fun editSession(session: SessionDto): Result<ActionSuccessResponse>
+    suspend fun deleteSession(id: String): Result<ActionSuccessResponse>
+    suspend fun claimSession(claimPayload: Map<String, Any?>): Result<ActionSuccessResponse>
+    suspend fun deleteTxn(id: String?, no: Long?): Result<ActionSuccessResponse>
+    suspend fun clearAllTxns(): Result<ActionSuccessResponse>
+    suspend fun verifyAdmin(password: String): Result<VerifyAdminResponse>
+    suspend fun changeAdminPass(oldPass: String, newPass: String): Result<ActionSuccessResponse>
+    suspend fun addDeletionLog(log: DeletionLogDto): Result<ActionSuccessResponse>
     suspend fun getDeletionLogs(): Result<DeletionLogsResponse>
 }
