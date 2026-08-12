@@ -31,6 +31,7 @@ import com.kasir.mobile.domain.usecase.ShiftDateUtil
 import com.kasir.mobile.ui.navigation.NavRoutes
 import com.kasir.mobile.ui.theme.KasirAccent
 import com.kasir.mobile.ui.theme.KasirDisplay
+import com.kasir.mobile.ui.theme.KasirError
 import com.kasir.mobile.ui.theme.KasirGreen
 import com.kasir.mobile.ui.theme.KasirLine
 import com.kasir.mobile.ui.theme.KasirMono
