@@ -1,16 +1,44 @@
 package com.kasir.mobile.domain.usecase
 
+import com.kasir.mobile.data.model.CatalogItem
 import kotlin.math.floor
 
-/**
- * Port of kasir-db/src/lib/ot.js
- * Overtime calculation rules:
- * - Less than 11 minutes over normal hours → 0 OT
- * - 11–40 minutes over → 0.5 hour
- * - 41–60 minutes over → 1 hour
- * - For each additional hour, same rounding applies
- */
+data class ItemOtResult(
+    val otFullCount: Int,
+    val otHalfCount: Int,
+    val otCost: Double
+)
+
 object OvertimeUtil {
+
+    /**
+     * Calculate overtime for a specific item given elapsed minutes and limit minutes.
+     * Port of kasir-db/src/lib/ot.js calcOT(elMin, limitMin)
+     */
+    fun calcItemOT(
+        elapsedMin: Double,
+        limitMin: Double,
+        priceOT30: Double,
+        priceOT60: Double,
+        qty: Int = 1
+    ): ItemOtResult {
+        val overMin = elapsedMin - limitMin
+        if (overMin < 0 || floor(overMin) < 11) {
+            return ItemOtResult(0, 0, 0.0)
+        }
+
+        var otFull = floor(overMin / 60).toInt()
+        var otHalf = 0
+
+        val remainMin = floor(overMin % 60).toInt()
+        when {
+            remainMin in 11..40 -> otHalf = 1
+            remainMin > 40 -> otFull += 1
+        }
+
+        val otCost = (otFull * priceOT60 + otHalf * priceOT30) * qty
+        return ItemOtResult(otFull, otHalf, otCost)
+    }
 
     fun calcOT(checkInMillis: Long, checkOutMillis: Long, normalHours: Int = 8): Double {
         val elapsedMillis = checkOutMillis - checkInMillis

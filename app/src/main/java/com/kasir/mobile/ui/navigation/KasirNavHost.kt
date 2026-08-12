@@ -1,26 +1,26 @@
 package com.kasir.mobile.ui.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import com.kasir.mobile.ui.screen.auth.LoginScreen
 import com.kasir.mobile.ui.screen.dashboard.DashboardScreen
+import com.kasir.mobile.ui.screen.deletion.DeletionLogScreen
+import com.kasir.mobile.ui.screen.history.HistoryScreen
 import com.kasir.mobile.ui.screen.inventory.InventoryAddScreen
-import com.kasir.mobile.ui.screen.inventory.InventoryEditScreen
 import com.kasir.mobile.ui.screen.inventory.InventoryScreen
-import com.kasir.mobile.ui.screen.pos.PosScreen
 import com.kasir.mobile.ui.screen.rental.RentalReturnScreen
 import com.kasir.mobile.ui.screen.rental.RentalScreen
 import com.kasir.mobile.ui.screen.session.SessionScreen
+import com.kasir.mobile.ui.screen.settings.SettingsScreen
+import com.kasir.mobile.ui.viewmodel.KasirViewModel
 
 @Composable
 fun KasirNavHost(navController: NavHostController) {
+    val kasirViewModel: KasirViewModel = viewModel()
+
     NavHost(
         navController = navController,
         startDestination = NavRoutes.LOGIN
@@ -29,10 +29,16 @@ fun KasirNavHost(navController: NavHostController) {
             LoginScreen(navController = navController)
         }
         composable(NavRoutes.DASHBOARD) {
-            DashboardScreen(navController = navController)
+            DashboardScreen(navController = navController, viewModel = kasirViewModel)
         }
         composable(NavRoutes.POS) {
-            PosScreen(navController = navController)
+            HistoryScreen(navController = navController, viewModel = kasirViewModel)
+        }
+        composable(NavRoutes.DELETION_LOGS) {
+            DeletionLogScreen(navController = navController, viewModel = kasirViewModel)
+        }
+        composable(NavRoutes.SETTINGS) {
+            SettingsScreen(navController = navController, viewModel = kasirViewModel)
         }
         composable(NavRoutes.RENTAL) {
             RentalScreen(navController = navController)
@@ -45,13 +51,6 @@ fun KasirNavHost(navController: NavHostController) {
         }
         composable(NavRoutes.INVENTORY_ADD) {
             InventoryAddScreen(navController = navController)
-        }
-        composable(
-            route = NavRoutes.INVENTORY_EDIT,
-            arguments = listOf(navArgument("itemId") { type = NavType.LongType })
-        ) { backStack ->
-            val itemId = backStack.arguments?.getLong("itemId") ?: return@composable
-            InventoryEditScreen(navController = navController, itemId = itemId)
         }
         composable(NavRoutes.SESSION) {
             SessionScreen(navController = navController)
