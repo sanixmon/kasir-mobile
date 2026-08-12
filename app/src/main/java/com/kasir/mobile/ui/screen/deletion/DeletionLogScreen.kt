@@ -62,7 +62,7 @@ fun DeletionLogScreen(
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(uiState.deletionLogs, key = { it.id }) { log ->
+                    items(uiState.deletionLogs, key = { it.id ?: 0L }) { log ->
                         DeletionLogCard(log = log, idrFormat = idrFormat, dateFormat = dateFormat)
                     }
                 }
