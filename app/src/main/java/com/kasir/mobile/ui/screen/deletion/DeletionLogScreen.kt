@@ -33,6 +33,11 @@ fun DeletionLogScreen(
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
 
+    // Load deletion audit logs from the server when the screen opens
+    LaunchedEffect(Unit) {
+        viewModel.loadDeletionLogs()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -45,7 +50,20 @@ fun DeletionLogScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = KasirSurfaceVariant)
             )
         },
-        containerColor = KasirSurface
+        containerColor = KasirSurface,
+        snackbarHost = {
+            val error = uiState.errorMessage
+            SnackbarHost(
+                hostState = SnackbarHostState().also { host ->
+                    LaunchedEffect(error) {
+                        if (error != null) {
+                            host.showSnackbar(error, duration = SnackbarDuration.Short)
+                            viewModel.clearMessages()
+                        }
+                    }
+                }
+            )
+        }
     ) { padding ->
         Column(
             modifier = Modifier

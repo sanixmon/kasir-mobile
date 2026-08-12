@@ -33,7 +33,17 @@ fun HistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
+    var txnToDelete by remember { mutableStateOf<TransactionDto?>(null) }
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
+        val msg = uiState.errorMessage ?: uiState.successMessage
+        if (msg != null) {
+            snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Short)
+            viewModel.clearMessages()
+        }
+    }
 
     val filteredTxns = remember(uiState.transactions, searchQuery) {
         uiState.transactions.filter {
@@ -66,7 +76,8 @@ fun HistoryScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = KasirSurfaceVariant)
             )
         },
-        containerColor = KasirSurface
+        containerColor = KasirSurface,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -113,12 +124,36 @@ fun HistoryScreen(
                         TransactionCard(
                             txn = txn,
                             idrFormat = idrFormat,
-                            onDelete = { viewModel.deleteTransaction(txn) }
+                            onDelete = { txnToDelete = txn }
                         )
                     }
                 }
             }
         }
+    }
+
+    // Delete confirmation (mirrors kasir-db swalConfirm)
+    txnToDelete?.let { txn ->
+        AlertDialog(
+            onDismissRequest = { txnToDelete = null },
+            title = { Text("Hapus Riwayat Transaksi?") },
+            text = { Text("Bill atas nama \"${txn.nama}\" akan dihapus secara permanen.${if (uiState.currentUserRole != "admin") "\n\nKasir perlu verifikasi password admin." else ""}") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteTransaction(txn)
+                        txnToDelete = null
+                    }
+                ) {
+                    Text("Ya, Hapus!", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { txnToDelete = null }) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 }
 
@@ -201,6 +236,19 @@ fun TransactionCard(
                     Text("TOTAL: ${idrFormat.format(txn.totalAll)}", fontWeight = FontWeight.Bold, color = KasirGreen, fontSize = 16.sp)
                     Text("Shift: ${txn.shift}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+            }
+
+            Spacer(Modifier.height(4.dp))
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.align(Alignment.End).size(32.dp)
+            ) {
+                Icon(
+                    Icons.Filled.Delete,
+                    contentDescription = "Hapus Transaksi",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp)
+                )
             }
         }
     }

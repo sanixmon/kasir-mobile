@@ -9,6 +9,10 @@ import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.VerifyAdminResponse
 import com.kasir.mobile.data.remote.KasirApiService
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
@@ -38,15 +42,26 @@ class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirReposi
 
     override suspend fun claimSession(claimPayload: Map<String, Any?>): Result<ActionSuccessResponse> = runCatching {
         apiService.claimSession(KasirRpcRequest(action = "claim_session", payload = buildJsonObject {
-            claimPayload.forEach { (k, v) ->
-                when (v) {
-                    is String -> put(k, v)
-                    is Number -> put(k, v.toDouble())
-                    is Boolean -> put(k, v)
-                    else -> put(k, v.toString())
-                }
-            }
+            claimPayload.forEach { (k, v) -> put(k, v.toJsonElement()) }
         }))
+    }
+
+    /** Recursively convert arbitrary claim payload values into JSON elements. */
+    private fun Any?.toJsonElement(): JsonElement = when (this) {
+        null -> JsonNull
+        is String -> JsonPrimitive(this)
+        is Boolean -> JsonPrimitive(this)
+        is Int -> JsonPrimitive(this)
+        is Long -> JsonPrimitive(this)
+        is Double -> JsonPrimitive(this)
+        is Float -> JsonPrimitive(this)
+        is Map<*, *> -> buildJsonObject {
+            this@toJsonElement.forEach { (k, v) -> if (k != null) put(k.toString(), v.toJsonElement()) }
+        }
+        is List<*> -> buildJsonArray {
+            this@toJsonElement.forEach { add(it.toJsonElement()) }
+        }
+        else -> JsonPrimitive(toString())
     }
 
     override suspend fun deleteTxn(id: String?, no: Long?): Result<ActionSuccessResponse> = runCatching {

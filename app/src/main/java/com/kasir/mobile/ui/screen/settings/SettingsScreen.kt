@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.kasir.mobile.data.ServiceLocator
 import com.kasir.mobile.ui.theme.KasirGreen
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
@@ -32,6 +33,9 @@ fun SettingsScreen(
     var oldPin by remember { mutableStateOf("") }
     var newPin by remember { mutableStateOf("") }
     var pinMessage by remember { mutableStateOf<String?>(null) }
+    var pinError by remember { mutableStateOf(false) }
+
+    val isAdmin = uiState.currentUserRole == "admin"
 
     Scaffold(
         topBar = {
@@ -47,6 +51,29 @@ fun SettingsScreen(
         },
         containerColor = KasirSurface
     ) { padding ->
+        if (!isAdmin) {
+            // Mirrors kasir-db: Pengaturan is admin-only
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.height(12.dp))
+                    Text("Akses Ditolak", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Hanya Admin yang dapat mengakses Pengaturan.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+            return@Scaffold
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -55,6 +82,25 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Server info
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = KasirSurfaceCard,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.Settings, contentDescription = null, tint = KasirGreen)
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text("Server Aktif", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(ServiceLocator.activeServerUrl, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+
             // Section 1: Cetak Struk Options
             Surface(
                 shape = RoundedCornerShape(12.dp),
@@ -135,7 +181,11 @@ fun SettingsScreen(
 
                     pinMessage?.let {
                         Spacer(Modifier.height(8.dp))
-                        Text(it, color = KasirGreen, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            it,
+                            color = if (pinError) MaterialTheme.colorScheme.error else KasirGreen,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
 
                     Spacer(Modifier.height(12.dp))
@@ -143,9 +193,14 @@ fun SettingsScreen(
                     Button(
                         onClick = {
                             if (oldPin.isNotBlank() && newPin.isNotBlank()) {
-                                pinMessage = "PIN Admin berhasil diperbarui!"
-                                oldPin = ""
-                                newPin = ""
+                                viewModel.changeAdminPassword(oldPin, newPin) { ok, msg ->
+                                    pinError = !ok
+                                    pinMessage = msg
+                                    if (ok) {
+                                        oldPin = ""
+                                        newPin = ""
+                                    }
+                                }
                             }
                         },
                         enabled = oldPin.isNotBlank() && newPin.isNotBlank(),

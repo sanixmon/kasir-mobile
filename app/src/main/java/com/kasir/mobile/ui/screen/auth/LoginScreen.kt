@@ -8,13 +8,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -25,27 +26,32 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.kasir.mobile.ui.navigation.NavRoutes
-import com.kasir.mobile.ui.viewmodel.AuthViewModel
 import com.kasir.mobile.ui.theme.KasirGreen
-import com.kasir.mobile.ui.theme.KasirGreenDark
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
+import com.kasir.mobile.ui.viewmodel.AuthViewModel
+import com.kasir.mobile.ui.viewmodel.KasirViewModel
 
 @Composable
 fun LoginScreen(
     navController: NavController,
+    kasirViewModel: KasirViewModel,
     authViewModel: AuthViewModel = viewModel()
 ) {
     val uiState by authViewModel.uiState.collectAsState()
+    var portal by remember { mutableStateOf("cashier") } // "cashier" | "admin"
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var serverUrl by remember { mutableStateOf("http://10.0.2.2:3001") }
     var showServerField by remember { mutableStateOf(false) }
 
-    // Navigate to dashboard on success
+    // Navigate to dashboard on success and register the shift user
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
+            kasirViewModel.setShiftUser(
+                name = uiState.username,
+                role = if (uiState.isAdmin) "admin" else "cashier"
+            )
             navController.navigate(NavRoutes.DASHBOARD) {
                 popUpTo(NavRoutes.LOGIN) { inclusive = true }
             }
@@ -89,7 +95,32 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Portal selector (mirrors kasir-db RoleSelection)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = portal == "cashier",
+                    onClick = { portal = "cashier" },
+                    label = { Text("Portal Kasir (POS)", fontWeight = FontWeight.SemiBold) },
+                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                    modifier = Modifier.weight(1f),
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+                )
+                FilterChip(
+                    selected = portal == "admin",
+                    onClick = { portal = "admin" },
+                    label = { Text("Portal Admin", fontWeight = FontWeight.SemiBold) },
+                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
+                    modifier = Modifier.weight(1f),
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Login Card
             Surface(
@@ -100,30 +131,33 @@ fun LoginScreen(
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     Text(
-                        text = "Masuk",
+                        text = if (portal == "cashier") "Login Shift Kasir" else "Verifikasi Keamanan Admin",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text("Username") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = KasirGreen,
-                            focusedLabelColor = KasirGreen,
+                    if (portal == "cashier") {
+                        OutlinedTextField(
+                            value = username,
+                            onValueChange = { username = it },
+                            label = { Text("Username Kasir") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = KasirGreen,
+                                focusedLabelColor = KasirGreen,
+                            )
                         )
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Password") },
+                        label = { Text(if (portal == "cashier") "Password Shift" else "Password Admin") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -159,8 +193,8 @@ fun LoginScreen(
 
                     AnimatedVisibility(visible = showServerField) {
                         OutlinedTextField(
-                            value = serverUrl,
-                            onValueChange = { serverUrl = it },
+                            value = uiState.serverUrl,
+                            onValueChange = { authViewModel.setServerUrl(it) },
                             label = { Text("Server URL") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -188,12 +222,16 @@ fun LoginScreen(
 
                     Button(
                         onClick = {
-                            authViewModel.login(username = username, password = password, serverUrl = serverUrl)
+                            if (portal == "cashier") {
+                                authViewModel.loginAsCashier(username, password, uiState.serverUrl)
+                            } else {
+                                authViewModel.loginAsAdmin(password, uiState.serverUrl)
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
-                        enabled = !uiState.isLoading && username.isNotBlank() && password.isNotBlank(),
+                        enabled = !uiState.isLoading && password.isNotBlank() && (portal == "admin" || username.isNotBlank()),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
                     ) {
@@ -204,7 +242,10 @@ fun LoginScreen(
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
                         } else {
-                            Text("Masuk", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                text = if (portal == "cashier") "Mulai Shift" else "Masuk Admin",
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
                 }

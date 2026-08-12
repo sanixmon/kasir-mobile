@@ -21,7 +21,7 @@ fun KasirNavHost(navController: NavHostController) {
         startDestination = NavRoutes.LOGIN
     ) {
         composable(NavRoutes.LOGIN) {
-            LoginScreen(navController = navController)
+            LoginScreen(navController = navController, kasirViewModel = kasirViewModel)
         }
         composable(NavRoutes.DASHBOARD) {
             DashboardScreen(navController = navController, viewModel = kasirViewModel)

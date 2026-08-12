@@ -48,6 +48,18 @@ fun DashboardScreen(
     val activeCheckoutSession by viewModel.activeCheckoutSession.collectAsState()
     val activePaymentData by viewModel.activePaymentData.collectAsState()
     val activeQrSession by viewModel.activeQrSession.collectAsState()
+    val activeEditSession by viewModel.activeEditSession.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Show transient success/error messages
+    LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
+        val msg = uiState.errorMessage ?: uiState.successMessage
+        if (msg != null) {
+            snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Short)
+            viewModel.clearMessages()
+        }
+    }
 
     var inputNama by remember { mutableStateOf("") }
     var payAwal by remember { mutableStateOf("cash") }
@@ -87,8 +99,29 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { navController.navigate(NavRoutes.DELETION_LOGS) }) {
-                        Icon(Icons.Filled.Delete, contentDescription = "Log Hapus")
+                    // Connection status badge
+                    Surface(
+                        color = if (uiState.apiConnected) KasirGreen.copy(alpha = 0.2f) else KasirAccent.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = if (uiState.isSyncing) "SYNC…" else if (uiState.apiConnected) "ONLINE" else "OFFLINE",
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (uiState.apiConnected) KasirGreen else KasirAccent
+                        )
+                    }
+                    IconButton(onClick = { viewModel.loadData() }) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh Data")
+                    }
+                    if (uiState.currentUserRole == "admin") {
+                        IconButton(onClick = {
+                            viewModel.loadDeletionLogs()
+                            navController.navigate(NavRoutes.DELETION_LOGS)
+                        }) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Log Hapus")
+                        }
                     }
                     IconButton(onClick = { navController.navigate(NavRoutes.SETTINGS) }) {
                         Icon(Icons.Filled.Settings, contentDescription = "Pengaturan")
@@ -116,7 +149,8 @@ fun DashboardScreen(
                 )
             }
         },
-        containerColor = KasirSurface
+        containerColor = KasirSurface,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -172,7 +206,8 @@ fun DashboardScreen(
                             onSearchQueryChange = { searchQuery = it },
                             filteredSessions = filteredSessions,
                             onSelesai = { viewModel.activeCheckoutSession.value = it },
-                            onShowQR = { viewModel.activeQrSession.value = it }
+                            onShowQR = { viewModel.activeQrSession.value = it },
+                            onEdit = { viewModel.requestEditSession(it) }
                         )
                     }
                 }
@@ -226,13 +261,15 @@ fun DashboardScreen(
                                 onSearchQueryChange = { searchQuery = it },
                                 filteredSessions = filteredSessions,
                                 onSelesai = { viewModel.activeCheckoutSession.value = it },
-                                onShowQR = { viewModel.activeQrSession.value = it }
+                                onShowQR = { viewModel.activeQrSession.value = it },
+                                onEdit = { viewModel.requestEditSession(it) }
                             )
                         }
                     }
                 }
             }
         }
+
     }
 
     // Modals
@@ -263,6 +300,18 @@ fun DashboardScreen(
         QrCodeDialog(
             session = session,
             onClose = { viewModel.activeQrSession.value = null }
+        )
+    }
+
+    // Admin PIN verification dialog (delete txn / clear history / edit session gate)
+    AdminPinDialog(viewModel = viewModel)
+
+    // Edit active session dialog (opens after admin PIN verified)
+    activeEditSession?.let { session ->
+        EditActiveSessionDialog(
+            session = session,
+            viewModel = viewModel,
+            onClose = { viewModel.activeEditSession.value = null }
         )
     }
 }
@@ -354,7 +403,8 @@ fun SesiAktifContent(
     onSearchQueryChange: (String) -> Unit,
     filteredSessions: List<SessionDto>,
     onSelesai: (SessionDto) -> Unit,
-    onShowQR: (SessionDto) -> Unit
+    onShowQR: (SessionDto) -> Unit,
+    onEdit: (SessionDto) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -385,7 +435,8 @@ fun SesiAktifContent(
                     ActiveSessionCard(
                         session = session,
                         onSelesai = { onSelesai(session) },
-                        onShowQR = { onShowQR(session) }
+                        onShowQR = { onShowQR(session) },
+                        onEdit = { onEdit(session) }
                     )
                 }
             }
@@ -437,7 +488,8 @@ fun ItemCatalogCard(
 fun ActiveSessionCard(
     session: SessionDto,
     onSelesai: () -> Unit,
-    onShowQR: () -> Unit
+    onShowQR: () -> Unit,
+    onEdit: () -> Unit
 ) {
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
 
@@ -552,6 +604,9 @@ fun ActiveSessionCard(
                     colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
                 ) {
                     Text("Selesai & Bayar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+                IconButton(onClick = onEdit, modifier = Modifier.size(38.dp)) {
+                    Icon(Icons.Filled.Edit, contentDescription = "Edit Sesi")
                 }
                 IconButton(onClick = onShowQR, modifier = Modifier.size(38.dp)) {
                     Icon(Icons.Filled.QrCode, contentDescription = "QR Code")

@@ -2,12 +2,14 @@ package com.kasir.mobile.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.kasir.mobile.data.ServiceLocator
 import com.kasir.mobile.data.model.CatalogItem
 import com.kasir.mobile.data.model.DeletionLogDto
 import com.kasir.mobile.data.model.ItemCatalog
 import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.TransactionDto
+import com.kasir.mobile.data.repository.KasirRepository
 import com.kasir.mobile.domain.usecase.OvertimeUtil
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
 import kotlinx.coroutines.delay
@@ -15,7 +17,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class KasirUiState(
     val currentShiftUser: String? = null,
@@ -67,12 +73,26 @@ class KasirViewModel : ViewModel() {
     var activePaymentData = MutableStateFlow<PaymentCalcData?>(null)
     var activeQrSession = MutableStateFlow<SessionDto?>(null)
     var activeEditSession = MutableStateFlow<SessionDto?>(null)
-    var showAdminPinDialog = MutableStateFlow<Pair<Boolean, (() -> Unit)?>>(Pair(false, null))
+
+    // Admin PIN verification gate (non-null value = PIN dialog shown; the lambda
+    // is the protected action to run once the PIN is verified)
+    var pendingAdminAction = MutableStateFlow<(() -> Unit)?>(null)
+    var adminPinError = MutableStateFlow<String?>(null)
+
+    private var syncingNow = false
 
     init {
-        // Auto check shift expiration on start
-        checkShiftExpiration()
+        viewModelScope.launch {
+            loadData()
+            // Low-latency polling, mirrors kasir-db App.jsx (5s interval)
+            while (isActive) {
+                delay(5000)
+                loadData()
+            }
+        }
     }
+
+    private fun repository(): KasirRepository = ServiceLocator.repository()
 
     fun setShiftUser(name: String, role: String = "cashier") {
         _uiState.update {
@@ -104,18 +124,41 @@ class KasirViewModel : ViewModel() {
         _uiState.update { it.copy(printSelesai = value) }
     }
 
-    private fun checkShiftExpiration() {
-        val currentShift = ShiftDateUtil.getShiftDateFromNow()
-        // If needed reset on shift date change
+    fun loadData() {
+        if (syncingNow) return
+        syncingNow = true
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSyncing = true) }
+            repository().fetchAllData()
+                .onSuccess { data ->
+                    _uiState.update {
+                        it.copy(
+                            isSyncing = false,
+                            activeSessions = data.sessions.sortedByDescending { s -> s.startTime },
+                            transactions = data.transactions.sortedBy { t -> t.no },
+                            apiConnected = true,
+                            lastSyncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update {
+                        it.copy(
+                            isSyncing = false,
+                            apiConnected = false
+                        )
+                    }
+                }
+            syncingNow = false
+        }
     }
 
     fun startRental(nama: String, items: List<ItemDto>, payAwal: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val newQueueNo = (_uiState.value.activeSessions.maxOfOrNull { it.queueNo } ?: 0) + 1
             val newSession = SessionDto(
-                id = "s-${System.currentTimeMillis()}",
-                queueNo = newQueueNo,
+                id = "s-${System.currentTimeMillis().toString(36)}",
+                queueNo = 0,
                 nama = nama,
                 items = items,
                 startTime = System.currentTimeMillis(),
@@ -123,13 +166,25 @@ class KasirViewModel : ViewModel() {
                 payAwal = payAwal
             )
 
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    activeSessions = listOf(newSession) + it.activeSessions,
-                    successMessage = "Sesi sewa atas nama $nama berhasil dimulai"
-                )
-            }
+            repository().addSession(newSession)
+                .onSuccess { res ->
+                    val saved = res.session ?: newSession
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            activeSessions = listOf(saved) + it.activeSessions.filter { s -> s.id != saved.id },
+                            successMessage = "Sesi sewa atas nama ${saved.nama} berhasil dimulai (Antrian #${saved.queueNo})"
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Gagal memulai sesi: ${e.message ?: "Periksa koneksi ke server"}"
+                        )
+                    }
+                }
         }
     }
 
@@ -181,57 +236,99 @@ class KasirViewModel : ViewModel() {
     fun finalizePayment(paymentData: PaymentCalcData, cash: Double, qris: Double) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+            val session = paymentData.session
+
             val itemStr = paymentData.itemsCalc
                 .filter { it.returnQty > 0 }
                 .joinToString(", ") { "${it.item.code}×${it.returnQty}" }
 
-            val remainingItems = paymentData.session.items.map { orig ->
+            val remainingItems = session.items.map { orig ->
                 val calc = paymentData.itemsCalc.find { it.item.code == orig.code }
                 val returned = calc?.returnQty ?: 0
                 ItemDto(code = orig.code, qty = orig.qty - returned)
             }.filter { it.qty > 0 }
 
-            val newTxn = TransactionDto(
-                id = "t-${paymentData.session.id}",
-                no = (_uiState.value.transactions.maxOfOrNull { it.no } ?: 0) + 1,
-                queueNo = paymentData.session.queueNo,
-                nama = paymentData.session.nama,
-                tanggal = paymentData.session.tanggal,
-                startTime = paymentData.session.startTime,
-                endTime = paymentData.endTime,
-                items = itemStr,
-                ot = paymentData.otStr,
-                otDur = paymentData.otDurStr,
-                totalBase = paymentData.baseSum,
-                totalOT = paymentData.otSum,
-                totalTol = 0.0,
-                grandTotal = paymentData.grandTotal,
-                totalAll = paymentData.grandTotal,
-                payAwal = paymentData.session.payAwal,
-                cash = cash,
-                qris = qris,
-                shift = _uiState.value.currentShiftUser ?: "Kasir"
+            // Payload mirrors kasir-db App.jsx handleFinalizePayment
+            val claimPayload = mapOf(
+                "sessionId" to session.id,
+                "remainingItems" to remainingItems.map { mapOf("code" to it.code, "qty" to it.qty) },
+                "queueNo" to session.queueNo,
+                "nama" to session.nama,
+                "tanggal" to session.tanggal,
+                "startTime" to session.startTime,
+                "endTime" to paymentData.endTime,
+                "items" to itemStr,
+                "ot" to paymentData.otStr,
+                "otDur" to paymentData.otDurStr,
+                "totalBase" to paymentData.baseSum,
+                "totalOT" to paymentData.otSum,
+                "totalTol" to 0.0,
+                "grandTotal" to paymentData.otSum,
+                "totalAll" to paymentData.baseSum + paymentData.otSum,
+                "payAwal" to session.payAwal,
+                "cash" to cash,
+                "qris" to qris,
+                "shift" to (_uiState.value.currentShiftUser ?: "-")
             )
 
-            _uiState.update {
-                val updatedSessions = if (remainingItems.isNotEmpty()) {
-                    it.activeSessions.map { s -> if (s.id == paymentData.session.id) s.copy(items = remainingItems) else s }
-                } else {
-                    it.activeSessions.filter { s -> s.id != paymentData.session.id }
+            repository().claimSession(claimPayload)
+                .onSuccess { res ->
+                    val newTxn = res.transaction ?: TransactionDto(
+                        id = "t-${session.id.removePrefix("s-")}",
+                        no = 0,
+                        queueNo = session.queueNo,
+                        nama = session.nama,
+                        tanggal = session.tanggal,
+                        startTime = session.startTime,
+                        endTime = paymentData.endTime,
+                        items = itemStr,
+                        ot = paymentData.otStr,
+                        otDur = paymentData.otDurStr,
+                        totalBase = paymentData.baseSum,
+                        totalOT = paymentData.otSum,
+                        grandTotal = paymentData.otSum,
+                        totalAll = paymentData.baseSum + paymentData.otSum,
+                        payAwal = session.payAwal,
+                        cash = cash,
+                        qris = qris,
+                        shift = _uiState.value.currentShiftUser ?: "-"
+                    )
+                    _uiState.update {
+                        val updatedSessions = if (remainingItems.isNotEmpty()) {
+                            it.activeSessions.map { s -> if (s.id == session.id) s.copy(items = remainingItems) else s }
+                        } else {
+                            it.activeSessions.filter { s -> s.id != session.id }
+                        }
+                        it.copy(
+                            isLoading = false,
+                            activeSessions = updatedSessions,
+                            transactions = (listOf(newTxn) + it.transactions).sortedBy { t -> t.no },
+                            successMessage = "Pembayaran transaksi #${newTxn.no} atas nama ${newTxn.nama} berhasil!"
+                        )
+                    }
                 }
-                it.copy(
-                    isLoading = false,
-                    activeSessions = updatedSessions,
-                    transactions = listOf(newTxn) + it.transactions,
-                    successMessage = "Pembayaran transaksi #${newTxn.no} atas nama ${newTxn.nama} berhasil!"
-                )
-            }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Gagal memproses pembayaran: ${e.message ?: "Periksa koneksi ke server"}"
+                        )
+                    }
+                }
             activeCheckoutSession.value = null
             activePaymentData.value = null
         }
     }
 
     fun deleteTransaction(txn: TransactionDto) {
+        if (_uiState.value.currentUserRole == "admin") {
+            performDeleteTransaction(txn)
+        } else {
+            pendingAdminAction.value = { performDeleteTransaction(txn) }
+        }
+    }
+
+    private fun performDeleteTransaction(txn: TransactionDto) {
         viewModelScope.launch {
             val log = DeletionLogDto(
                 id = System.currentTimeMillis(),
@@ -243,24 +340,144 @@ class KasirViewModel : ViewModel() {
                 deletedAt = System.currentTimeMillis(),
                 deletedBy = _uiState.value.currentShiftUser ?: "admin"
             )
+
+            // Optimistic UI update, then sync with the server
             _uiState.update {
                 it.copy(
-                    transactions = it.transactions.filter { t -> t.id != txn.id },
-                    deletionLogs = listOf(log) + it.deletionLogs,
-                    successMessage = "Transaksi #${txn.no} berhasil dihapus"
+                    transactions = it.transactions.filter { t -> t.id != txn.id && t.no != txn.no },
+                    deletionLogs = listOf(log) + it.deletionLogs
                 )
+            }
+
+            val deleteRes = repository().deleteTxn(txn.id, txn.no)
+            val logRes = repository().addDeletionLog(log)
+            when {
+                deleteRes.isFailure -> {
+                    _uiState.update {
+                        it.copy(errorMessage = "Gagal menghapus transaksi di server: ${deleteRes.exceptionOrNull()?.message ?: "koneksi gagal"}")
+                    }
+                    loadData()
+                }
+                logRes.isFailure -> {
+                    _uiState.update {
+                        it.copy(errorMessage = "Transaksi terhapus, tetapi gagal mencatat log penghapusan")
+                    }
+                }
+                else -> {
+                    _uiState.update { it.copy(successMessage = "Transaksi #${txn.no} berhasil dihapus") }
+                }
             }
         }
     }
 
     fun clearAllHistory() {
+        if (_uiState.value.currentUserRole == "admin") {
+            performClearAllHistory()
+        } else {
+            pendingAdminAction.value = { performClearAllHistory() }
+        }
+    }
+
+    private fun performClearAllHistory() {
         viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    transactions = emptyList(),
-                    successMessage = "Semua riwayat transaksi berhasil dibersihkan"
-                )
+            _uiState.update { it.copy(isLoading = true) }
+            repository().clearAllTxns()
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            transactions = emptyList(),
+                            successMessage = "Semua riwayat transaksi berhasil dibersihkan"
+                        )
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Gagal membersihkan riwayat: ${e.message ?: "Periksa koneksi ke server"}"
+                        )
+                    }
+                }
+        }
+    }
+
+    /** Mirrors kasir-db: editing an active session always requires admin PIN first. */
+    fun requestEditSession(session: SessionDto) {
+        pendingAdminAction.value = { activeEditSession.value = session }
+    }
+
+    fun saveEditedSession(updated: SessionDto) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            repository().editSession(updated)
+                .onSuccess { res ->
+                    val saved = res.session ?: updated
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            activeSessions = it.activeSessions.map { s -> if (s.id == saved.id) saved else s },
+                            successMessage = "Sesi atas nama ${saved.nama} berhasil diperbarui"
+                        )
+                    }
+                    activeEditSession.value = null
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Gagal memperbarui sesi: ${e.message ?: "Periksa koneksi ke server"}"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun verifyAdminPin(pin: String) {
+        viewModelScope.launch {
+            val res = repository().verifyAdmin(pin).getOrNull()
+            if (res?.valid == true) {
+                val action = pendingAdminAction.value
+                pendingAdminAction.value = null
+                adminPinError.value = null
+                action?.invoke()
+            } else {
+                adminPinError.value = "Password admin salah!"
             }
+        }
+    }
+
+    fun cancelAdminPin() {
+        pendingAdminAction.value = null
+        adminPinError.value = null
+    }
+
+    fun loadDeletionLogs() {
+        viewModelScope.launch {
+            repository().getDeletionLogs()
+                .onSuccess { res ->
+                    _uiState.update { it.copy(deletionLogs = res.logs) }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(errorMessage = "Gagal memuat log penghapusan: ${e.message ?: "Periksa koneksi ke server"}")
+                    }
+                }
+        }
+    }
+
+    fun changeAdminPassword(oldPass: String, newPass: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            repository().changeAdminPass(oldPass, newPass)
+                .onSuccess { res ->
+                    onResult(
+                        res.success,
+                        if (res.success) "PIN Admin berhasil diperbarui!" else (res.error ?: "Gagal memperbarui PIN admin")
+                    )
+                }
+                .onFailure { e ->
+                    onResult(false, "Gagal terhubung ke server: ${e.message ?: "Periksa URL server"}")
+                }
         }
     }
 

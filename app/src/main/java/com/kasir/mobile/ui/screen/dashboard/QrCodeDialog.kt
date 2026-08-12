@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.kasir.mobile.data.ServiceLocator
 import com.kasir.mobile.data.model.SessionDto
 
 @Composable
@@ -21,6 +22,7 @@ fun QrCodeDialog(
     session: SessionDto,
     onClose: () -> Unit
 ) {
+    val trackUrl = "${ServiceLocator.activeServerUrl}/#track/${session.id}"
     Dialog(onDismissRequest = onClose) {
         Surface(
             shape = RoundedCornerShape(16.dp),
@@ -65,6 +67,13 @@ fun QrCodeDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    trackUrl,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
             }
         }
