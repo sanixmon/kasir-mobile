@@ -11,6 +11,7 @@ import com.kasir.mobile.data.remote.KasirApiService
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
 class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirRepository {
@@ -22,12 +23,12 @@ class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirReposi
     }
 
     override suspend fun addSession(session: SessionDto): Result<ActionSuccessResponse> = runCatching {
-        val payload = json.encodeToJsonElement(SessionDto.serializer(), session)
+        val payload = json.encodeToJsonElement(SessionDto.serializer(), session).jsonObject
         apiService.addSession(KasirRpcRequest(action = "add_session", payload = payload))
     }
 
     override suspend fun editSession(session: SessionDto): Result<ActionSuccessResponse> = runCatching {
-        val payload = json.encodeToJsonElement(SessionDto.serializer(), session)
+        val payload = json.encodeToJsonElement(SessionDto.serializer(), session).jsonObject
         apiService.editSession(KasirRpcRequest(action = "edit_session", payload = payload))
     }
 
@@ -71,7 +72,7 @@ class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirReposi
     }
 
     override suspend fun addDeletionLog(log: DeletionLogDto): Result<ActionSuccessResponse> = runCatching {
-        val payload = json.encodeToJsonElement(DeletionLogDto.serializer(), log)
+        val payload = json.encodeToJsonElement(DeletionLogDto.serializer(), log).jsonObject
         apiService.addDeletionLog(KasirRpcRequest(action = "add_deletion_log", payload = payload))
     }
 

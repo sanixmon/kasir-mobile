@@ -392,3 +392,171 @@ fun SesiAktifContent(
         }
     }
 }
+
+@Composable
+fun ItemCatalogCard(
+    item: CatalogItem,
+    qty: Int,
+    idrFormat: NumberFormat,
+    onQuantityChange: (Int) -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = if (qty > 0) KasirGreen.copy(alpha = 0.15f) else KasirSurfaceCard,
+        modifier = Modifier.fillMaxWidth().clickable { onQuantityChange(1) }
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(item.emoji, fontSize = 28.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(item.code, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(item.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Text(
+                text = if (item.isPackage) "Paket ${item.packageHours}j ${idrFormat.format(item.priceHour)}" else "${idrFormat.format(item.priceHour)}/j",
+                style = MaterialTheme.typography.bodySmall,
+                color = KasirGreen,
+                fontSize = 10.sp
+            )
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { onQuantityChange(-1) }, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Filled.Remove, contentDescription = null, modifier = Modifier.size(14.dp))
+                }
+                Text("$qty", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp))
+                IconButton(onClick = { onQuantityChange(1) }, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActiveSessionCard(
+    session: SessionDto,
+    onSelesai: () -> Unit,
+    onShowQR: () -> Unit
+) {
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
+    val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
+    val elapsedSec = ((now - safeStart) / 1000).coerceAtLeast(0)
+    val elapsedMin = elapsedSec / 60
+    val isZombie = elapsedSec > 28800 // > 8h
+
+    val timerColor = when {
+        elapsedMin >= 71 -> Color(0xFFE53935) // Red
+        elapsedMin >= 60 -> KasirAccent // Orange
+        else -> Color(0xFF00E676) // Cyan/Green
+    }
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = KasirSurfaceCard,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = KasirAccent.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            "#${session.queueNo}",
+                            fontWeight = FontWeight.Bold,
+                            color = KasirAccent,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    Text(session.nama, fontWeight = FontWeight.Bold)
+                    if (isZombie) {
+                        Spacer(Modifier.width(6.dp))
+                        Surface(color = Color(0xFFFF9800), shape = RoundedCornerShape(4.dp)) {
+                            Text("⚠️ ZOMBIE", fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp))
+                        }
+                    }
+                }
+                Surface(
+                    color = if (session.payAwal == "qris") Color(0xFF7C4DFF).copy(alpha = 0.2f) else KasirGreen.copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        session.payAwal.uppercase(),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                session.items.forEach { item ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            "${item.code}×${item.qty}",
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(safeStart)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = String.format("%02d:%02d:%02d", elapsedSec / 3600, (elapsedSec % 3600) / 60, elapsedSec % 60),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = timerColor
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Button(
+                    onClick = onSelesai,
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                ) {
+                    Text("Selesai & Bayar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+                IconButton(onClick = onShowQR, modifier = Modifier.size(38.dp)) {
+                    Icon(Icons.Filled.QrCode, contentDescription = "QR Code")
+                }
+            }
+        }
+    }
+}
