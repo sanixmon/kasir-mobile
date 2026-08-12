@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 object RetrofitClient {
 
+    private const val DEFAULT_BASE_URL = "https://utara.evrenhouse.online"
+
     private val json = Json { ignoreUnknownKeys = true }
 
     private val client = OkHttpClient.Builder()
@@ -25,7 +27,7 @@ object RetrofitClient {
      * Returns a KasirApiService bound to [baseUrl]. Services are cached per URL.
      * Trailing slashes and a trailing "/api" path segment are normalized away.
      */
-    fun apiService(baseUrl: String): KasirApiService {
+    fun apiService(baseUrl: String = DEFAULT_BASE_URL): KasirApiService {
         val normalized = normalize(baseUrl)
         return cache.getOrPut(normalized) {
             Retrofit.Builder()

@@ -29,7 +29,7 @@ class SessionManager(private val context: Context) {
 
     val sessionDataFlow: Flow<SessionData> = context.dataStore.data.map { prefs ->
         SessionData(
-            serverUrl = prefs[SERVER_URL_KEY] ?: "http://10.0.2.2:3001",
+            serverUrl = prefs[SERVER_URL_KEY] ?: "https://utara.evrenhouse.online",
             currentUserId = prefs[CURRENT_USER_ID_KEY] ?: "",
             currentUserName = prefs[CURRENT_USER_NAME_KEY] ?: "",
             isAdmin = prefs[IS_ADMIN_KEY] ?: false

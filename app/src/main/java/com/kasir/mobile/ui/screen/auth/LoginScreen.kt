@@ -198,7 +198,7 @@ fun LoginScreen(
                             label = { Text("Server URL") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("http://10.0.2.2:3001") },
+                            placeholder = { Text("https://utara.evrenhouse.online") },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = KasirGreen,
                                 focusedLabelColor = KasirGreen,

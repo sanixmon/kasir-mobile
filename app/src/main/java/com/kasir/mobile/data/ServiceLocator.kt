@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap
  * URL so the whole app always talks to the same backend.
  */
 object ServiceLocator {
-    const val DEFAULT_SERVER_URL = "http://10.0.2.2:3001"
+    const val DEFAULT_SERVER_URL = "https://utara.evrenhouse.online"
 
     @Volatile
     var activeServerUrl: String = DEFAULT_SERVER_URL
