@@ -17,11 +17,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.kasir.mobile.data.model.CatalogItem
 import com.kasir.mobile.data.model.ItemCatalog
 import com.kasir.mobile.data.model.ItemDto
@@ -91,6 +93,12 @@ fun DashboardScreen(
                     s.items.any { it.code.contains(searchQuery, ignoreCase = true) }
             }
             .sortedByDescending { it.startTime }
+    }
+
+    // Poll the server only while Dashboard is visible (stops on logout / other screens)
+    DisposableEffect(Unit) {
+        viewModel.startPolling()
+        onDispose { viewModel.stopPolling() }
     }
 
     Scaffold(
@@ -462,6 +470,16 @@ fun SesiAktifContent(
     onShowQR: (SessionDto) -> Unit,
     onPrint: (SessionDto) -> Unit
 ) {
+    // Single shared ticker drives every session card's timer (one coroutine,
+    // not one per card).
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -490,6 +508,7 @@ fun SesiAktifContent(
                 items(filteredSessions, key = { it.id }) { session ->
                     ActiveSessionCard(
                         session = session,
+                        now = now,
                         onSelesai = { onSelesai(session) },
                         onShowQR = { onShowQR(session) },
                         onPrint = { onPrint(session) }
@@ -522,13 +541,26 @@ fun ItemCatalogCard(
             modifier = Modifier.padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(contentAlignment = Alignment.TopEnd) {
-                Text(item.emoji, fontSize = 26.sp)
+            Box(
+                modifier = Modifier.fillMaxWidth().height(72.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Emoji fallback, shown while the image loads or if it fails
+                Text(item.emoji, fontSize = 28.sp)
+                AsyncImage(
+                    model = item.defaultImg,
+                    contentDescription = item.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                )
                 if (selected) {
                     Surface(
                         color = KasirGreen,
                         shape = CircleShape,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp).align(Alignment.TopEnd)
                     ) {
                         Icon(
                             Icons.Filled.Check,
@@ -624,21 +656,14 @@ fun ItemCatalogCard(
 @Composable
 fun ActiveSessionCard(
     session: SessionDto,
+    now: Long,
     onSelesai: () -> Unit,
     onShowQR: () -> Unit,
     onPrint: () -> Unit
 ) {
-    var now by remember { mutableStateOf(System.currentTimeMillis()) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = System.currentTimeMillis()
-            kotlinx.coroutines.delay(1000)
-        }
-    }
-
     val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
     val elapsedSec = ((now - safeStart) / 1000).coerceAtLeast(0)
+    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val elapsedMin = elapsedSec / 60
     val isZombie = elapsedSec > 28800 // > 8h
 
@@ -740,7 +765,7 @@ fun ActiveSessionCard(
             ) {
                 Column {
                     Text(
-                        text = "MULAI ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(safeStart))}",
+                        text = "MULAI ${timeFormat.format(Date(safeStart))}",
                         style = MaterialTheme.typography.labelSmall,
                         color = KasirTextLow,
                         fontFamily = KasirMono,
@@ -748,7 +773,7 @@ fun ActiveSessionCard(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = String.format("%02d:%02d:%02d", elapsedSec / 3600, (elapsedSec % 3600) / 60, elapsedSec % 60),
+                        text = String.format("%02d:%02d", elapsedSec / 3600, (elapsedSec % 3600) / 60),
                         fontFamily = KasirMono,
                         fontWeight = FontWeight.Bold,
                         fontSize = 26.sp,

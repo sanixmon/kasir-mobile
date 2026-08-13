@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,10 +24,12 @@ import com.kasir.mobile.data.model.TransactionDto
 import com.kasir.mobile.ui.navigation.KasirBottomBar
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
 import com.kasir.mobile.ui.theme.KasirAccent
+import com.kasir.mobile.ui.theme.KasirCash
 import com.kasir.mobile.ui.theme.KasirGreen
 import com.kasir.mobile.ui.theme.KasirLine
 import com.kasir.mobile.ui.theme.KasirMono
 import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
+import com.kasir.mobile.ui.theme.KasirQris
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
@@ -66,6 +69,11 @@ fun HistoryScreen(
         }
     }
 
+    // Fetch fresh transactions when History opens (polling is Dashboard-scoped).
+    LaunchedEffect(Unit) {
+        viewModel.loadData(showSync = false)
+    }
+
     // Cashier is locked to "today" (shift date) and read-only; admin gets full filters.
     val effectiveValue =
         if (isAdmin) formatFilterValue(filterDateMillis, filterMode)
@@ -81,9 +89,16 @@ fun HistoryScreen(
         else filtered.sortedByDescending { it.endTime }
     }
 
-    val totalPokok = filteredTxns.sumOf { it.totalBase }
-    val totalOT = filteredTxns.sumOf { it.totalOT }
-    val grandTotal = filteredTxns.sumOf { it.totalAll }
+    val totals = remember(filteredTxns) {
+        Triple(
+            filteredTxns.sumOf { it.totalBase },
+            filteredTxns.sumOf { it.totalOT },
+            filteredTxns.sumOf { it.totalAll }
+        )
+    }
+    val totalPokok = totals.first
+    val totalOT = totals.second
+    val grandTotal = totals.third
 
     Scaffold(
         topBar = {
@@ -107,6 +122,9 @@ fun HistoryScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { viewModel.loadData() }) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh Riwayat")
+                    }
                     if (isAdmin) {
                         IconButton(onClick = { showClearConfirm = true }) {
                             Icon(
@@ -310,6 +328,22 @@ private fun formatFilterValue(millis: Long, mode: String): String {
     return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(millis))
 }
 
+/** Port of kasir-db HistoryTab shift code mapping. */
+private val SHIFT_CODE_MAP = mapOf(
+    "Akbar" to "AK", "Rani" to "RN", "Monica" to "MO", "Aldy" to "AL",
+    "Wahyu" to "WH", "Donny" to "DN", "Zumi" to "ZM", "Awang" to "AW"
+)
+
+private fun shiftCode(n: String?): String {
+    if (n.isNullOrBlank() || n == "-") return "-"
+    SHIFT_CODE_MAP[n]?.let { return it }
+    val k = SHIFT_CODE_MAP.keys.firstOrNull { it.equals(n, ignoreCase = true) }
+    return k?.let { SHIFT_CODE_MAP[it]!! } ?: n.take(2).uppercase()
+}
+
+private fun formatTimeMillis(millis: Long, fmt: SimpleDateFormat): String =
+    if (millis > 0) fmt.format(Date(millis)) else "-"
+
 @Composable
 private fun HistoryFilterBar(
     isAdmin: Boolean,
@@ -436,6 +470,30 @@ fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier, hig
 }
 
 @Composable
+private fun BreakdownRow(
+    label: String,
+    value: String,
+    valueColor: Color,
+    bold: Boolean = false,
+    large: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = KasirOnSurfaceVariant)
+        Text(
+            value,
+            fontFamily = KasirMono,
+            fontWeight = if (bold) FontWeight.Bold else FontWeight.Medium,
+            fontSize = if (large) 16.sp else 13.sp,
+            color = valueColor
+        )
+    }
+}
+
+@Composable
 fun TransactionCard(
     txn: TransactionDto,
     idrFormat: NumberFormat,
@@ -443,6 +501,16 @@ fun TransactionCard(
     onDelete: () -> Unit,
     onPrint: () -> Unit
 ) {
+    val timeFmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+
+    val isCash = txn.payAwal == "cash"
+    val pokokCash = if (isCash) txn.totalBase else 0.0
+    val pokokQris = if (isCash) 0.0 else txn.totalBase
+    val cashExtra = txn.cash > 0
+    val qrisExtra = txn.qris > 0
+    val totalCash = pokokCash + txn.cash
+    val totalQris = pokokQris + txn.qris
+
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = KasirSurfaceCard,
@@ -455,7 +523,7 @@ fun TransactionCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f, fill = false)) {
                     Surface(
                         color = KasirGreen.copy(alpha = 0.12f),
                         shape = RoundedCornerShape(6.dp),
@@ -471,44 +539,71 @@ fun TransactionCard(
                         )
                     }
                     Spacer(Modifier.width(8.dp))
-                    Text(txn.nama, fontWeight = FontWeight.Bold)
+                    Text(txn.nama, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Spacer(Modifier.width(8.dp))
+                    Surface(color = KasirSurfaceVariant, shape = RoundedCornerShape(4.dp)) {
+                        Text(
+                            shiftCode(txn.shift),
+                            fontFamily = KasirMono,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = KasirOnSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
                 }
                 Text(txn.tanggal, fontFamily = KasirMono, style = MaterialTheme.typography.labelSmall, color = KasirTextLow)
             }
 
             Spacer(Modifier.height(6.dp))
-            Text("Items: ${txn.items}", style = MaterialTheme.typography.bodyMedium, color = KasirOnSurfaceVariant)
+            // Waktu close bill (mulai → selesai)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    formatTimeMillis(txn.startTime, timeFmt),
+                    fontFamily = KasirMono,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = KasirOnSurfaceVariant
+                )
+                Text(" → ", color = KasirTextLow, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    formatTimeMillis(txn.endTime, timeFmt),
+                    fontFamily = KasirMono,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = KasirQris
+                )
+            }
 
-            if (txn.ot != "-") {
-                Text("OT: ${txn.ot} (${txn.otDur})", fontFamily = KasirMono, style = MaterialTheme.typography.bodySmall, color = KasirAccent)
+            Spacer(Modifier.height(4.dp))
+            Text("Item: ${txn.items}", style = MaterialTheme.typography.bodySmall, color = KasirOnSurfaceVariant)
+
+            if (txn.ot != "-" && txn.ot.isNotBlank()) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "OT: ${txn.ot}  ·  ${txn.otDur}",
+                    fontFamily = KasirMono,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = KasirAccent
+                )
             }
 
             Spacer(Modifier.height(8.dp))
             HorizontalDivider(color = MaterialTheme.colorScheme.surface)
             Spacer(Modifier.height(8.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Pokok: ${idrFormat.format(txn.totalBase)} (${txn.payAwal.uppercase()})", style = MaterialTheme.typography.bodySmall, color = KasirOnSurfaceVariant)
-                    if (txn.totalOT > 0) {
-                        Text("Overtime: ${idrFormat.format(txn.totalOT)}", style = MaterialTheme.typography.bodySmall, color = KasirAccent)
-                    }
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        "${idrFormat.format(txn.totalAll)}",
-                        fontFamily = KasirMono,
-                        fontWeight = FontWeight.Bold,
-                        color = KasirGreen,
-                        fontSize = 16.sp
-                    )
-                    Text("SHIFT ${txn.shift}", fontFamily = KasirMono, style = MaterialTheme.typography.labelSmall, letterSpacing = 1.sp, color = KasirTextLow)
-                }
-            }
+            // Payment breakdown — mirrors kasir-db HistoryTab columns
+            BreakdownRow("Pokok (Cash)", if (isCash) idrFormat.format(pokokCash) else "—", KasirCash)
+            BreakdownRow("Pokok (QRIS)", if (!isCash) idrFormat.format(pokokQris) else "—", KasirQris)
+            BreakdownRow("Tambahan (Cash)", if (cashExtra) idrFormat.format(txn.cash) else "—", KasirCash)
+            BreakdownRow("Tambahan (QRIS)", if (qrisExtra) idrFormat.format(txn.qris) else "—", KasirQris)
+            BreakdownRow("Total Cash", idrFormat.format(totalCash), KasirCash, bold = true)
+            BreakdownRow("Total QRIS", idrFormat.format(totalQris), KasirQris, bold = true)
+
+            Spacer(Modifier.height(6.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.surface)
+            Spacer(Modifier.height(6.dp))
+
+            BreakdownRow("Grand Total", idrFormat.format(txn.totalAll), KasirAccent, bold = true, large = true)
 
             Spacer(Modifier.height(4.dp))
             Row(

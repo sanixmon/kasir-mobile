@@ -15,6 +15,8 @@ import com.kasir.mobile.data.printer.rp
 import com.kasir.mobile.data.repository.KasirRepository
 import com.kasir.mobile.domain.usecase.OvertimeUtil
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -83,16 +86,29 @@ class KasirViewModel : ViewModel() {
     var adminPinError = MutableStateFlow<String?>(null)
 
     private var syncingNow = false
+    private var pollingJob: Job? = null
 
     init {
-        viewModelScope.launch {
-            loadData()
-            // Low-latency polling, mirrors kasir-db App.jsx (5s interval)
+        // Initial silent load. Ongoing polling is scoped to the Dashboard screen
+        // (startPolling/stopPolling) instead of running on every screen.
+        loadData(showSync = false)
+    }
+
+    /** Begin 5s background polling; no-op if already running. */
+    fun startPolling() {
+        if (pollingJob?.isActive == true) return
+        pollingJob = viewModelScope.launch {
+            loadData(showSync = false)
             while (isActive) {
                 delay(5000)
-                loadData()
+                loadData(showSync = false)
             }
         }
+    }
+
+    fun stopPolling() {
+        pollingJob?.cancel()
+        pollingJob = null
     }
 
     private fun repository(): KasirRepository = ServiceLocator.repository()
@@ -127,21 +143,38 @@ class KasirViewModel : ViewModel() {
         _uiState.update { it.copy(printSelesai = value) }
     }
 
-    fun loadData() {
+    fun loadData(showSync: Boolean = true) {
         if (syncingNow) return
         syncingNow = true
         viewModelScope.launch {
-            _uiState.update { it.copy(isSyncing = true) }
-            repository().fetchAllData()
+            if (showSync) _uiState.update { it.copy(isSyncing = true) }
+            val result = withContext(Dispatchers.Default) {
+                repository().fetchAllData().map { data ->
+                    data.copy(
+                        sessions = data.sessions.sortedByDescending { s -> s.startTime },
+                        transactions = data.transactions.sortedBy { t -> t.no }
+                    )
+                }
+            }
+            result
                 .onSuccess { data ->
-                    _uiState.update {
-                        it.copy(
-                            isSyncing = false,
-                            activeSessions = data.sessions.sortedByDescending { s -> s.startTime },
-                            transactions = data.transactions.sortedBy { t -> t.no },
-                            apiConnected = true,
-                            lastSyncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-                        )
+                    val cur = _uiState.value
+                    // Skip the state write (and the full recomposition it triggers)
+                    // when nothing actually changed — common during idle polling.
+                    val changed = cur.activeSessions != data.sessions ||
+                        cur.transactions != data.transactions ||
+                        !cur.apiConnected ||
+                        cur.isSyncing
+                    if (changed) {
+                        _uiState.update {
+                            it.copy(
+                                isSyncing = false,
+                                activeSessions = data.sessions,
+                                transactions = data.transactions,
+                                apiConnected = true,
+                                lastSyncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                            )
+                        }
                     }
                 }
                 .onFailure {
