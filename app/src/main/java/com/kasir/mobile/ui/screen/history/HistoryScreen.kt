@@ -1,8 +1,11 @@
 package com.kasir.mobile.ui.screen.history
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -15,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.kasir.mobile.data.model.TransactionDto
+import com.kasir.mobile.domain.usecase.ShiftDateUtil
 import com.kasir.mobile.ui.theme.KasirAccent
 import com.kasir.mobile.ui.theme.KasirGreen
 import com.kasir.mobile.ui.theme.KasirLine
@@ -27,7 +31,8 @@ import com.kasir.mobile.ui.theme.KasirTextLow
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,9 +41,18 @@ fun HistoryScreen(
     viewModel: KasirViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isAdmin = uiState.currentUserRole == "admin"
+    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
+
     var searchQuery by remember { mutableStateOf("") }
     var txnToDelete by remember { mutableStateOf<TransactionDto?>(null) }
-    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
+    var showClearConfirm by remember { mutableStateOf(false) }
+
+    // Admin-only filter state
+    var filterMode by remember { mutableStateOf("daily") } // "daily" | "monthly" | "yearly"
+    var filterDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var sortOrder by remember { mutableStateOf("desc") } // "desc" = terbaru, "asc" = terlama
 
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(uiState.errorMessage, uiState.successMessage) {
@@ -49,31 +63,54 @@ fun HistoryScreen(
         }
     }
 
-    val filteredTxns = remember(uiState.transactions, searchQuery) {
-        uiState.transactions.filter {
-            it.nama.contains(searchQuery, ignoreCase = true) || it.items.contains(searchQuery, ignoreCase = true)
+    // Cashier is locked to "today" (shift date) and read-only; admin gets full filters.
+    val effectiveValue =
+        if (isAdmin) formatFilterValue(filterDateMillis, filterMode)
+        else ShiftDateUtil.getShiftDateFromNow()
+
+    val filteredTxns = remember(uiState.transactions, effectiveValue, sortOrder, searchQuery) {
+        val filtered = uiState.transactions.filter { t ->
+            matchesPeriod(t, effectiveValue) &&
+                (t.nama.contains(searchQuery, ignoreCase = true) ||
+                    t.items.contains(searchQuery, ignoreCase = true))
         }
+        if (sortOrder == "asc") filtered.sortedBy { it.endTime }
+        else filtered.sortedByDescending { it.endTime }
     }
 
     val totalPokok = filteredTxns.sumOf { it.totalBase }
     val totalOT = filteredTxns.sumOf { it.totalOT }
     val grandTotal = filteredTxns.sumOf { it.totalAll }
-    val totalCash = filteredTxns.sumOf { it.cash }
-    val totalQris = filteredTxns.sumOf { it.qris }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("📜 Riwayat Transaksi", fontWeight = FontWeight.Bold) },
+                title = {
+                    Column {
+                        Text("Riwayat Transaksi", fontWeight = FontWeight.Bold)
+                        Text(
+                            text = if (isAdmin) "ADMIN · ${uiState.currentShiftUser ?: "Admin"}"
+                            else "KASIR · ${uiState.currentShiftUser ?: "-"}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = KasirMono,
+                            letterSpacing = 1.sp,
+                            color = if (isAdmin) KasirGreen else KasirTextLow
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
                 actions = {
-                    if (uiState.currentUserRole == "admin") {
-                        IconButton(onClick = { viewModel.clearAllHistory() }) {
-                            Icon(Icons.Filled.DeleteForever, contentDescription = "Bersihkan Semua", tint = MaterialTheme.colorScheme.error)
+                    if (isAdmin) {
+                        IconButton(onClick = { showClearConfirm = true }) {
+                            Icon(
+                                Icons.Filled.DeleteForever,
+                                contentDescription = "Bersihkan Semua",
+                                tint = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 },
@@ -89,6 +126,18 @@ fun HistoryScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
+            HistoryFilterBar(
+                isAdmin = isAdmin,
+                filterMode = filterMode,
+                filterValue = effectiveValue,
+                sortOrder = sortOrder,
+                onModeChange = { newMode -> filterMode = newMode },
+                onPickDate = { showDatePicker = true },
+                onToggleSort = { sortOrder = if (sortOrder == "desc") "asc" else "desc" }
+            )
+
+            Spacer(Modifier.height(12.dp))
+
             // Summary Cards Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -106,7 +155,7 @@ fun HistoryScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Cari berdasarkan nama penyewa atau item...") },
+                placeholder = { Text("Cari nama penyewa atau item...") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
@@ -120,7 +169,20 @@ fun HistoryScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Belum ada riwayat transaksi", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Filled.ReceiptLong,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            if (isAdmin) "Tidak ada transaksi pada periode ini"
+                            else "Belum ada transaksi hari ini",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -128,6 +190,7 @@ fun HistoryScreen(
                         TransactionCard(
                             txn = txn,
                             idrFormat = idrFormat,
+                            canDelete = isAdmin,
                             onDelete = { txnToDelete = txn }
                         )
                     }
@@ -136,12 +199,14 @@ fun HistoryScreen(
         }
     }
 
-    // Delete confirmation (mirrors kasir-db swalConfirm)
+    // Delete confirmation (admin only)
     txnToDelete?.let { txn ->
         AlertDialog(
             onDismissRequest = { txnToDelete = null },
-            title = { Text("Hapus Riwayat Transaksi?") },
-            text = { Text("Bill atas nama \"${txn.nama}\" akan dihapus secara permanen.${if (uiState.currentUserRole != "admin") "\n\nKasir perlu verifikasi password admin." else ""}") },
+            title = { Text("Hapus Transaksi?") },
+            text = {
+                Text("Bill #${txn.no} atas nama \"${txn.nama}\" (${idrFormat.format(txn.totalAll)}) akan dihapus permanen.")
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -149,7 +214,7 @@ fun HistoryScreen(
                         txnToDelete = null
                     }
                 ) {
-                    Text("Ya, Hapus!", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                    Text("Hapus", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
@@ -159,6 +224,170 @@ fun HistoryScreen(
             }
         )
     }
+
+    // Clear-all confirmation (admin only)
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text("Bersihkan Semua Riwayat?") },
+            text = {
+                Text("Seluruh ${uiState.transactions.size} transaksi akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearAllHistory()
+                        showClearConfirm = false
+                    }
+                ) {
+                    Text("Bersihkan", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
+
+    // Date picker (admin only)
+    if (showDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = filterDateMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { filterDateMillis = it }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Batal")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
+
+/** Port of kasir-db aggregateHistory period filter: value is a YYYY[-MM[-DD]] prefix. */
+private fun matchesPeriod(t: TransactionDto, value: String): Boolean {
+    if (value.isBlank()) return true
+    if (t.tanggal.startsWith(value)) return true
+    if (t.startTime > 0 && ShiftDateUtil.getShiftDate(t.startTime).startsWith(value)) return true
+    if (t.endTime > 0 && ShiftDateUtil.getShiftDate(t.endTime).startsWith(value)) return true
+    return false
+}
+
+private fun formatFilterValue(millis: Long, mode: String): String {
+    val pattern = when (mode) {
+        "monthly" -> "yyyy-MM"
+        "yearly" -> "yyyy"
+        else -> "yyyy-MM-dd"
+    }
+    return SimpleDateFormat(pattern, Locale.getDefault()).format(Date(millis))
+}
+
+@Composable
+private fun HistoryFilterBar(
+    isAdmin: Boolean,
+    filterMode: String,
+    filterValue: String,
+    sortOrder: String,
+    onModeChange: (String) -> Unit,
+    onPickDate: () -> Unit,
+    onToggleSort: () -> Unit
+) {
+    if (isAdmin) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = filterMode == "daily",
+                    onClick = { onModeChange("daily") },
+                    label = { Text("Harian") }
+                )
+                FilterChip(
+                    selected = filterMode == "monthly",
+                    onClick = { onModeChange("monthly") },
+                    label = { Text("Bulanan") }
+                )
+                FilterChip(
+                    selected = filterMode == "yearly",
+                    onClick = { onModeChange("yearly") },
+                    label = { Text("Tahunan") }
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = onPickDate) {
+                    Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(filterValue, fontFamily = KasirMono, style = MaterialTheme.typography.bodySmall)
+                }
+                Spacer(Modifier.weight(1f))
+                AssistChip(
+                    onClick = onToggleSort,
+                    label = {
+                        Text(
+                            if (sortOrder == "desc") "Terbaru" else "Terlama",
+                            fontFamily = KasirMono,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            if (sortOrder == "desc") Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                )
+            }
+        }
+    } else {
+        // Cashier mode banner: today-only, read-only
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = KasirSurfaceCard,
+            border = BorderStroke(1.dp, KasirLine),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Filled.CalendarToday,
+                    contentDescription = null,
+                    tint = KasirGreen,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Hari Ini · $filterValue",
+                        fontFamily = KasirMono,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        "Mode Kasir — hanya lihat riwayat hari ini",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = KasirTextLow
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -166,7 +395,7 @@ fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier, hig
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = if (highlight) KasirGreen.copy(alpha = 0.12f) else KasirSurfaceCard,
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             1.dp,
             if (highlight) KasirGreen.copy(alpha = 0.4f) else KasirLine
         ),
@@ -195,12 +424,13 @@ fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier, hig
 fun TransactionCard(
     txn: TransactionDto,
     idrFormat: NumberFormat,
+    canDelete: Boolean,
     onDelete: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = KasirSurfaceCard,
-        border = androidx.compose.foundation.BorderStroke(1.dp, KasirLine),
+        border = BorderStroke(1.dp, KasirLine),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -210,7 +440,11 @@ fun TransactionCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(color = KasirGreen.copy(alpha = 0.12f), shape = RoundedCornerShape(6.dp), border = androidx.compose.foundation.BorderStroke(1.dp, KasirGreen.copy(alpha = 0.35f))) {
+                    Surface(
+                        color = KasirGreen.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(6.dp),
+                        border = BorderStroke(1.dp, KasirGreen.copy(alpha = 0.35f))
+                    ) {
                         Text(
                             "#${txn.no.toString().padStart(3, '0')}",
                             fontFamily = KasirMono,
@@ -260,17 +494,19 @@ fun TransactionCard(
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.align(Alignment.End).size(32.dp)
-            ) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = "Hapus Transaksi",
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(18.dp)
-                )
+            if (canDelete) {
+                Spacer(Modifier.height(4.dp))
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.align(Alignment.End).size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Delete,
+                        contentDescription = "Hapus Transaksi",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
