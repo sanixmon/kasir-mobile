@@ -1,6 +1,7 @@
 package com.kasir.mobile.data.printer
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -43,6 +44,7 @@ class BluetoothPrinterRepository(context: Context) : PrinterRepository {
     private val adapter: BluetoothAdapter?
         get() = (appContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
 
+    @SuppressLint("MissingPermission")
     override suspend fun getPairedPrinters(): List<PrinterDevice> = withContext(Dispatchers.IO) {
         val a = adapter ?: return@withContext emptyList()
         if (!hasConnectPermission()) return@withContext emptyList()
@@ -55,6 +57,7 @@ class BluetoothPrinterRepository(context: Context) : PrinterRepository {
         }
     }
 
+    @SuppressLint("MissingPermission")
     override suspend fun scanPrinters(): List<PrinterDevice> = withContext(Dispatchers.IO) {
         val a = adapter ?: return@withContext emptyList()
         if (!hasConnectPermission() || !a.isEnabled) return@withContext emptyList()

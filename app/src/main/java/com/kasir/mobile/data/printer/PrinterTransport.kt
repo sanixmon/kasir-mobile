@@ -1,5 +1,6 @@
 package com.kasir.mobile.data.printer
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -43,6 +44,7 @@ class BluetoothPrinterTransport(context: Context) : PrinterTransport {
         if (device.address != null) deviceCache[device.address] = device
     }
 
+    @SuppressLint("MissingPermission")
     override suspend fun connect(device: PrinterDevice): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val a = adapter ?: return@withContext Result.failure(PrinterError.BluetoothDisabled)
