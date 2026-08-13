@@ -17,11 +17,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.kasir.mobile.data.model.CatalogItem
 import com.kasir.mobile.data.model.ItemCatalog
 import com.kasir.mobile.data.model.ItemDto
@@ -539,13 +541,26 @@ fun ItemCatalogCard(
             modifier = Modifier.padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(contentAlignment = Alignment.TopEnd) {
-                Text(item.emoji, fontSize = 26.sp)
+            Box(
+                modifier = Modifier.fillMaxWidth().height(72.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Emoji fallback, shown while the image loads or if it fails
+                Text(item.emoji, fontSize = 28.sp)
+                AsyncImage(
+                    model = item.defaultImg,
+                    contentDescription = item.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                )
                 if (selected) {
                     Surface(
                         color = KasirGreen,
                         shape = CircleShape,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp).align(Alignment.TopEnd)
                     ) {
                         Icon(
                             Icons.Filled.Check,
