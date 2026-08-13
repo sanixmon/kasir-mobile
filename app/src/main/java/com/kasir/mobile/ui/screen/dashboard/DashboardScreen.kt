@@ -394,7 +394,7 @@ fun SewaBaruContent(
                 Text(
                     "Cash",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color = if (payAwal == "cash") KasirCash else KasirOnSurfaceVariant
                 )
             }
@@ -417,7 +417,7 @@ fun SewaBaruContent(
                 Text(
                     "QRIS",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     color = if (payAwal == "qris") KasirQris else KasirOnSurfaceVariant
                 )
             }

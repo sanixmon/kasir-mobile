@@ -26,12 +26,9 @@ class ReceiptFormatter(
         e.alignLeft().text(dashes).line()
 
         // ── Info ────────────────────────────────────────────────────────────
-        e.alignCenter().text("Queue Number: ${receipt.queueNo}").line()
-        e.alignLeft()
-        if (receipt.type == ReceiptType.SELESAI) {
-            e.text("No: ${receipt.no} | ${receipt.tanggal}").line()
-        } else {
-            e.text("Tgl: ${receipt.tanggal} | ${receipt.startTime}").line()
+        if (receipt.type == ReceiptType.MULAI) {
+            e.alignCenter().text("Queue Number: ${receipt.queueNo}").line()
+            e.alignLeft().text("Tgl: ${receipt.tanggal} | ${receipt.startTime}").line()
         }
         e.text("Shift: ${receipt.shift ?: "-"}").line()
         e.text("Nama: ${receipt.nama}").line()
