@@ -44,7 +44,7 @@ class ReceiptFormatter(
         if (receipt.type == ReceiptType.MULAI) {
             receipt.itemsText.split("\n").forEach { line ->
                 if (line.isBlank()) return@forEach
-                wrapWords(line, w).forEach { wrapped -> e.text(wrapped).line() }
+                itemLines(line, w).forEach { wrapped -> e.text(wrapped).line() }
             }
         } else {
             wrapWords("Item: ${receipt.itemsText}", w).forEach { e.text(it).line() }
@@ -83,41 +83,21 @@ class ReceiptFormatter(
         return e.build()
     }
 
-    /** Diagnostic page that exercises connection, encoding, alignment and QR. */
-    fun testPrintCommands(): ByteArray {
-        val e = EscPosEncoder(charset).init()
-        val eq = "=".repeat(30)
-
-        e.text(eq).line()
-        e.alignCenter().bold(true).text("EVREN HOUSE").bold(false).line()
-        e.alignCenter().text("PRINTER TEST").line()
-        e.alignLeft().text(eq).line()
-        e.text("Printer : ${profile.name}").line()
-        e.text("System  : ${profile.system}").line()
-        e.line()
-        e.text("ASCII TEST").line()
-        e.text("ABCDEFGHIJKLMNOPQRSTUVWXYZ").line()
-        e.text("abcdefghijklmnopqrstuvwxyz").line()
-        e.text("0123456789").line()
-        e.line()
-        e.text("INDONESIAN TEXT").line()
-        e.text("Sewa Scooter").line()
-        e.text("Sewa Stroller").line()
-        e.text("Terima Kasih").line()
-        e.line()
-        e.text("ALIGNMENT").line()
-        e.alignLeft().text("LEFT").line()
-        e.alignCenter().text("CENTER").line()
-        e.alignRight().text("RIGHT").line()
-        e.alignLeft()
-        e.line()
-        e.text("QR TEST").line()
-        if (profile.supportsQr) e.qr("https://example.com", 6, QrErrorCorrection.M)
-        e.line()
-        e.text(eq).line()
-        e.feed(2)
-        if (profile.supportsCut) e.cut()
-        return e.build()
+    /**
+     * Right-aligns the price (the part after a double space, per the kasir-db
+     * item format `code - name xQty  RpPrice`) on the last line of a wrapped
+     * item, keeping every amount on the same right column as "Total Pokok:".
+     */
+    private fun itemLines(line: String, w: Int): List<String> {
+        val idx = line.lastIndexOf("  ")
+        if (idx < 0) return wrapWords(line, w)
+        val left = line.substring(0, idx)
+        val price = line.substring(idx + 2)
+        val leftWidth = (w - price.length - 1).coerceAtLeast(1)
+        val leftLines = wrapWords(left, leftWidth)
+        return leftLines.mapIndexed { i, l ->
+            if (i == leftLines.size - 1) twoCol(l, price, w) else l
+        }
     }
 }
 

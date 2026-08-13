@@ -37,8 +37,8 @@ data class KasirUiState(
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val activeTab: String = "dashboard",
-    val printMulai: Boolean = false,
-    val printSelesai: Boolean = false,
+    val printMulai: Boolean = true,
+    val printSelesai: Boolean = true,
     val theme: String = "dark",
     val apiConnected: Boolean = true,
     val lastSyncTime: String = ""
@@ -179,6 +179,9 @@ class KasirViewModel : ViewModel() {
                             successMessage = "Sesi sewa atas nama ${saved.nama} berhasil dimulai (Antrian #${saved.queueNo})"
                         )
                     }
+                    if (_uiState.value.printMulai) {
+                        printSessionReceipt(saved, announce = false)
+                    }
                 }
                 .onFailure { e ->
                     _uiState.update {
@@ -193,8 +196,10 @@ class KasirViewModel : ViewModel() {
 
     /**
      * "Struk Mulai Sewa" for an active session — mirrors kasir-db handlePrintMulai.
+     * [announce] is false when triggered automatically right after start so it
+     * doesn't clobber the "Sesi berhasil dimulai" message.
      */
-    fun printSessionReceipt(session: SessionDto) {
+    fun printSessionReceipt(session: SessionDto, announce: Boolean = true) {
         viewModelScope.launch {
             val dateFmt = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
             val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -227,7 +232,9 @@ class KasirViewModel : ViewModel() {
             )
             ServiceLocator.printerRepository().printReceipt(receipt)
                 .onSuccess {
-                    _uiState.update { it.copy(successMessage = "Struk dikirim ke printer") }
+                    if (announce) {
+                        _uiState.update { it.copy(successMessage = "Struk dikirim ke printer") }
+                    }
                 }
                 .onFailure { e ->
                     _uiState.update {

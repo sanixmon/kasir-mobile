@@ -44,7 +44,9 @@ data class PrinterProfile(
     val supportsBarcode: Boolean,
     val supportsCut: Boolean,
     val supportsBold: Boolean,
-    val supportsDoubleSize: Boolean
+    val supportsDoubleSize: Boolean,
+    /** Printable dot width for raster images (58mm @ ~203 DPI ≈ 384 dots). */
+    val rasterWidthDots: Int = 384
 ) {
     companion object {
         /** X583 V2 (ESC), Bluetooth name RP02N. */
@@ -57,7 +59,8 @@ data class PrinterProfile(
             supportsBarcode = false,
             supportsCut = true,
             supportsBold = true,
-            supportsDoubleSize = true
+            supportsDoubleSize = true,
+            rasterWidthDots = 384
         )
     }
 }

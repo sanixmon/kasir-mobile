@@ -27,6 +27,8 @@ class BluetoothPrinterManager(
     /** Serializes every print job — two receipts must never write the same stream at once. */
     private val mutex = Mutex()
 
+    private val testPrintGenerator = TestPrintGenerator(profile, charset)
+
     override suspend fun connect(device: PrinterDevice): Result<Unit> = transport.connect(device)
 
     override suspend fun disconnect() = transport.disconnect()
@@ -46,7 +48,7 @@ class BluetoothPrinterManager(
         return print(EscPosEncoder(charset).init().qr(data, size, errorCorrection).feed(4).build())
     }
 
-    override suspend fun printTestPage(): Result<Unit> = print(formatter.testPrintCommands())
+    override suspend fun printTestPage(): Result<Unit> = print(testPrintGenerator.testPrintCommands())
 
     override suspend fun feed(lines: Int): Result<Unit> =
         print(EscPosEncoder(charset).feed(lines).build())
