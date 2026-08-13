@@ -28,17 +28,16 @@ object PrinterText {
     /** Transliterate the few non-ASCII glyphs used in receipts; map the rest to '?'. */
     fun ascii(text: String): String = buildString(text.length) {
         for (c in text) {
-            append(
-                when (c) {
-                    '×' -> 'x'
-                    '\u2019', '\u2018' -> '\''
-                    '\u201C', '\u201D' -> '"'
-                    '\u2013', '\u2014' -> '-'
-                    '\u00A0' -> ' '
-                    in '\u0000'..'\u007F' -> c
-                    else -> '?'
-                }
-            )
+            when (c) {
+                '×' -> append('x')
+                '½' -> append("0.5")   // "½j" -> "0.5j" (thermal printers can't encode ½)
+                '\u2019', '\u2018' -> append('\'')
+                '\u201C', '\u201D' -> append('"')
+                '\u2013', '\u2014' -> append('-')
+                '\u00A0' -> append(' ')
+                in '\u0000'..'\u007F' -> append(c)
+                else -> append('?')
+            }
         }
     }
 }
