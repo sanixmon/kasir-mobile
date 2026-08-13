@@ -119,6 +119,9 @@ fun HistoryScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { viewModel.loadData() }) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Refresh Riwayat")
+                    }
                     if (isAdmin) {
                         IconButton(onClick = { showClearConfirm = true }) {
                             Icon(
