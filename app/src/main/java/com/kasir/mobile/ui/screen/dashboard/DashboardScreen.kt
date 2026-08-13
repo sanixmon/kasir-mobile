@@ -93,6 +93,12 @@ fun DashboardScreen(
             .sortedByDescending { it.startTime }
     }
 
+    // Poll the server only while Dashboard is visible (stops on logout / other screens)
+    DisposableEffect(Unit) {
+        viewModel.startPolling()
+        onDispose { viewModel.stopPolling() }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -462,6 +468,16 @@ fun SesiAktifContent(
     onShowQR: (SessionDto) -> Unit,
     onPrint: (SessionDto) -> Unit
 ) {
+    // Single shared ticker drives every session card's timer (one coroutine,
+    // not one per card).
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -490,6 +506,7 @@ fun SesiAktifContent(
                 items(filteredSessions, key = { it.id }) { session ->
                     ActiveSessionCard(
                         session = session,
+                        now = now,
                         onSelesai = { onSelesai(session) },
                         onShowQR = { onShowQR(session) },
                         onPrint = { onPrint(session) }
@@ -624,21 +641,14 @@ fun ItemCatalogCard(
 @Composable
 fun ActiveSessionCard(
     session: SessionDto,
+    now: Long,
     onSelesai: () -> Unit,
     onShowQR: () -> Unit,
     onPrint: () -> Unit
 ) {
-    var now by remember { mutableStateOf(System.currentTimeMillis()) }
-
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = System.currentTimeMillis()
-            kotlinx.coroutines.delay(1000)
-        }
-    }
-
     val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
     val elapsedSec = ((now - safeStart) / 1000).coerceAtLeast(0)
+    val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val elapsedMin = elapsedSec / 60
     val isZombie = elapsedSec > 28800 // > 8h
 
@@ -740,7 +750,7 @@ fun ActiveSessionCard(
             ) {
                 Column {
                     Text(
-                        text = "MULAI ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(safeStart))}",
+                        text = "MULAI ${timeFormat.format(Date(safeStart))}",
                         style = MaterialTheme.typography.labelSmall,
                         color = KasirTextLow,
                         fontFamily = KasirMono,

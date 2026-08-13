@@ -66,6 +66,11 @@ fun HistoryScreen(
         }
     }
 
+    // Fetch fresh transactions when History opens (polling is Dashboard-scoped).
+    LaunchedEffect(Unit) {
+        viewModel.loadData(showSync = false)
+    }
+
     // Cashier is locked to "today" (shift date) and read-only; admin gets full filters.
     val effectiveValue =
         if (isAdmin) formatFilterValue(filterDateMillis, filterMode)
@@ -81,9 +86,16 @@ fun HistoryScreen(
         else filtered.sortedByDescending { it.endTime }
     }
 
-    val totalPokok = filteredTxns.sumOf { it.totalBase }
-    val totalOT = filteredTxns.sumOf { it.totalOT }
-    val grandTotal = filteredTxns.sumOf { it.totalAll }
+    val totals = remember(filteredTxns) {
+        Triple(
+            filteredTxns.sumOf { it.totalBase },
+            filteredTxns.sumOf { it.totalOT },
+            filteredTxns.sumOf { it.totalAll }
+        )
+    }
+    val totalPokok = totals.first
+    val totalOT = totals.second
+    val grandTotal = totals.third
 
     Scaffold(
         topBar = {
