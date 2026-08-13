@@ -66,26 +66,34 @@ enum class QrErrorCorrection { L, M, Q, H }
 
 enum class BarcodeType { CODE128, EAN13, CODE39 }
 
-data class ReceiptItem(
-    val name: String,
-    val quantity: Int,
-    val unitPrice: Long,
-    val total: Long
-)
+/**
+ * The two receipt layouts mirror kasir-db (App.jsx):
+ *  - MULAI  = "Struk Mulai Sewa" (printed when a rental starts)
+ *  - SELESAI = "Struk Selesai Sewa" (printed when a rental is closed/claimed)
+ */
+enum class ReceiptType { MULAI, SELESAI }
 
 data class Receipt(
-    val storeName: String,
-    val address: String? = null,
-    val phone: String? = null,
-    val transactionId: String? = null,
-    val dateTime: String,
-    val cashier: String? = null,
-    val items: List<ReceiptItem>,
-    val subtotal: Long,
-    val discount: Long = 0,
+    val type: ReceiptType,
+    val storeName: String = "EVREN HOUSE",
+    val subtitle: String = "Scooter & Stroller",
+    val queueNo: Int = 0,
+    val no: Long? = null,
+    val nama: String = "",
+    val shift: String? = null,
+    val tanggal: String = "",
+    val startTime: String = "",
+    val endTime: String? = null,
+    val durasi: String? = null,
+    val itemsText: String = "",
+    val otText: String? = null,
+    val totalPokok: Long = 0,
+    val payAwal: String? = null,
     val overtime: Long? = null,
-    val total: Long,
-    val payment: Long? = null,
-    val change: Long? = null,
-    val footer: String? = null
+    val total: Long = 0,
+    val cash: Long? = null,
+    val qris: Long? = null,
+    val qrText: String? = null,
+    val qrCaption: String? = null,
+    val footer: String = "Terima kasih telah berkunjung!"
 )

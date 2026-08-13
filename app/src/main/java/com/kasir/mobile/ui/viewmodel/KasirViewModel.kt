@@ -10,7 +10,8 @@ import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.TransactionDto
 import com.kasir.mobile.data.printer.Receipt
-import com.kasir.mobile.data.printer.ReceiptItem
+import com.kasir.mobile.data.printer.ReceiptType
+import com.kasir.mobile.data.printer.rp
 import com.kasir.mobile.data.repository.KasirRepository
 import com.kasir.mobile.domain.usecase.OvertimeUtil
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
@@ -191,31 +192,38 @@ class KasirViewModel : ViewModel() {
     }
 
     /**
-     * Manual "start rental" receipt for an active session — the fallback when
-     * auto-print is off in Settings.
+     * "Struk Mulai Sewa" for an active session — mirrors kasir-db handlePrintMulai.
      */
     fun printSessionReceipt(session: SessionDto) {
         viewModelScope.launch {
-            val items = session.items.map { it ->
-                val def = ItemCatalog.findByCode(it.code)
+            val dateFmt = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val startMs = if (session.startTime > 1577836800000L) session.startTime else System.currentTimeMillis()
+
+            val itemsText = session.items.joinToString("\n") { item ->
+                val def = ItemCatalog.findByCode(item.code)
+                val name = def?.name ?: item.code
                 val unit = (def?.priceHour ?: 0.0).toLong()
-                ReceiptItem(
-                    name = def?.name ?: it.code,
-                    quantity = it.qty,
-                    unitPrice = unit,
-                    total = unit * it.qty
-                )
+                "${item.code} - $name x${item.qty}  ${rp(unit * item.qty)}"
             }
-            val subtotal = items.sumOf { it.total }
+            val totalPokok = session.items.sumOf { item ->
+                val def = ItemCatalog.findByCode(item.code)
+                ((def?.priceHour ?: 0.0) * item.qty).toLong()
+            }
+
             val receipt = Receipt(
-                storeName = "EVREN HOUSE",
-                transactionId = "NO. ${session.queueNo.toString().padStart(3, '0')}",
-                dateTime = "${session.tanggal} ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(session.startTime))}",
-                cashier = _uiState.value.currentShiftUser,
-                items = items,
-                subtotal = subtotal,
-                total = subtotal,
-                footer = "Terima kasih"
+                type = ReceiptType.MULAI,
+                queueNo = session.queueNo,
+                nama = session.nama,
+                shift = _uiState.value.currentShiftUser,
+                tanggal = dateFmt.format(Date(startMs)),
+                startTime = timeFmt.format(Date(startMs)),
+                itemsText = itemsText,
+                totalPokok = totalPokok,
+                total = totalPokok,
+                qrText = "${ServiceLocator.activeServerUrl}/#track/${session.id}",
+                qrCaption = "Scan QR untuk Cek Sisa Waktu",
+                footer = "Terima kasih!"
             )
             ServiceLocator.printerRepository().printReceipt(receipt)
                 .onSuccess {
@@ -232,26 +240,50 @@ class KasirViewModel : ViewModel() {
     }
 
     /**
-     * Reprint a receipt for a completed transaction (from Riwayat). Amounts come
-     * from the stored transaction; items are parsed from the compact "code×qty" string.
+     * "Struk Selesai Sewa" — mirrors kasir-db handlePrintSelesai. [announce] is
+     * false when triggered automatically right after finalize so it doesn't
+     * clobber the "Pembayaran berhasil" message.
      */
-    fun printTransactionReceipt(txn: TransactionDto) {
+    fun printTransactionReceipt(txn: TransactionDto, announce: Boolean = true) {
         viewModelScope.launch {
+            val dateFmt = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val startMs = if (txn.startTime > 1577836800000L) txn.startTime else System.currentTimeMillis()
+            val endMs = if (txn.endTime > 1577836800000L) txn.endTime else startMs
+            val durSec = ((endMs - startMs) / 1000).coerceAtLeast(0)
+            val durasi = String.format(
+                Locale.getDefault(),
+                "%02d:%02d:%02d",
+                durSec / 3600, (durSec % 3600) / 60, durSec % 60
+            )
+
             val receipt = Receipt(
-                storeName = "EVREN HOUSE",
-                transactionId = "INV-${txn.no.toString().padStart(5, '0')}",
-                dateTime = "${txn.tanggal} ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(txn.endTime))}",
-                cashier = txn.shift,
-                items = parseReceiptItems(txn.items),
-                subtotal = txn.totalBase.toLong(),
-                overtime = if (txn.totalOT > 0) txn.totalOT.toLong() else null,
+                type = ReceiptType.SELESAI,
+                queueNo = txn.queueNo,
+                no = txn.no,
+                nama = txn.nama,
+                shift = txn.shift,
+                tanggal = dateFmt.format(Date(endMs)),
+                startTime = timeFmt.format(Date(startMs)),
+                endTime = timeFmt.format(Date(endMs)),
+                durasi = durasi,
+                itemsText = txn.items,
+                otText = txn.ot.takeIf { it.isNotBlank() && it != "-" },
+                totalPokok = txn.totalBase.toLong(),
+                payAwal = txn.payAwal,
+                overtime = txn.totalOT.takeIf { it > 0 }?.toLong(),
                 total = txn.totalAll.toLong(),
-                payment = txn.totalAll.toLong(),
-                footer = "Terima kasih"
+                cash = txn.cash.takeIf { it > 0 }?.toLong(),
+                qris = txn.qris.takeIf { it > 0 }?.toLong(),
+                qrText = "${ServiceLocator.activeServerUrl}/#track/${txn.id}",
+                qrCaption = "Scan QR untuk Struk Digital",
+                footer = "Terima kasih telah berkunjung!"
             )
             ServiceLocator.printerRepository().printReceipt(receipt)
                 .onSuccess {
-                    _uiState.update { it.copy(successMessage = "Struk #${txn.no} dikirim ke printer") }
+                    if (announce) {
+                        _uiState.update { it.copy(successMessage = "Struk #${txn.no} dikirim ke printer") }
+                    }
                 }
                 .onFailure { e ->
                     _uiState.update {
@@ -260,24 +292,6 @@ class KasirViewModel : ViewModel() {
                         )
                     }
                 }
-        }
-    }
-
-    private fun parseReceiptItems(itemsStr: String): List<ReceiptItem> {
-        if (itemsStr.isBlank() || itemsStr == "-") return emptyList()
-        return itemsStr.split(",").mapNotNull { part ->
-            val p = part.trim()
-            if (p.isBlank()) return@mapNotNull null
-            val code = p.substringBefore("×").substringBefore("x").trim()
-            val qty = p.substringAfter("×").substringAfter("x").trim().toIntOrNull() ?: 1
-            val def = ItemCatalog.findByCode(code)
-            val unit = (def?.priceHour ?: 0.0).toLong()
-            ReceiptItem(
-                name = def?.name ?: code,
-                quantity = qty,
-                unitPrice = unit,
-                total = unit * qty
-            )
         }
     }
 
@@ -398,6 +412,9 @@ class KasirViewModel : ViewModel() {
                             transactions = (listOf(newTxn) + it.transactions).sortedBy { t -> t.no },
                             successMessage = "Pembayaran transaksi #${newTxn.no} atas nama ${newTxn.nama} berhasil!"
                         )
+                    }
+                    if (_uiState.value.printSelesai) {
+                        printTransactionReceipt(newTxn, announce = false)
                     }
                 }
                 .onFailure { e ->
