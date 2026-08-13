@@ -1,5 +1,7 @@
 package com.kasir.mobile.ui.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -19,7 +21,11 @@ fun KasirNavHost(navController: NavHostController) {
 
     NavHost(
         navController = navController,
-        startDestination = NavRoutes.LOGIN
+        startDestination = NavRoutes.LOGIN,
+        enterTransition = { EnterTransition.None },
+        exitTransition = { ExitTransition.None },
+        popEnterTransition = { EnterTransition.None },
+        popExitTransition = { ExitTransition.None }
     ) {
         composable(NavRoutes.LOGIN) {
             LoginScreen(navController = navController, kasirViewModel = kasirViewModel)

@@ -563,49 +563,55 @@ fun ItemCatalogCard(
             )
             Spacer(Modifier.height(8.dp))
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(10.dp))
             ) {
-                // Decrease (left)
+                // Decrease — left half of the card itself
                 Surface(
-                    shape = CircleShape,
-                    color = if (qty > 0) KasirSurfaceVariant else KasirSurfaceVariant.copy(alpha = 0.45f),
-                    border = BorderStroke(1.dp, if (qty > 0) KasirLine else KasirLine.copy(alpha = 0.5f)),
-                    modifier = Modifier.size(44.dp),
                     onClick = { onQuantityChange(-1) },
-                    enabled = qty > 0
+                    enabled = qty > 0,
+                    color = if (qty > 0) KasirSurfaceVariant else KasirSurfaceVariant.copy(alpha = 0.45f),
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Filled.Remove,
-                            contentDescription = "Kurangi",
-                            tint = if (qty > 0) KasirOnSurfaceVariant else KasirTextLow,
-                            modifier = Modifier.size(20.dp)
+                        Text(
+                            "−",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (qty > 0) KasirOnSurfaceVariant else KasirTextLow
                         )
                     }
                 }
-                // Quantity (center)
-                Text(
-                    "$qty",
-                    fontFamily = KasirMono,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = if (qty > 0) KasirGreen else KasirOnSurfaceVariant
-                )
-                // Increase (right)
+                // Quantity (center divider)
+                Box(
+                    modifier = Modifier
+                        .width(52.dp)
+                        .fillMaxHeight()
+                        .background(KasirSurfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "$qty",
+                        fontFamily = KasirMono,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = if (qty > 0) KasirGreen else KasirOnSurfaceVariant
+                    )
+                }
+                // Increase — right half of the card itself
                 Surface(
-                    shape = CircleShape,
+                    onClick = { onQuantityChange(1) },
                     color = KasirGreen,
-                    modifier = Modifier.size(44.dp),
-                    onClick = { onQuantityChange(1) }
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Filled.Add,
-                            contentDescription = "Tambah",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                        Text(
+                            "+",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
                         )
                     }
                 }
