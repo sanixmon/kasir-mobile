@@ -15,27 +15,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.kasir.mobile.R
 
-// Body face — Inter (matches kasir-db web: body, buttons, fields)
-val KasirBody = FontFamily(
-    Font(R.font.inter_regular, FontWeight.Normal),
-    Font(R.font.inter_medium, FontWeight.Medium),
-    Font(R.font.inter_semibold, FontWeight.SemiBold),
-    Font(R.font.inter_bold, FontWeight.Bold)
-)
-
-// Display + numeric face — Montserrat (matches kasir-db web: brand, clock,
-// item codes, timer, shift badges, big totals)
-private val Montserrat = FontFamily(
-    Font(R.font.montserrat_regular, FontWeight.Normal),
-    Font(R.font.montserrat_medium, FontWeight.Medium),
-    Font(R.font.montserrat_semibold, FontWeight.SemiBold),
-    Font(R.font.montserrat_bold, FontWeight.Bold),
-    Font(R.font.montserrat_extrabold, FontWeight.ExtraBold)
+// Single face — Plus Jakarta Sans, used everywhere.
+private val JakartaSans = FontFamily(
+    Font(R.font.jakarta_regular, FontWeight.Normal),
+    Font(R.font.jakarta_medium, FontWeight.Medium),
+    Font(R.font.jakarta_semibold, FontWeight.SemiBold),
+    Font(R.font.jakarta_bold, FontWeight.Bold),
+    Font(R.font.jakarta_extrabold, FontWeight.ExtraBold)
 )
 
 // Kept as distinct names so existing call sites stay unchanged.
-val KasirDisplay = Montserrat
-val KasirMono = Montserrat
+val KasirBody = JakartaSans
+val KasirDisplay = JakartaSans
+val KasirMono = JakartaSans
 
 // ── Theme-aware color set ────────────────────────────────────────────────────
 data class KasirColors(
