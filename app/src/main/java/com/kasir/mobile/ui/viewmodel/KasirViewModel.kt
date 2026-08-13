@@ -209,7 +209,7 @@ class KasirViewModel : ViewModel() {
                 val def = ItemCatalog.findByCode(item.code)
                 val name = def?.name ?: item.code
                 val unit = (def?.priceHour ?: 0.0).toLong()
-                "${item.code} - $name x${item.qty}  ${rp(unit * item.qty)}"
+                "$name x${item.qty}  ${rp(unit * item.qty)}"
             }
             val totalPokok = session.items.sumOf { item ->
                 val def = ItemCatalog.findByCode(item.code)

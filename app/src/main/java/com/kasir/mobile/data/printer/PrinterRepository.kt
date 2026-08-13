@@ -22,7 +22,6 @@ interface PrinterRepository {
     suspend fun connect(device: PrinterDevice): Result<Unit>
     suspend fun disconnect()
     fun isConnected(): Boolean
-    suspend fun testPrint(): Result<Unit>
     suspend fun printReceipt(receipt: Receipt): Result<Unit>
 }
 
@@ -90,8 +89,6 @@ class BluetoothPrinterRepository(context: Context) : PrinterRepository {
     override suspend fun disconnect() = manager.disconnect()
 
     override fun isConnected(): Boolean = manager.isConnected()
-
-    override suspend fun testPrint(): Result<Unit> = manager.printTestPage()
 
     override suspend fun printReceipt(receipt: Receipt): Result<Unit> = manager.printReceipt(receipt)
 

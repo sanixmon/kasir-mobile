@@ -11,7 +11,6 @@ interface PrinterManager {
     suspend fun print(commands: ByteArray): Result<Unit>
     suspend fun printReceipt(receipt: Receipt): Result<Unit>
     suspend fun printQr(data: String, size: Int = 6, errorCorrection: QrErrorCorrection = QrErrorCorrection.M): Result<Unit>
-    suspend fun printTestPage(): Result<Unit>
 
     suspend fun feed(lines: Int): Result<Unit>
     suspend fun cut(): Result<Unit>
@@ -26,8 +25,6 @@ class BluetoothPrinterManager(
 
     /** Serializes every print job — two receipts must never write the same stream at once. */
     private val mutex = Mutex()
-
-    private val testPrintGenerator = TestPrintGenerator(profile, charset)
 
     override suspend fun connect(device: PrinterDevice): Result<Unit> = transport.connect(device)
 
@@ -47,8 +44,6 @@ class BluetoothPrinterManager(
         if (!profile.supportsQr) return Result.failure(PrinterError.UnsupportedCommand)
         return print(EscPosEncoder(charset).init().qr(data, size, errorCorrection).feed(4).build())
     }
-
-    override suspend fun printTestPage(): Result<Unit> = print(testPrintGenerator.testPrintCommands())
 
     override suspend fun feed(lines: Int): Result<Unit> =
         print(EscPosEncoder(charset).feed(lines).build())

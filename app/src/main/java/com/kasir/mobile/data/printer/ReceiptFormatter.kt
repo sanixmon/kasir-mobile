@@ -26,14 +26,15 @@ class ReceiptFormatter(
         e.alignLeft().text(dashes).line()
 
         // ── Info ────────────────────────────────────────────────────────────
-        e.text("Queue Number: ${receipt.queueNo}").line()
+        e.alignCenter().text("Queue Number: ${receipt.queueNo}").line()
+        e.alignLeft()
         if (receipt.type == ReceiptType.SELESAI) {
             e.text("No: ${receipt.no} | ${receipt.tanggal}").line()
         } else {
             e.text("Tgl: ${receipt.tanggal} | ${receipt.startTime}").line()
         }
-        e.text("Nama: ${receipt.nama}").line()
         e.text("Shift: ${receipt.shift ?: "-"}").line()
+        e.text("Nama: ${receipt.nama}").line()
         if (receipt.type == ReceiptType.SELESAI) {
             e.text("Mulai: ${receipt.startTime} | Selesai: ${receipt.endTime ?: "-"}").line()
             receipt.durasi?.let { e.text("Durasi: $it").line() }
@@ -68,8 +69,8 @@ class ReceiptFormatter(
         }
         e.text(dashes).line()
 
-        // ── QR ──────────────────────────────────────────────────────────────
-        if (profile.supportsQr && receipt.qrText != null) {
+        // ── QR (Struk Mulai Sewa only) ─────────────────────────────────────
+        if (receipt.type == ReceiptType.MULAI && profile.supportsQr && receipt.qrText != null) {
             e.alignCenter().qr(receipt.qrText, 6, QrErrorCorrection.M)
             receipt.qrCaption?.let { e.alignCenter().text(it).line() }
             e.alignLeft().text(dashes).line()
@@ -84,9 +85,9 @@ class ReceiptFormatter(
     }
 
     /**
-     * Right-aligns the price (the part after a double space, per the kasir-db
-     * item format `code - name xQty  RpPrice`) on the last line of a wrapped
-     * item, keeping every amount on the same right column as "Total Pokok:".
+     * Right-aligns the price (the part after a double space, per the item
+     * format `name xQty  RpPrice`) on the last line of a wrapped item, keeping
+     * every amount on the same right column as "Total Pokok:".
      */
     private fun itemLines(line: String, w: Int): List<String> {
         val idx = line.lastIndexOf("  ")

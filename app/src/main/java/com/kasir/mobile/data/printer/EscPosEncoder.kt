@@ -86,33 +86,6 @@ class EscPosEncoder(private val charset: PrinterCharset) {
         return this
     }
 
-    /**
-     * GS v 0 — print raster bit image (mode 0 = normal). [pixels] is a y-major
-     * grid of 1-bit values where `true` = black (print a dot). Width is encoded
-     * in bytes (xL/xH), height in dots (yL/yH).
-     */
-    fun rasterImage(pixels: Array<BooleanArray>): EscPosEncoder {
-        val height = pixels.size
-        val width = if (height == 0) 0 else pixels[0].size
-        val widthBytes = (width + 7) / 8
-        write(GS, 'v', '0', 0) // GS v 0 m=0
-        write(widthBytes and 0xFF, (widthBytes shr 8) and 0xFF) // xL xH (bytes)
-        write(height and 0xFF, (height shr 8) and 0xFF)         // yL yH (dots)
-        for (y in 0 until height) {
-            for (byteIndex in 0 until widthBytes) {
-                var value = 0
-                for (bit in 0..7) {
-                    val x = byteIndex * 8 + bit
-                    if (x < width && pixels[y][x]) {
-                        value = value or (0x80 shr bit)
-                    }
-                }
-                out.add(value.toByte())
-            }
-        }
-        return this
-    }
-
     fun build(): ByteArray = out.toByteArray()
 
     private fun write(vararg values: Any) {

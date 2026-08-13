@@ -186,21 +186,6 @@ fun PrinterScreen(
                 }
             }
 
-            // Test print
-            Button(
-                onClick = { viewModel.testPrint() },
-                enabled = state is PrinterConnectionState.Connected,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (state is PrinterConnectionState.Connected) KasirGreen else KasirSurfaceVariant
-                )
-            ) {
-                Icon(Icons.Filled.Print, contentDescription = null)
-                Spacer(Modifier.width(6.dp))
-                Text("Test Print", fontWeight = FontWeight.Bold)
-            }
-
             if (state is PrinterConnectionState.Connected) {
                 OutlinedButton(
                     onClick = { viewModel.disconnect() },

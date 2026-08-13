@@ -64,14 +64,6 @@ class PrinterViewModel : ViewModel() {
         }
     }
 
-    fun testPrint() {
-        viewModelScope.launch {
-            repo.testPrint()
-                .onSuccess { _message.value = "Test print dikirim ke printer" }
-                .onFailure { _message.value = "Gagal mencetak: ${describeError(it)}" }
-        }
-    }
-
     fun clearMessage() {
         _message.value = null
     }
