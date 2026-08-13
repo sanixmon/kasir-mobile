@@ -40,6 +40,8 @@ data class KasirColors(
     val green: Color,
     val greenDark: Color,
     val greenLight: Color,
+    val cash: Color,
+    val qris: Color,
     val accent: Color,
     val error: Color
 )
@@ -55,6 +57,8 @@ val DarkKasirColors = KasirColors(
     green = KasirDarkGreen,
     greenDark = KasirDarkGreenDark,
     greenLight = KasirDarkGreenLight,
+    cash = KasirDarkCash,
+    qris = KasirDarkQris,
     accent = KasirDarkAccent,
     error = KasirDarkError
 )
@@ -70,6 +74,8 @@ val LightKasirColors = KasirColors(
     green = KasirLightGreen,
     greenDark = KasirLightGreenDark,
     greenLight = KasirLightGreenLight,
+    cash = KasirLightCash,
+    qris = KasirLightQris,
     accent = KasirLightAccent,
     error = KasirLightError
 )
@@ -112,18 +118,18 @@ private val LightColorScheme = lightColorScheme(
 
 private val KasirTypography = Typography(
     // Display face for headings & the brand
-    displayLarge = TextStyle(fontFamily = KasirDisplay, fontWeight = FontWeight.Bold, fontSize = 34.sp, letterSpacing = (-0.5).sp, lineHeight = 40.sp),
-    displayMedium = TextStyle(fontFamily = KasirDisplay, fontWeight = FontWeight.Bold, fontSize = 28.sp, letterSpacing = (-0.25).sp, lineHeight = 34.sp),
-    headlineLarge = TextStyle(fontFamily = KasirDisplay, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp),
-    headlineMedium = TextStyle(fontFamily = KasirDisplay, fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 26.sp),
-    titleLarge = TextStyle(fontFamily = KasirDisplay, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 24.sp),
-    titleMedium = TextStyle(fontFamily = KasirDisplay, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 22.sp),
-    titleSmall = TextStyle(fontFamily = KasirDisplay, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
+    displayLarge = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 34.sp, letterSpacing = (-0.5).sp, lineHeight = 40.sp),
+    displayMedium = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 28.sp, letterSpacing = (-0.25).sp, lineHeight = 34.sp),
+    headlineLarge = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 30.sp),
+    headlineMedium = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 26.sp),
+    titleLarge = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 18.sp, lineHeight = 24.sp),
+    titleMedium = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Bold, fontSize = 16.sp, lineHeight = 22.sp),
+    titleSmall = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
     // Body — system sans stays quiet and legible
     bodyLarge = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp),
     bodyMedium = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp),
     bodySmall = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 16.sp),
-    labelLarge = TextStyle(fontFamily = KasirDisplay, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
+    labelLarge = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
     labelMedium = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.2.sp),
     labelSmall = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 0.4.sp),
 )

@@ -29,6 +29,8 @@ val KasirDarkGreenDark = Color(0xFF0F766E)      // signal-deep (pressed / contai
 val KasirDarkGreenLight = Color(0xFF5EEAD4)     // signal-soft (fills)
 val KasirDarkAccent = Color(0xFFF59E0B)         // amber — overtime, warnings
 val KasirDarkError = Color(0xFFEF4444)          // crimson — zombie, delete
+val KasirDarkCash = Color(0xFF10B981)           // cash — emerald (kasir-db --green)
+val KasirDarkQris = Color(0xFF06B6D4)           // qris — cyan (kasir-db --cyan)
 
 // ── Light palette (paper counter) ───────────────────────────────────────────
 val KasirLightSurface = Color(0xFFF5F7FA)        // app background
@@ -43,6 +45,8 @@ val KasirLightGreenDark = Color(0xFF115E59)      // signal-deep (pressed)
 val KasirLightGreenLight = Color(0xFFCCFBF1)     // signal-soft (fills)
 val KasirLightAccent = Color(0xFFD97706)         // amber — overtime, warnings
 val KasirLightError = Color(0xFFDC2626)          // crimson — zombie, delete
+val KasirLightCash = Color(0xFF059669)          // cash — emerald (kasir-db --green)
+val KasirLightQris = Color(0xFF0284C7)          // qris — cyan (kasir-db --cyan)
 
 // ── Theme-aware tokens (used across screens) ────────────────────────────────
 val KasirSurface: Color
@@ -80,3 +84,9 @@ val KasirAccent: Color
 
 val KasirError: Color
     @Composable @ReadOnlyComposable get() = LocalKasirColors.current.error
+
+val KasirCash: Color
+    @Composable @ReadOnlyComposable get() = LocalKasirColors.current.cash
+
+val KasirQris: Color
+    @Composable @ReadOnlyComposable get() = LocalKasirColors.current.qris

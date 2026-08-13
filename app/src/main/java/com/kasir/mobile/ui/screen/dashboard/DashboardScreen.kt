@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,15 +27,17 @@ import com.kasir.mobile.data.model.ItemCatalog
 import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
+import com.kasir.mobile.ui.navigation.KasirBottomBar
 import com.kasir.mobile.ui.navigation.NavRoutes
 import com.kasir.mobile.ui.theme.KasirAccent
-import com.kasir.mobile.ui.theme.KasirDisplay
+import com.kasir.mobile.ui.theme.KasirCash
 import com.kasir.mobile.ui.theme.KasirError
 import com.kasir.mobile.ui.theme.KasirGreen
 import com.kasir.mobile.ui.theme.KasirLine
 import com.kasir.mobile.ui.theme.KasirMono
 import com.kasir.mobile.ui.theme.KasirOnSurface
 import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
+import com.kasir.mobile.ui.theme.KasirQris
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
@@ -94,7 +95,6 @@ fun DashboardScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "Kasir Mobile",
-                            fontFamily = KasirDisplay,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         )
@@ -152,6 +152,9 @@ fun DashboardScreen(
                             Icon(Icons.Filled.Delete, contentDescription = "Log Hapus")
                         }
                     }
+                    IconButton(onClick = { navController.navigate(NavRoutes.PRINTER) }) {
+                        Icon(Icons.Filled.Print, contentDescription = "Printer")
+                    }
                     IconButton(onClick = { navController.navigate(NavRoutes.SETTINGS) }) {
                         Icon(Icons.Filled.Settings, contentDescription = "Pengaturan")
                     }
@@ -160,23 +163,15 @@ fun DashboardScreen(
             )
         },
         bottomBar = {
-            NavigationBar(containerColor = KasirSurfaceVariant) {
-                NavigationBarItem(
-                    selected = uiState.activeTab == "dashboard",
-                    onClick = { viewModel.setTab("dashboard") },
-                    icon = { Icon(Icons.Filled.Home, contentDescription = "Dashboard") },
-                    label = { Text("Dashboard") }
-                )
-                NavigationBarItem(
-                    selected = uiState.activeTab == "history",
-                    onClick = {
-                        viewModel.setTab("history")
-                        navController.navigate(NavRoutes.POS)
-                    },
-                    icon = { Icon(Icons.Filled.History, contentDescription = "Riwayat") },
-                    label = { Text("Riwayat") }
-                )
-            }
+            KasirBottomBar(
+                selectedTab = uiState.activeTab,
+                onSelectTab = { tab ->
+                    viewModel.setTab(tab)
+                    if (tab == "history") {
+                        navController.navigate(NavRoutes.POS) { launchSingleTop = true }
+                    }
+                }
+            )
         },
         containerColor = KasirSurface,
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -196,12 +191,12 @@ fun DashboardScreen(
                     Tab(
                         selected = mobileSelectedTab == 0,
                         onClick = { mobileSelectedTab = 0 },
-                        text = { Text("Sewa Baru", fontFamily = KasirDisplay, fontWeight = FontWeight.Bold) }
+                        text = { Text("Sewa Baru", fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = mobileSelectedTab == 1,
                         onClick = { mobileSelectedTab = 1 },
-                        text = { Text("Sesi Aktif (${filteredSessions.size})", fontFamily = KasirDisplay, fontWeight = FontWeight.Bold) }
+                        text = { Text("Sesi Aktif (${filteredSessions.size})", fontWeight = FontWeight.Bold) }
                     )
                 }
 
@@ -357,7 +352,7 @@ fun SewaBaruContent(
     onStartRental: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        Text("Sewa Baru", style = MaterialTheme.typography.titleMedium, fontFamily = KasirDisplay, fontWeight = FontWeight.Bold, color = KasirGreen)
+        Text("Sewa Baru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = KasirGreen)
         Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
@@ -377,14 +372,14 @@ fun SewaBaruContent(
                 onClick = { onPayAwalChange("cash") },
                 label = { Text("Cash") },
                 leadingIcon = { Icon(Icons.Filled.Payments, contentDescription = null) },
-                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirCash)
             )
             FilterChip(
                 selected = payAwal == "qris",
                 onClick = { onPayAwalChange("qris") },
                 label = { Text("QRIS") },
                 leadingIcon = { Icon(Icons.Filled.QrCode, contentDescription = null) },
-                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirQris)
             )
         }
 
@@ -441,7 +436,7 @@ fun SesiAktifContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Sesi Aktif (${filteredSessions.size})", style = MaterialTheme.typography.titleMedium, fontFamily = KasirDisplay, fontWeight = FontWeight.Bold)
+            Text("Sesi Aktif (${filteredSessions.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
@@ -630,17 +625,18 @@ fun ActiveSessionCard(
                         }
                     }
                 }
+                val payColor = if (session.payAwal == "qris") KasirQris else KasirCash
                 Surface(
-                    color = if (session.payAwal == "qris") Color(0xFFA78BFA).copy(alpha = 0.15f) else KasirGreen.copy(alpha = 0.15f),
+                    color = payColor.copy(alpha = 0.15f),
                     shape = RoundedCornerShape(6.dp),
-                    border = BorderStroke(1.dp, (if (session.payAwal == "qris") Color(0xFFA78BFA) else KasirGreen).copy(alpha = 0.4f))
+                    border = BorderStroke(1.dp, payColor.copy(alpha = 0.4f))
                 ) {
                     Text(
                         session.payAwal.uppercase(),
                         fontFamily = KasirMono,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (session.payAwal == "qris") Color(0xFFA78BFA) else KasirGreen,
+                        color = payColor,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -739,7 +735,7 @@ fun ActiveSessionCard(
                         contentColor = KasirSurface
                     )
                 ) {
-                    Text("Selesai & Bayar", fontFamily = KasirDisplay, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("Selesai & Bayar", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
                 Surface(
                     shape = RoundedCornerShape(10.dp),

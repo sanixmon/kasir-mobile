@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.kasir.mobile.data.model.TransactionDto
+import com.kasir.mobile.ui.navigation.KasirBottomBar
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
 import com.kasir.mobile.ui.theme.KasirAccent
 import com.kasir.mobile.ui.theme.KasirGreen
@@ -118,6 +119,17 @@ fun HistoryScreen(
             )
         },
         containerColor = KasirSurface,
+        bottomBar = {
+            KasirBottomBar(
+                selectedTab = uiState.activeTab,
+                onSelectTab = { tab ->
+                    viewModel.setTab(tab)
+                    if (tab == "dashboard") {
+                        navController.popBackStack()
+                    }
+                }
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(

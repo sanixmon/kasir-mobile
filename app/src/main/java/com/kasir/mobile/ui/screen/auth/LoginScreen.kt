@@ -275,7 +275,6 @@ fun LoginScreen(
                         } else {
                             Text(
                                 text = if (portal == "cashier") "Mulai Shift" else "Masuk Admin",
-                                fontFamily = KasirDisplay,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.5.sp
                             )
@@ -319,7 +318,6 @@ private fun PortalButton(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelLarge,
-                fontFamily = KasirDisplay,
                 fontWeight = FontWeight.SemiBold
             )
         }

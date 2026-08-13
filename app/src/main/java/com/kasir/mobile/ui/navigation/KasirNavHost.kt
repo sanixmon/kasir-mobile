@@ -9,6 +9,7 @@ import com.kasir.mobile.ui.screen.auth.LoginScreen
 import com.kasir.mobile.ui.screen.dashboard.DashboardScreen
 import com.kasir.mobile.ui.screen.deletion.DeletionLogScreen
 import com.kasir.mobile.ui.screen.history.HistoryScreen
+import com.kasir.mobile.ui.screen.printer.PrinterScreen
 import com.kasir.mobile.ui.screen.settings.SettingsScreen
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
 
@@ -34,6 +35,9 @@ fun KasirNavHost(navController: NavHostController) {
         }
         composable(NavRoutes.SETTINGS) {
             SettingsScreen(navController = navController, viewModel = kasirViewModel)
+        }
+        composable(NavRoutes.PRINTER) {
+            PrinterScreen(navController = navController)
         }
     }
 }

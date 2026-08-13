@@ -6,4 +6,5 @@ object NavRoutes {
     const val POS = "pos"
     const val DELETION_LOGS = "deletion_logs"
     const val SETTINGS = "settings"
+    const val PRINTER = "printer"
 }

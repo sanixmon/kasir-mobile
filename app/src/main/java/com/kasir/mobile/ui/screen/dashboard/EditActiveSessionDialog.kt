@@ -17,7 +17,9 @@ import androidx.compose.ui.window.Dialog
 import com.kasir.mobile.data.model.ItemCatalog
 import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.SessionDto
+import com.kasir.mobile.ui.theme.KasirCash
 import com.kasir.mobile.ui.theme.KasirGreen
+import com.kasir.mobile.ui.theme.KasirQris
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
 
@@ -100,13 +102,13 @@ fun EditActiveSessionDialog(
                         selected = payAwal == "cash",
                         onClick = { payAwal = "cash" },
                         label = { Text("Cash") },
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirCash)
                     )
                     FilterChip(
                         selected = payAwal == "qris",
                         onClick = { payAwal = "qris" },
                         label = { Text("QRIS") },
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirGreen)
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirQris)
                     )
                 }
 
