@@ -83,6 +83,7 @@ data class Receipt(
     val items: List<ReceiptItem>,
     val subtotal: Long,
     val discount: Long = 0,
+    val overtime: Long? = null,
     val total: Long,
     val payment: Long? = null,
     val change: Long? = null,

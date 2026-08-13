@@ -231,6 +231,56 @@ class KasirViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Reprint a receipt for a completed transaction (from Riwayat). Amounts come
+     * from the stored transaction; items are parsed from the compact "code×qty" string.
+     */
+    fun printTransactionReceipt(txn: TransactionDto) {
+        viewModelScope.launch {
+            val receipt = Receipt(
+                storeName = "EVREN HOUSE",
+                transactionId = "INV-${txn.no.toString().padStart(5, '0')}",
+                dateTime = "${txn.tanggal} ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(txn.endTime))}",
+                cashier = txn.shift,
+                items = parseReceiptItems(txn.items),
+                subtotal = txn.totalBase.toLong(),
+                overtime = if (txn.totalOT > 0) txn.totalOT.toLong() else null,
+                total = txn.totalAll.toLong(),
+                payment = txn.totalAll.toLong(),
+                footer = "Terima kasih"
+            )
+            ServiceLocator.printerRepository().printReceipt(receipt)
+                .onSuccess {
+                    _uiState.update { it.copy(successMessage = "Struk #${txn.no} dikirim ke printer") }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            errorMessage = "Gagal cetak struk: ${e.message ?: "printer belum terhubung"}. Hubungkan printer di menu Printer."
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun parseReceiptItems(itemsStr: String): List<ReceiptItem> {
+        if (itemsStr.isBlank() || itemsStr == "-") return emptyList()
+        return itemsStr.split(",").mapNotNull { part ->
+            val p = part.trim()
+            if (p.isBlank()) return@mapNotNull null
+            val code = p.substringBefore("×").substringBefore("x").trim()
+            val qty = p.substringAfter("×").substringAfter("x").trim().toIntOrNull() ?: 1
+            val def = ItemCatalog.findByCode(code)
+            val unit = (def?.priceHour ?: 0.0).toLong()
+            ReceiptItem(
+                name = def?.name ?: code,
+                quantity = qty,
+                unitPrice = unit,
+                total = unit * qty
+            )
+        }
+    }
+
     fun preparePayment(session: SessionDto): PaymentCalcData {
         val safeStart = if (session.startTime > 1577836800000L) session.startTime else System.currentTimeMillis()
         val elapsedMin = (System.currentTimeMillis() - safeStart) / 60000.0

@@ -43,8 +43,13 @@ class ReceiptFormatter(
             e.text(twoCol("Diskon", formatRupiah(receipt.discount), w)).line()
         }
         e.text(twoCol("Subtotal", formatRupiah(receipt.subtotal), w)).line()
+        receipt.overtime?.takeIf { it > 0 }?.let {
+            e.text(twoCol("Overtime", formatRupiah(it), w)).line()
+        }
         e.bold(true).text(twoCol("TOTAL", formatRupiah(receipt.total), w)).bold(false).line()
         e.text("-".repeat(w)).line()
+        receipt.payment?.let { e.text(twoCol("Bayar", formatRupiah(it), w)).line() }
+        receipt.change?.let { e.text(twoCol("Kembali", formatRupiah(it), w)).line() }
 
         e.feed(1)
         e.alignCenter().text(receipt.footer ?: "Terima Kasih").line()

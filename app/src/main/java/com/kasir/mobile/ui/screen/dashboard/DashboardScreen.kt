@@ -92,26 +92,18 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column {
                         Text(
                             text = "Kasir Mobile",
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         )
-                        Spacer(Modifier.width(10.dp))
-                        Surface(
-                            color = KasirGreen.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(6.dp),
-                            border = BorderStroke(1.dp, KasirGreen.copy(alpha = 0.25f))
-                        ) {
-                            Text(
-                                text = "${uiState.currentShiftUser ?: "Kasir"} · ${ShiftDateUtil.getShiftDateFromNow()}",
-                                fontFamily = KasirMono,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = KasirGreen
-                            )
-                        }
+                        Text(
+                            text = "${uiState.currentShiftUser ?: "Kasir"} · ${ShiftDateUtil.getShiftDateFromNow()}",
+                            fontFamily = KasirMono,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = KasirTextLow
+                        )
                     }
                 },
                 actions = {
@@ -388,7 +380,7 @@ fun SewaBaruContent(
         Spacer(Modifier.height(4.dp))
 
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+            columns = GridCells.Adaptive(minSize = 150.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.weight(1f)

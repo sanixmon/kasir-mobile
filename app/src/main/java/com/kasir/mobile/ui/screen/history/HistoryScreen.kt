@@ -203,7 +203,8 @@ fun HistoryScreen(
                             txn = txn,
                             idrFormat = idrFormat,
                             canDelete = isAdmin,
-                            onDelete = { txnToDelete = txn }
+                            onDelete = { txnToDelete = txn },
+                            onPrint = { viewModel.printTransactionReceipt(txn) }
                         )
                     }
                 }
@@ -437,7 +438,8 @@ fun TransactionCard(
     txn: TransactionDto,
     idrFormat: NumberFormat,
     canDelete: Boolean,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onPrint: () -> Unit
 ) {
     Surface(
         shape = RoundedCornerShape(14.dp),
@@ -506,18 +508,35 @@ fun TransactionCard(
                 }
             }
 
-            if (canDelete) {
-                Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.align(Alignment.End).size(32.dp)
+                    onClick = onPrint,
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        Icons.Filled.Delete,
-                        contentDescription = "Hapus Transaksi",
-                        tint = MaterialTheme.colorScheme.error,
+                        Icons.Filled.Print,
+                        contentDescription = "Print Ulang Struk",
+                        tint = KasirGreen,
                         modifier = Modifier.size(18.dp)
                     )
+                }
+                if (canDelete) {
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Filled.Delete,
+                            contentDescription = "Hapus Transaksi",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
