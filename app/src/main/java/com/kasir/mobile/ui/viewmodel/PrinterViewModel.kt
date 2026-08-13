@@ -1,9 +1,8 @@
 package com.kasir.mobile.ui.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kasir.mobile.data.printer.BluetoothPrinterRepository
+import com.kasir.mobile.data.ServiceLocator
 import com.kasir.mobile.data.printer.PrinterConnectionState
 import com.kasir.mobile.data.printer.PrinterDevice
 import com.kasir.mobile.data.printer.PrinterError
@@ -12,9 +11,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class PrinterViewModel(app: Application) : AndroidViewModel(app) {
+class PrinterViewModel : ViewModel() {
 
-    private val repo = BluetoothPrinterRepository(app)
+    private val repo = ServiceLocator.printerRepository()
 
     private val _state = MutableStateFlow<PrinterConnectionState>(PrinterConnectionState.Disconnected)
     val state: StateFlow<PrinterConnectionState> = _state.asStateFlow()

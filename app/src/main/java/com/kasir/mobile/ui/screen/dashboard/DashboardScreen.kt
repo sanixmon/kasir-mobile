@@ -231,7 +231,7 @@ fun DashboardScreen(
                             filteredSessions = filteredSessions,
                             onSelesai = { viewModel.activeCheckoutSession.value = it },
                             onShowQR = { viewModel.activeQrSession.value = it },
-                            onEdit = { viewModel.requestEditSession(it) }
+                            onPrint = { viewModel.printSessionReceipt(it) }
                         )
                     }
                 }
@@ -286,7 +286,7 @@ fun DashboardScreen(
                                 filteredSessions = filteredSessions,
                                 onSelesai = { viewModel.activeCheckoutSession.value = it },
                                 onShowQR = { viewModel.activeQrSession.value = it },
-                                onEdit = { viewModel.requestEditSession(it) }
+                                onPrint = { viewModel.printSessionReceipt(it) }
                             )
                         }
                     }
@@ -428,7 +428,7 @@ fun SesiAktifContent(
     filteredSessions: List<SessionDto>,
     onSelesai: (SessionDto) -> Unit,
     onShowQR: (SessionDto) -> Unit,
-    onEdit: (SessionDto) -> Unit
+    onPrint: (SessionDto) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -460,7 +460,7 @@ fun SesiAktifContent(
                         session = session,
                         onSelesai = { onSelesai(session) },
                         onShowQR = { onShowQR(session) },
-                        onEdit = { onEdit(session) }
+                        onPrint = { onPrint(session) }
                     )
                 }
             }
@@ -557,7 +557,7 @@ fun ActiveSessionCard(
     session: SessionDto,
     onSelesai: () -> Unit,
     onShowQR: () -> Unit,
-    onEdit: () -> Unit
+    onPrint: () -> Unit
 ) {
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
 
@@ -742,10 +742,10 @@ fun ActiveSessionCard(
                     color = KasirSurfaceVariant,
                     border = BorderStroke(1.dp, KasirLine),
                     modifier = Modifier.size(42.dp),
-                    onClick = onEdit
+                    onClick = onPrint
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.Edit, contentDescription = "Edit Sesi", tint = KasirOnSurfaceVariant, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Filled.Print, contentDescription = "Print Struk", tint = KasirOnSurfaceVariant, modifier = Modifier.size(18.dp))
                     }
                 }
                 Surface(

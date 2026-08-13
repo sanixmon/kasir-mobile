@@ -14,6 +14,7 @@ class KasirApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        ServiceLocator.init(this)
         // Restore the server URL the user last logged in with
         val sessionManager = SessionManager(this)
         appScope.launch {

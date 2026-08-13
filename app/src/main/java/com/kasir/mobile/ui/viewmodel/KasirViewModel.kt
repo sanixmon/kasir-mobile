@@ -9,6 +9,8 @@ import com.kasir.mobile.data.model.ItemCatalog
 import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.TransactionDto
+import com.kasir.mobile.data.printer.Receipt
+import com.kasir.mobile.data.printer.ReceiptItem
 import com.kasir.mobile.data.repository.KasirRepository
 import com.kasir.mobile.domain.usecase.OvertimeUtil
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
@@ -182,6 +184,47 @@ class KasirViewModel : ViewModel() {
                         it.copy(
                             isLoading = false,
                             errorMessage = "Gagal memulai sesi: ${e.message ?: "Periksa koneksi ke server"}"
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * Manual "start rental" receipt for an active session — the fallback when
+     * auto-print is off in Settings.
+     */
+    fun printSessionReceipt(session: SessionDto) {
+        viewModelScope.launch {
+            val items = session.items.map { it ->
+                val def = ItemCatalog.findByCode(it.code)
+                val unit = (def?.priceHour ?: 0.0).toLong()
+                ReceiptItem(
+                    name = def?.name ?: it.code,
+                    quantity = it.qty,
+                    unitPrice = unit,
+                    total = unit * it.qty
+                )
+            }
+            val subtotal = items.sumOf { it.total }
+            val receipt = Receipt(
+                storeName = "EVREN HOUSE",
+                transactionId = "NO. ${session.queueNo.toString().padStart(3, '0')}",
+                dateTime = "${session.tanggal} ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(session.startTime))}",
+                cashier = _uiState.value.currentShiftUser,
+                items = items,
+                subtotal = subtotal,
+                total = subtotal,
+                footer = "Terima kasih"
+            )
+            ServiceLocator.printerRepository().printReceipt(receipt)
+                .onSuccess {
+                    _uiState.update { it.copy(successMessage = "Struk dikirim ke printer") }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            errorMessage = "Gagal cetak struk: ${e.message ?: "printer belum terhubung"}. Hubungkan printer di menu Printer."
                         )
                     }
                 }
