@@ -44,7 +44,6 @@ fun CalculateRentalDialog(
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val now = System.currentTimeMillis()
     val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
-    val elapsedMin = (now - safeStart) / 60000.0
 
     var paymentCalc by remember { mutableStateOf(viewModel.preparePayment(session)) }
     val isOvertime = paymentCalc.itemsCalc.any { it.otFullCount > 0 || it.otHalfCount > 0 }
@@ -142,7 +141,7 @@ fun CalculateRentalDialog(
                 Spacer(Modifier.height(8.dp))
 
                 // Items list with return qty controls
-                paymentCalc.itemsCalc.forEachIndexed { index, calcItem ->
+                paymentCalc.itemsCalc.forEach { calcItem ->
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surface,

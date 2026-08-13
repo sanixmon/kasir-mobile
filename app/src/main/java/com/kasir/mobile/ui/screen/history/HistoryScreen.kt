@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -101,7 +103,7 @@ fun HistoryScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Kembali")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
                 actions = {
@@ -183,7 +185,7 @@ fun HistoryScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            Icons.Filled.ReceiptLong,
+                            Icons.AutoMirrored.Filled.ReceiptLong,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(40.dp)
@@ -482,7 +484,7 @@ fun TransactionCard(
             }
 
             Spacer(Modifier.height(8.dp))
-            Divider(color = MaterialTheme.colorScheme.surface)
+            HorizontalDivider(color = MaterialTheme.colorScheme.surface)
             Spacer(Modifier.height(8.dp))
 
             Row(

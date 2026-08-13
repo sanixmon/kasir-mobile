@@ -29,7 +29,6 @@ import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
 import com.kasir.mobile.ui.theme.KasirQris
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
-import com.kasir.mobile.ui.viewmodel.KasirViewModel
 import com.kasir.mobile.ui.viewmodel.PaymentCalcData
 import java.text.NumberFormat
 import java.util.*
@@ -41,7 +40,6 @@ import java.util.*
 @Composable
 fun PaymentDialog(
     paymentData: PaymentCalcData,
-    viewModel: KasirViewModel,
     onClose: () -> Unit,
     onConfirm: (cash: Double, qris: Double) -> Unit
 ) {

@@ -309,7 +309,6 @@ fun DashboardScreen(
     activePaymentData?.let { paymentData ->
         PaymentDialog(
             paymentData = paymentData,
-            viewModel = viewModel,
             onClose = { viewModel.activePaymentData.value = null },
             onConfirm = { cash, qris ->
                 viewModel.finalizePayment(paymentData, cash, qris)
@@ -387,7 +386,7 @@ fun SewaBaruContent(
                 Text(
                     "Cash",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
+                    fontSize = 14.sp,
                     color = if (payAwal == "cash") KasirCash else KasirOnSurfaceVariant
                 )
             }
@@ -410,7 +409,7 @@ fun SewaBaruContent(
                 Text(
                     "QRIS",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
+                    fontSize = 14.sp,
                     color = if (payAwal == "qris") KasirQris else KasirOnSurfaceVariant
                 )
             }
