@@ -28,7 +28,7 @@ object RetrofitClient {
      * Trailing slashes and a trailing "/api" path segment are normalized away.
      */
     fun apiService(baseUrl: String = DEFAULT_BASE_URL): KasirApiService {
-        val normalized = normalize(baseUrl)
+        val normalized = sanitizeServerUrl(baseUrl)
         return cache.getOrPut(normalized) {
             Retrofit.Builder()
                 .baseUrl(normalized)
@@ -39,9 +39,21 @@ object RetrofitClient {
         }
     }
 
-    private fun normalize(url: String): String {
+    /**
+     * Normalizes a raw server URL and enforces HTTPS:
+     * - missing scheme defaults to HTTPS (never HTTP)
+     * - an explicit http:// host is rewritten to https://
+     * - trailing slashes and a trailing "/api" segment are stripped
+     */
+    fun sanitizeServerUrl(url: String): String {
         var u = url.trim()
-        if (!u.startsWith("http://") && !u.startsWith("https://")) u = "http://$u"
+        if (u.isBlank()) return sanitizeServerUrl(DEFAULT_BASE_URL)
+
+        if (u.startsWith("http://")) {
+            u = "https://${u.removePrefix("http://")}"
+        } else if (!u.startsWith("https://")) {
+            u = "https://$u"
+        }
         while (u.endsWith("/")) u = u.dropLast(1)
         if (u.endsWith("/api", ignoreCase = true)) u = u.dropLast(4)
         return "$u/"

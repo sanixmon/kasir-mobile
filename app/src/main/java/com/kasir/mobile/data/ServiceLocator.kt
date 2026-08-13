@@ -47,11 +47,6 @@ object ServiceLocator {
     }
 
     fun setServerUrl(url: String) {
-        val trimmed = url.trim().trimEnd('/')
-        activeServerUrl = if (trimmed.endsWith("/api", ignoreCase = true)) {
-            trimmed.dropLast(4)
-        } else {
-            trimmed
-        }
+        activeServerUrl = RetrofitClient.sanitizeServerUrl(url).trimEnd('/')
     }
 }
