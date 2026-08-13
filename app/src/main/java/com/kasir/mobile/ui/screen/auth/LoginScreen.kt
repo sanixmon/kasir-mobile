@@ -262,7 +262,7 @@ fun LoginScreen(
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = KasirGreen,
-                            contentColor = KasirSurface,
+                            contentColor = Color.White,
                             disabledContainerColor = KasirGreen.copy(alpha = 0.25f)
                         )
                     ) {

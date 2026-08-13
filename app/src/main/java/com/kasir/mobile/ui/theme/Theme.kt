@@ -84,7 +84,7 @@ val LocalKasirColors = staticCompositionLocalOf { DarkKasirColors }
 
 private val DarkColorScheme = darkColorScheme(
     primary = KasirDarkGreen,
-    onPrimary = KasirDarkSurface,
+    onPrimary = Color.White,
     primaryContainer = KasirDarkGreenDark,
     onPrimaryContainer = KasirDarkGreenLight,
     secondary = KasirDarkAccent,

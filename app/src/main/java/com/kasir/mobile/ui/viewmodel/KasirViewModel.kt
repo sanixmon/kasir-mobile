@@ -274,7 +274,7 @@ class KasirViewModel : ViewModel() {
                 startTime = timeFmt.format(Date(startMs)),
                 endTime = timeFmt.format(Date(endMs)),
                 durasi = durasi,
-                itemsText = txn.items,
+                itemsText = buildItemLines(txn.items),
                 otText = txn.ot.takeIf { it.isNotBlank() && it != "-" },
                 totalPokok = txn.totalBase.toLong(),
                 payAwal = txn.payAwal,
@@ -282,8 +282,6 @@ class KasirViewModel : ViewModel() {
                 total = txn.totalAll.toLong(),
                 cash = txn.cash.takeIf { it > 0 }?.toLong(),
                 qris = txn.qris.takeIf { it > 0 }?.toLong(),
-                qrText = "${ServiceLocator.activeServerUrl}/#track/${txn.id}",
-                qrCaption = "Scan QR untuk Struk Digital",
                 footer = "Terima kasih telah berkunjung!"
             )
             ServiceLocator.printerRepository().printReceipt(receipt)
@@ -300,6 +298,21 @@ class KasirViewModel : ViewModel() {
                     }
                 }
         }
+    }
+
+    /** "ST×2, SB×1" -> "Stroller x2  Rp40.000\nStroller Paket 3J x1  Rp50.000". */
+    private fun buildItemLines(itemsStr: String): String {
+        if (itemsStr.isBlank() || itemsStr == "-") return ""
+        return itemsStr.split(",").mapNotNull { part ->
+            val p = part.trim()
+            if (p.isBlank()) return@mapNotNull null
+            val code = p.substringBefore("×").substringBefore("x").trim()
+            val qty = p.substringAfter("×").substringAfter("x").trim().toIntOrNull() ?: 1
+            val def = ItemCatalog.findByCode(code)
+            val name = def?.name ?: code
+            val unit = (def?.priceHour ?: 0.0).toLong()
+            "$name x$qty  ${rp(unit * qty)}"
+        }.joinToString("\n")
     }
 
     fun preparePayment(session: SessionDto): PaymentCalcData {

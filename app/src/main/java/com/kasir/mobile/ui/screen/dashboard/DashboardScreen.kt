@@ -2,7 +2,6 @@ package com.kasir.mobile.ui.screen.dashboard
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -17,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -363,21 +363,57 @@ fun SewaBaruContent(
 
         Spacer(Modifier.height(8.dp))
         Text("Metode Bayar Awal (Pokok)", style = MaterialTheme.typography.labelMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = payAwal == "cash",
+        Spacer(Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
                 onClick = { onPayAwalChange("cash") },
-                label = { Text("Cash") },
-                leadingIcon = { Icon(Icons.Filled.Payments, contentDescription = null) },
-                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirCash)
-            )
-            FilterChip(
-                selected = payAwal == "qris",
+                modifier = Modifier.weight(1f).height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, if (payAwal == "cash") KasirCash else KasirLine),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (payAwal == "cash") KasirCash.copy(alpha = 0.15f) else KasirSurfaceCard
+                )
+            ) {
+                Icon(
+                    Icons.Filled.Payments,
+                    contentDescription = null,
+                    tint = if (payAwal == "cash") KasirCash else KasirOnSurfaceVariant,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Cash",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = if (payAwal == "cash") KasirCash else KasirOnSurfaceVariant
+                )
+            }
+            OutlinedButton(
                 onClick = { onPayAwalChange("qris") },
-                label = { Text("QRIS") },
-                leadingIcon = { Icon(Icons.Filled.QrCode, contentDescription = null) },
-                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirQris)
-            )
+                modifier = Modifier.weight(1f).height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, if (payAwal == "qris") KasirQris else KasirLine),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (payAwal == "qris") KasirQris.copy(alpha = 0.15f) else KasirSurfaceCard
+                )
+            ) {
+                Icon(
+                    Icons.Filled.QrCode,
+                    contentDescription = null,
+                    tint = if (payAwal == "qris") KasirQris else KasirOnSurfaceVariant,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "QRIS",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = if (payAwal == "qris") KasirQris else KasirOnSurfaceVariant
+                )
+            }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -465,6 +501,7 @@ fun SesiAktifContent(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemCatalogCard(
     item: CatalogItem,
@@ -480,9 +517,7 @@ fun ItemCatalogCard(
             width = 1.dp,
             color = if (selected) KasirGreen.copy(alpha = 0.6f) else KasirLine
         ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onQuantityChange(1) }
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(10.dp),
@@ -499,7 +534,7 @@ fun ItemCatalogCard(
                         Icon(
                             Icons.Filled.Check,
                             contentDescription = null,
-                            tint = KasirSurface,
+                            tint = Color.White,
                             modifier = Modifier.size(10.dp).padding(1.dp)
                         )
                     }
@@ -527,21 +562,53 @@ fun ItemCatalogCard(
                 fontSize = 11.sp,
                 color = KasirGreen
             )
-            Spacer(Modifier.height(6.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { onQuantityChange(-1) }, modifier = Modifier.size(26.dp)) {
-                    Icon(Icons.Filled.Remove, contentDescription = null, modifier = Modifier.size(14.dp), tint = KasirOnSurfaceVariant)
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Decrease (left)
+                Surface(
+                    shape = CircleShape,
+                    color = if (qty > 0) KasirSurfaceVariant else KasirSurfaceVariant.copy(alpha = 0.45f),
+                    border = BorderStroke(1.dp, if (qty > 0) KasirLine else KasirLine.copy(alpha = 0.5f)),
+                    modifier = Modifier.size(44.dp),
+                    onClick = { onQuantityChange(-1) },
+                    enabled = qty > 0
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Filled.Remove,
+                            contentDescription = "Kurangi",
+                            tint = if (qty > 0) KasirOnSurfaceVariant else KasirTextLow,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
+                // Quantity (center)
                 Text(
                     "$qty",
                     fontFamily = KasirMono,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    color = if (qty > 0) KasirGreen else KasirOnSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 6.dp)
+                    fontSize = 16.sp,
+                    color = if (qty > 0) KasirGreen else KasirOnSurfaceVariant
                 )
-                IconButton(onClick = { onQuantityChange(1) }, modifier = Modifier.size(26.dp)) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = KasirGreen)
+                // Increase (right)
+                Surface(
+                    shape = CircleShape,
+                    color = KasirGreen,
+                    modifier = Modifier.size(44.dp),
+                    onClick = { onQuantityChange(1) }
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Filled.Add,
+                            contentDescription = "Tambah",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
@@ -729,7 +796,7 @@ fun ActiveSessionCard(
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isZombie || elapsedMin >= 71) KasirError else KasirGreen,
-                        contentColor = KasirSurface
+                        contentColor = Color.White
                     )
                 ) {
                     Text("Selesai & Bayar", fontWeight = FontWeight.Bold, fontSize = 13.sp)

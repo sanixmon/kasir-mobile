@@ -42,13 +42,11 @@ class ReceiptFormatter(
         e.text(dashes).line()
 
         // ── Items ───────────────────────────────────────────────────────────
-        if (receipt.type == ReceiptType.MULAI) {
-            receipt.itemsText.split("\n").forEach { line ->
-                if (line.isBlank()) return@forEach
-                itemLines(line, w).forEach { wrapped -> e.text(wrapped).line() }
-            }
-        } else {
-            wrapWords("Item: ${receipt.itemsText}", w).forEach { e.text(it).line() }
+        receipt.itemsText.split("\n").forEach { line ->
+            if (line.isBlank()) return@forEach
+            itemLines(line, w).forEach { wrapped -> e.text(wrapped).line() }
+        }
+        if (receipt.type == ReceiptType.SELESAI) {
             receipt.otText?.let { e.text("OT: $it").line() }
         }
         e.text(dashes).line()
