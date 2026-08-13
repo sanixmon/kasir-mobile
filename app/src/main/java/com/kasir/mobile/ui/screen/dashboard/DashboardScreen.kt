@@ -758,7 +758,7 @@ fun ActiveSessionCard(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = String.format("%02d:%02d:%02d", elapsedSec / 3600, (elapsedSec % 3600) / 60, elapsedSec % 60),
+                        text = String.format("%02d:%02d", elapsedSec / 3600, (elapsedSec % 3600) / 60),
                         fontFamily = KasirMono,
                         fontWeight = FontWeight.Bold,
                         fontSize = 26.sp,
