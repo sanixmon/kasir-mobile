@@ -394,7 +394,7 @@ fun SewaBaruContent(
                 Text(
                     "Cash",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     color = if (payAwal == "cash") KasirCash else KasirOnSurfaceVariant
                 )
             }
@@ -417,7 +417,7 @@ fun SewaBaruContent(
                 Text(
                     "QRIS",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     color = if (payAwal == "qris") KasirQris else KasirOnSurfaceVariant
                 )
             }
@@ -537,43 +537,28 @@ fun ItemCatalogCard(
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        Box {
+            // Full-bleed item image as the card background, dimmed so the
+            // overlaid text stays readable.
+            AsyncImage(
+                model = item.defaultImg,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alpha = 0.35f,
+                modifier = Modifier.matchParentSize()
+            )
+            // Subtle scrim to lift text contrast over the image
             Box(
-                modifier = Modifier.fillMaxWidth().height(72.dp),
-                contentAlignment = Alignment.Center
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(KasirSurfaceCard.copy(alpha = 0.30f))
+            )
+            Column(
+                modifier = Modifier.padding(10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Emoji fallback, shown while the image loads or if it fails
-                Text(item.emoji, fontSize = 28.sp)
-                AsyncImage(
-                    model = item.defaultImg,
-                    contentDescription = item.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .aspectRatio(1f)
-                        .clip(RoundedCornerShape(10.dp))
-                )
-                if (selected) {
-                    Surface(
-                        color = KasirGreen,
-                        shape = CircleShape,
-                        modifier = Modifier.size(16.dp).align(Alignment.TopEnd)
-                    ) {
-                        Icon(
-                            Icons.Filled.Check,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(10.dp).padding(1.dp)
-                        )
-                    }
-                }
-            }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = item.code,
+                Text(
+                    text = item.code,
                 fontFamily = KasirMono,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp,
@@ -646,6 +631,21 @@ fun ItemCatalogCard(
                             color = Color.White
                         )
                     }
+                }
+            }
+            }
+            if (selected) {
+                Surface(
+                    color = KasirGreen,
+                    shape = CircleShape,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp).padding(3.dp)
+                    )
                 }
             }
         }
