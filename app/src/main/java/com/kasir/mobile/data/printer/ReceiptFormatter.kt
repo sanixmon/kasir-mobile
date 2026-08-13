@@ -18,7 +18,7 @@ class ReceiptFormatter(
         val w = width
 
         e.alignCenter().bold(true).size(1, 2).text(receipt.storeName).size(1, 1).bold(false).line()
-        e.alignCenter().text(receipt.address ?: "Rental & Services").line()
+        e.alignCenter().text(receipt.address ?: "Scooter & Stroller").line()
         e.alignLeft().text("-".repeat(w)).line()
 
         e.text("Transaction").text(" : ").text(receipt.transactionId ?: "-").line()

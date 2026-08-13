@@ -84,7 +84,12 @@ fun DashboardScreen(
 
     val filteredSessions = remember(uiState.activeSessions, searchQuery) {
         uiState.activeSessions
-            .filter { it.nama.contains(searchQuery, ignoreCase = true) }
+            .filter { s ->
+                searchQuery.isBlank() ||
+                    s.nama.contains(searchQuery, ignoreCase = true) ||
+                    s.queueNo.toString().contains(searchQuery) ||
+                    s.items.any { it.code.contains(searchQuery, ignoreCase = true) }
+            }
             .sortedByDescending { it.startTime }
     }
 
@@ -94,7 +99,7 @@ fun DashboardScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Kasir Mobile",
+                            text = "Evren House",
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp
                         )

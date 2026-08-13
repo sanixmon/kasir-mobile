@@ -107,7 +107,7 @@ fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "RENTAL MANAGEMENT POS",
+                text = "Scooter & Stroller",
                 style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 2.sp,
                 color = KasirGreen
