@@ -29,6 +29,7 @@ import com.kasir.mobile.data.model.ItemCatalog
 import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
+import com.kasir.mobile.ui.components.rememberPressScale
 import com.kasir.mobile.ui.navigation.KasirBottomBar
 import com.kasir.mobile.ui.navigation.NavRoutes
 import com.kasir.mobile.ui.theme.KasirAccent
@@ -356,6 +357,9 @@ fun SewaBaruContent(
     onStartRental: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
+        val pressCash = rememberPressScale()
+        val pressQris = rememberPressScale()
+        val pressStart = rememberPressScale()
         Text("Sewa Baru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = KasirGreen)
         Spacer(Modifier.height(8.dp))
 
@@ -377,7 +381,8 @@ fun SewaBaruContent(
         ) {
             OutlinedButton(
                 onClick = { onPayAwalChange("cash") },
-                modifier = Modifier.weight(1f).height(52.dp),
+                interactionSource = pressCash.interactionSource,
+                modifier = pressCash.modifier.weight(1f).height(52.dp),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, if (payAwal == "cash") KasirCash else KasirLine),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -400,7 +405,8 @@ fun SewaBaruContent(
             }
             OutlinedButton(
                 onClick = { onPayAwalChange("qris") },
-                modifier = Modifier.weight(1f).height(52.dp),
+                interactionSource = pressQris.interactionSource,
+                modifier = pressQris.modifier.weight(1f).height(52.dp),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, if (payAwal == "qris") KasirQris else KasirLine),
                 colors = ButtonDefaults.outlinedButtonColors(
@@ -450,7 +456,8 @@ fun SewaBaruContent(
         Button(
             onClick = onStartRental,
             enabled = inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
-            modifier = Modifier.fillMaxWidth().height(46.dp),
+            interactionSource = pressStart.interactionSource,
+            modifier = pressStart.modifier.fillMaxWidth().height(46.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
         ) {
@@ -528,6 +535,8 @@ fun ItemCatalogCard(
     onQuantityChange: (Int) -> Unit
 ) {
     val selected = qty > 0
+    val pressMinus = rememberPressScale()
+    val pressPlus = rememberPressScale()
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = if (selected) KasirGreen.copy(alpha = 0.12f) else KasirSurfaceCard,
@@ -590,7 +599,8 @@ fun ItemCatalogCard(
                     onClick = { onQuantityChange(-1) },
                     enabled = qty > 0,
                     color = if (qty > 0) KasirSurfaceVariant else KasirSurfaceVariant.copy(alpha = 0.45f),
-                    modifier = Modifier.weight(1f).fillMaxHeight()
+                    interactionSource = pressMinus.interactionSource,
+                    modifier = pressMinus.modifier.weight(1f).fillMaxHeight()
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
@@ -621,7 +631,8 @@ fun ItemCatalogCard(
                 Surface(
                     onClick = { onQuantityChange(1) },
                     color = KasirGreen,
-                    modifier = Modifier.weight(1f).fillMaxHeight()
+                    interactionSource = pressPlus.interactionSource,
+                    modifier = pressPlus.modifier.weight(1f).fillMaxHeight()
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
@@ -664,6 +675,7 @@ fun ActiveSessionCard(
     val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
     val elapsedSec = ((now - safeStart) / 1000).coerceAtLeast(0)
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
+    val pressSelesai = rememberPressScale()
     val elapsedMin = elapsedSec / 60
     val isZombie = elapsedSec > 28800 // > 8h
 
@@ -822,7 +834,8 @@ fun ActiveSessionCard(
             ) {
                 Button(
                     onClick = onSelesai,
-                    modifier = Modifier.weight(1f).height(42.dp),
+                    interactionSource = pressSelesai.interactionSource,
+                    modifier = pressSelesai.modifier.weight(1f).height(42.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isZombie || elapsedMin >= 71) KasirError else KasirGreen,

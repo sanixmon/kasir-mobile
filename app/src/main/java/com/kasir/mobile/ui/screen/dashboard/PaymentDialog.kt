@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.kasir.mobile.ui.components.rememberPressScale
 import com.kasir.mobile.ui.theme.KasirAccent
 import com.kasir.mobile.ui.theme.KasirCash
 import com.kasir.mobile.ui.theme.KasirGreen
@@ -52,6 +53,9 @@ fun PaymentDialog(
     var submitting by remember { mutableStateOf(false) }
 
     val changeVal = (cashAmt - grand).coerceAtLeast(0.0)
+    val pressCash = rememberPressScale()
+    val pressQris = rememberPressScale()
+    val pressConfirm = rememberPressScale()
 
     Dialog(onDismissRequest = { if (!submitting) onClose() }) {
         Surface(
@@ -116,7 +120,8 @@ fun PaymentDialog(
                     OutlinedButton(
                         onClick = { payMode = "cash"; cashAmt = grand },
                         enabled = !(isNoOT && paymentData.session.payAwal != "cash"),
-                        modifier = Modifier.weight(1f).height(48.dp),
+                        interactionSource = pressCash.interactionSource,
+                        modifier = pressCash.modifier.weight(1f).height(48.dp),
                         shape = RoundedCornerShape(10.dp),
                         border = BorderStroke(1.dp, if (payMode == "cash") KasirCash else KasirLine),
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -140,7 +145,8 @@ fun PaymentDialog(
                     OutlinedButton(
                         onClick = { payMode = "qris"; cashAmt = 0.0 },
                         enabled = !(isNoOT && paymentData.session.payAwal != "qris"),
-                        modifier = Modifier.weight(1f).height(48.dp),
+                        interactionSource = pressQris.interactionSource,
+                        modifier = pressQris.modifier.weight(1f).height(48.dp),
                         shape = RoundedCornerShape(10.dp),
                         border = BorderStroke(1.dp, if (payMode == "qris") KasirQris else KasirLine),
                         colors = ButtonDefaults.outlinedButtonColors(
@@ -228,7 +234,8 @@ fun PaymentDialog(
                         onConfirm(finalCash, finalQris)
                     },
                     enabled = !submitting,
-                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    interactionSource = pressConfirm.interactionSource,
+                    modifier = pressConfirm.modifier.fillMaxWidth().height(50.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
                 ) {
