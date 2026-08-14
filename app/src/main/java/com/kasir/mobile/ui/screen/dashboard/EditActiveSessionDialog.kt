@@ -129,11 +129,11 @@ fun EditActiveSessionDialog(
                             Text(item.name, style = MaterialTheme.typography.bodySmall)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            IconButton(onClick = { changeQty(item.code, -1) }, modifier = Modifier.size(30.dp)) {
+                            IconButton(onClick = { changeQty(item.code, -1) }, modifier = Modifier.size(44.dp)) {
                                 Text("−", fontWeight = FontWeight.Bold)
                             }
                             Text("$qty", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp))
-                            IconButton(onClick = { changeQty(item.code, 1) }, modifier = Modifier.size(30.dp)) {
+                            IconButton(onClick = { changeQty(item.code, 1) }, modifier = Modifier.size(44.dp)) {
                                 Text("+", fontWeight = FontWeight.Bold)
                             }
                         }

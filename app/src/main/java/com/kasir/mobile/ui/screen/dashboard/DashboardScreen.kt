@@ -949,11 +949,11 @@ fun ActiveSessionCard(
                     shape = RoundedCornerShape(10.dp),
                     color = KasirSurfaceVariant,
                     border = BorderStroke(1.dp, KasirLine),
-                    modifier = Modifier.size(42.dp),
+                    modifier = Modifier.size(44.dp),
                     onClick = onPrint
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.Print, contentDescription = "Print Struk", tint = KasirOnSurfaceVariant, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Filled.Print, contentDescription = "Print Struk", tint = KasirOnSurfaceVariant, modifier = Modifier.size(20.dp))
                     }
                 }
             }

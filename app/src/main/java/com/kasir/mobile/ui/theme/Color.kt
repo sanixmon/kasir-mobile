@@ -39,14 +39,14 @@ val KasirLightSurfaceCard = Color(0xFFFFFFFF)    // cards, inputs, dialogs
 val KasirLightLine = Color(0xFFD5DCE3)           // dividers, outlines
 val KasirLightOnSurface = Color(0xFF131920)      // primary text
 val KasirLightOnSurfaceVariant = Color(0xFF45525F) // secondary text
-val KasirLightTextLow = Color(0xFF7C8794)        // captions, metadata
+val KasirLightTextLow = Color(0xFF5F6B78)        // captions, metadata (>=4.5:1 on surface)
 val KasirLightGreen = Color(0xFF2E4ED8)          // signal (deep blue for contrast on white)
 val KasirLightGreenDark = Color(0xFF2943C9)      // signal-deep (pressed)
 val KasirLightGreenLight = Color(0xFFDDE3FF)     // signal-soft (fills)
-val KasirLightAccent = Color(0xFFD97706)         // amber — overtime, warnings
+val KasirLightAccent = Color(0xFFB45309)         // amber — overtime, warnings (>=4.5:1 on white)
 val KasirLightError = Color(0xFFDC2626)          // crimson — zombie, delete
-val KasirLightCash = Color(0xFF059669)          // cash — emerald (kasir-db --green)
-val KasirLightQris = Color(0xFF0284C7)          // qris — cyan (kasir-db --cyan)
+val KasirLightCash = Color(0xFF047857)           // cash — emerald (>=4.5:1 on white)
+val KasirLightQris = Color(0xFF0369A1)           // qris — cyan (>=4.5:1 on white)
 
 // ── Theme-aware tokens (used across screens) ────────────────────────────────
 val KasirSurface: Color
