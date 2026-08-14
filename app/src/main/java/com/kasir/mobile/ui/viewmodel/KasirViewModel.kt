@@ -12,6 +12,7 @@ import com.kasir.mobile.data.model.TransactionDto
 import com.kasir.mobile.data.printer.Receipt
 import com.kasir.mobile.data.printer.ReceiptType
 import com.kasir.mobile.data.printer.rp
+import com.kasir.mobile.data.remote.AuthTokenHolder
 import com.kasir.mobile.data.repository.KasirRepository
 import com.kasir.mobile.domain.usecase.OvertimeUtil
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
@@ -123,6 +124,7 @@ class KasirViewModel : ViewModel() {
     }
 
     fun logout() {
+        AuthTokenHolder.token = null
         _uiState.update {
             it.copy(
                 currentShiftUser = null,
@@ -600,6 +602,9 @@ class KasirViewModel : ViewModel() {
         viewModelScope.launch {
             val res = repository().verifyAdmin(pin).getOrNull()
             if (res?.valid == true) {
+                // Escalate the session with the short-lived admin token returned
+                // by verify_admin so the pending destructive action is authorized.
+                AuthTokenHolder.token = res.token ?: AuthTokenHolder.token
                 val action = pendingAdminAction.value
                 pendingAdminAction.value = null
                 adminPinError.value = null

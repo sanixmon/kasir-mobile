@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.kasir.mobile.data.ServiceLocator
 import com.kasir.mobile.data.local.SessionManager
 import com.kasir.mobile.data.model.UserDto
+import com.kasir.mobile.data.remote.AuthTokenHolder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,8 +44,8 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Cashier shift login. Verified server-side via the login_cashier RPC
-     * (empty stored password falls back to the default 'jayalahevren').
+     * Cashier shift login. Verified server-side via the login_cashier RPC,
+     * which issues a session token used to authorize subsequent requests.
      */
     fun loginAsCashier(username: String, password: String, serverUrl: String) {
         viewModelScope.launch {
@@ -66,6 +67,7 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
                 }
 
                 val userMatch = res.user
+                AuthTokenHolder.token = res.token
                 sessionManager.setServerUrl(serverUrl)
                 sessionManager.setCurrentUser(userMatch.username, userMatch.username)
                 val isAdmin = userMatch.role.equals("admin", ignoreCase = true)
@@ -93,7 +95,8 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
 
     /**
      * Admin portal login. Mirrors kasir-db RoleSelection admin flow:
-     * verifies the admin password via the verify_admin RPC.
+     * verifies the admin password via the login_admin RPC and stores the
+     * issued admin token.
      */
     fun loginAsAdmin(password: String, serverUrl: String) {
         viewModelScope.launch {
@@ -105,12 +108,15 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
             try {
                 ServiceLocator.setServerUrl(serverUrl)
                 val repository = ServiceLocator.repository()
-                val res = repository.verifyAdmin(password).getOrThrow()
-                if (!res.valid) {
-                    _uiState.update { it.copy(isLoading = false, error = "Password admin tidak sesuai!") }
+                val res = repository.loginAdmin(password).getOrThrow()
+                if (!res.success) {
+                    _uiState.update {
+                        it.copy(isLoading = false, error = res.error ?: "Password admin tidak sesuai!")
+                    }
                     return@launch
                 }
 
+                AuthTokenHolder.token = res.token
                 sessionManager.setServerUrl(serverUrl)
                 sessionManager.setCurrentUser("admin", "Admin")
                 sessionManager.setAdminStatus(true)
@@ -136,6 +142,7 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     fun logout() {
+        AuthTokenHolder.token = null
         _uiState.update { AuthUiState(serverUrl = _uiState.value.serverUrl) }
     }
 }

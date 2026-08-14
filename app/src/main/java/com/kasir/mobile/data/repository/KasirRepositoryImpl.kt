@@ -5,6 +5,7 @@ import com.kasir.mobile.data.model.DeletionLogDto
 import com.kasir.mobile.data.model.DeletionLogsResponse
 import com.kasir.mobile.data.model.FetchAllDataResponse
 import com.kasir.mobile.data.model.KasirRpcRequest
+import com.kasir.mobile.data.model.LoginAdminResponse
 import com.kasir.mobile.data.model.LoginCashierResponse
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.VerifyAdminResponse
@@ -83,6 +84,12 @@ class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirReposi
     override suspend fun loginCashier(username: String, password: String): Result<LoginCashierResponse> = runCatching {
         apiService.loginCashier(KasirRpcRequest(action = "login_cashier", payload = buildJsonObject {
             put("username", username)
+            put("password", password)
+        }))
+    }
+
+    override suspend fun loginAdmin(password: String): Result<LoginAdminResponse> = runCatching {
+        apiService.loginAdmin(KasirRpcRequest(action = "login_admin", payload = buildJsonObject {
             put("password", password)
         }))
     }

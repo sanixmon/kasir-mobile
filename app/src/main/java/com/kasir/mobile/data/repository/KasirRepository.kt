@@ -4,6 +4,7 @@ import com.kasir.mobile.data.model.ActionSuccessResponse
 import com.kasir.mobile.data.model.DeletionLogDto
 import com.kasir.mobile.data.model.DeletionLogsResponse
 import com.kasir.mobile.data.model.FetchAllDataResponse
+import com.kasir.mobile.data.model.LoginAdminResponse
 import com.kasir.mobile.data.model.LoginCashierResponse
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.TransactionDto
@@ -19,6 +20,7 @@ interface KasirRepository {
     suspend fun clearAllTxns(): Result<ActionSuccessResponse>
     suspend fun verifyAdmin(password: String): Result<VerifyAdminResponse>
     suspend fun loginCashier(username: String, password: String): Result<LoginCashierResponse>
+    suspend fun loginAdmin(password: String): Result<LoginAdminResponse>
     suspend fun changeAdminPass(oldPass: String, newPass: String): Result<ActionSuccessResponse>
     suspend fun addDeletionLog(log: DeletionLogDto): Result<ActionSuccessResponse>
     suspend fun getDeletionLogs(): Result<DeletionLogsResponse>

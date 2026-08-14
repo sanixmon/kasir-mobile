@@ -3,6 +3,7 @@ package com.kasir.mobile.data.remote
 import com.kasir.mobile.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -13,7 +14,21 @@ object RetrofitClient {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    /** Attaches the current session token (if any) as a Bearer header. */
+    private val authInterceptor = Interceptor { chain ->
+        val token = AuthTokenHolder.token
+        val request = if (token != null) {
+            chain.request().newBuilder()
+                .header("Authorization", "Bearer $token")
+                .build()
+        } else {
+            chain.request()
+        }
+        chain.proceed(request)
+    }
+
     private val client = OkHttpClient.Builder()
+        .addInterceptor(authInterceptor)
         .addInterceptor(HttpLoggingInterceptor().apply {
             // BASIC only — BODY would leak shift passwords in logs
             level = HttpLoggingInterceptor.Level.BASIC

@@ -4,6 +4,7 @@ import com.kasir.mobile.data.model.ActionSuccessResponse
 import com.kasir.mobile.data.model.DeletionLogsResponse
 import com.kasir.mobile.data.model.FetchAllDataResponse
 import com.kasir.mobile.data.model.KasirRpcRequest
+import com.kasir.mobile.data.model.LoginAdminResponse
 import com.kasir.mobile.data.model.LoginCashierResponse
 import com.kasir.mobile.data.model.VerifyAdminResponse
 import retrofit2.http.Body
@@ -43,6 +44,9 @@ interface KasirApiService {
 
     @POST("api")
     suspend fun loginCashier(@Body request: KasirRpcRequest): LoginCashierResponse
+
+    @POST("api")
+    suspend fun loginAdmin(@Body request: KasirRpcRequest): LoginAdminResponse
 
     @POST("api")
     suspend fun addDeletionLog(@Body request: KasirRpcRequest): ActionSuccessResponse

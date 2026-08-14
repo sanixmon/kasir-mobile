@@ -27,14 +27,24 @@ data class ActionSuccessResponse(
 
 @Serializable
 data class VerifyAdminResponse(
-    val valid: Boolean = false
+    val valid: Boolean = false,
+    val token: String? = null
 )
 
 @Serializable
 data class LoginCashierResponse(
     val success: Boolean = false,
     val error: String? = null,
-    val user: UserDto? = null
+    val user: UserDto? = null,
+    val token: String? = null
+)
+
+@Serializable
+data class LoginAdminResponse(
+    val success: Boolean = false,
+    val error: String? = null,
+    val user: UserDto? = null,
+    val token: String? = null
 )
 
 @Serializable
