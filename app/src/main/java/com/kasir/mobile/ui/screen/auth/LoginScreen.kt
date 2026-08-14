@@ -55,14 +55,16 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var showServerField by remember { mutableStateOf(false) }
 
-    // Navigate to dashboard on success and register the shift user
+    // Navigate on success: admin lands on the bento main menu, cashier on the POS.
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
             kasirViewModel.setShiftUser(
                 name = uiState.username,
                 role = if (uiState.isAdmin) "admin" else "cashier"
             )
-            navController.navigate(NavRoutes.DASHBOARD) {
+            navController.navigate(
+                if (uiState.isAdmin) NavRoutes.ADMIN_MENU else NavRoutes.DASHBOARD
+            ) {
                 popUpTo(NavRoutes.LOGIN) { inclusive = true }
             }
         }

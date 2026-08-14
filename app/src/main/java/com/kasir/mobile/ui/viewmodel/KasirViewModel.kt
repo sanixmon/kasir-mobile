@@ -9,6 +9,7 @@ import com.kasir.mobile.data.model.ItemCatalog
 import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.TransactionDto
+import com.kasir.mobile.data.model.UserDto
 import com.kasir.mobile.data.printer.Receipt
 import com.kasir.mobile.data.printer.ReceiptType
 import com.kasir.mobile.data.printer.rp
@@ -35,6 +36,7 @@ data class KasirUiState(
     val currentUserRole: String? = null, // "cashier" or "admin"
     val activeSessions: List<SessionDto> = emptyList(),
     val transactions: List<TransactionDto> = emptyList(),
+    val users: List<UserDto> = emptyList(),
     val deletionLogs: List<DeletionLogDto> = emptyList(),
     val isLoading: Boolean = false,
     val isSyncing: Boolean = false,
@@ -164,6 +166,7 @@ class KasirViewModel : ViewModel() {
                     // when nothing actually changed — common during idle polling.
                     val changed = cur.activeSessions != data.sessions ||
                         cur.transactions != data.transactions ||
+                        cur.users != data.users ||
                         !cur.apiConnected ||
                         cur.isSyncing
                     if (changed) {
@@ -172,6 +175,7 @@ class KasirViewModel : ViewModel() {
                                 isSyncing = false,
                                 activeSessions = data.sessions,
                                 transactions = data.transactions,
+                                users = data.users,
                                 apiConnected = true,
                                 lastSyncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
                             )
@@ -650,5 +654,89 @@ class KasirViewModel : ViewModel() {
 
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+    }
+
+    /**
+     * Adds a new cashier account. Admin-only server-side; when the current
+     * session isn't already admin, the action is gated behind the admin PIN
+     * dialog (same escalation flow as delete transaction / clear history).
+     */
+    fun saveCashier(username: String, password: String, onResult: (Boolean, String) -> Unit) {
+        val name = username.trim()
+        if (name.isBlank()) {
+            onResult(false, "Username tidak boleh kosong")
+            return
+        }
+        if (password.isBlank()) {
+            onResult(false, "Password tidak boleh kosong")
+            return
+        }
+        if (_uiState.value.users.any { it.username.equals(name, ignoreCase = true) }) {
+            onResult(false, "Username \"$name\" sudah dipakai")
+            return
+        }
+        if (_uiState.value.currentUserRole == "admin") {
+            performSaveCashier(name, password, onResult)
+        } else {
+            pendingAdminAction.value = { performSaveCashier(name, password, onResult) }
+        }
+    }
+
+    private fun performSaveCashier(username: String, password: String, onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            repository().saveUser(username, password, "cashier")
+                .onSuccess { res ->
+                    if (res.success) {
+                        val newUser = UserDto(username = username, role = "cashier")
+                        _uiState.update {
+                            it.copy(
+                                users = (listOf(newUser) + it.users.filter { u -> u.username != username })
+                                    .sortedBy { u -> u.username },
+                                successMessage = "Kasir \"$username\" berhasil ditambahkan"
+                            )
+                        }
+                        onResult(true, "Kasir \"$username\" berhasil ditambahkan")
+                    } else {
+                        onResult(false, res.error ?: "Gagal menyimpan kasir")
+                    }
+                }
+                .onFailure { e ->
+                    onResult(false, "Gagal terhubung ke server: ${e.message ?: "Periksa URL server"}")
+                }
+        }
+    }
+
+    /** Removes a cashier account. Mirrors saveCashier's admin gating. */
+    fun deleteCashier(username: String) {
+        if (_uiState.value.currentUserRole == "admin") {
+            performDeleteCashier(username)
+        } else {
+            pendingAdminAction.value = { performDeleteCashier(username) }
+        }
+    }
+
+    private fun performDeleteCashier(username: String) {
+        viewModelScope.launch {
+            repository().deleteUser(username)
+                .onSuccess { res ->
+                    if (res.success) {
+                        _uiState.update {
+                            it.copy(
+                                users = it.users.filter { u -> u.username != username },
+                                successMessage = "Kasir \"$username\" berhasil dihapus"
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(errorMessage = res.error ?: "Gagal menghapus kasir")
+                        }
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(errorMessage = "Gagal terhubung ke server: ${e.message ?: "Periksa URL server"}")
+                    }
+                }
+        }
     }
 }

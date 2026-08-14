@@ -109,4 +109,18 @@ class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirReposi
     override suspend fun getDeletionLogs(): Result<DeletionLogsResponse> = runCatching {
         apiService.getDeletionLogs(KasirRpcRequest(action = "get_deletion_logs"))
     }
+
+    override suspend fun saveUser(username: String, password: String, role: String): Result<ActionSuccessResponse> = runCatching {
+        apiService.saveUser(KasirRpcRequest(action = "save_user", payload = buildJsonObject {
+            put("username", username)
+            put("password", password)
+            put("role", role)
+        }))
+    }
+
+    override suspend fun deleteUser(username: String): Result<ActionSuccessResponse> = runCatching {
+        apiService.deleteUser(KasirRpcRequest(action = "delete_user", payload = buildJsonObject {
+            put("username", username)
+        }))
+    }
 }

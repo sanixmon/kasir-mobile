@@ -1,6 +1,8 @@
 package com.kasir.mobile.data.model
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.content
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -156,5 +158,24 @@ class DtoSerializationTest {
         val deletionLogsRes = json.decodeFromString<DeletionLogsResponse>(deletionLogsJson)
         assertEquals(1, deletionLogsRes.logs.size)
         assertEquals("Deleted Txn", deletionLogsRes.logs[0].txnNama)
+    }
+
+    @Test
+    fun testUserManagementRpcRequestSerialization() {
+        val saveJson = """
+            {"action": "save_user", "payload": {"username": "kasir2", "password": "rahasia123", "role": "cashier"}}
+        """.trimIndent()
+        val saveReq = json.decodeFromString<KasirRpcRequest>(saveJson)
+        assertEquals("save_user", saveReq.action)
+        assertEquals("kasir2", saveReq.payload["username"]?.jsonPrimitive?.content)
+        assertEquals("rahasia123", saveReq.payload["password"]?.jsonPrimitive?.content)
+        assertEquals("cashier", saveReq.payload["role"]?.jsonPrimitive?.content)
+
+        val deleteJson = """
+            {"action": "delete_user", "payload": {"username": "kasir2"}}
+        """.trimIndent()
+        val deleteReq = json.decodeFromString<KasirRpcRequest>(deleteJson)
+        assertEquals("delete_user", deleteReq.action)
+        assertEquals("kasir2", deleteReq.payload["username"]?.jsonPrimitive?.content)
     }
 }

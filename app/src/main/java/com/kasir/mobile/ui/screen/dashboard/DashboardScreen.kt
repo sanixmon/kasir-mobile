@@ -16,6 +16,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -128,6 +129,14 @@ fun DashboardScreen(
         },
         topBar = {
             TopAppBar(
+                navigationIcon = {
+                    // Admin reached the POS from the bento menu — allow returning.
+                    if (uiState.currentUserRole == "admin") {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali ke Menu Admin")
+                        }
+                    }
+                },
                 title = {
                     Column {
                         Text(
@@ -179,6 +188,9 @@ fun DashboardScreen(
                             navController.navigate(NavRoutes.DELETION_LOGS)
                         }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Log Hapus")
+                        }
+                        IconButton(onClick = { navController.navigate(NavRoutes.USERS) }) {
+                            Icon(Icons.Filled.Group, contentDescription = "Kelola Kasir")
                         }
                     }
                     IconButton(onClick = { navController.navigate(NavRoutes.PRINTER) }) {

@@ -53,4 +53,10 @@ interface KasirApiService {
 
     @POST("api")
     suspend fun getDeletionLogs(@Body request: KasirRpcRequest): DeletionLogsResponse
+
+    @POST("api")
+    suspend fun saveUser(@Body request: KasirRpcRequest): ActionSuccessResponse
+
+    @POST("api")
+    suspend fun deleteUser(@Body request: KasirRpcRequest): ActionSuccessResponse
 }

@@ -24,4 +24,6 @@ interface KasirRepository {
     suspend fun changeAdminPass(oldPass: String, newPass: String): Result<ActionSuccessResponse>
     suspend fun addDeletionLog(log: DeletionLogDto): Result<ActionSuccessResponse>
     suspend fun getDeletionLogs(): Result<DeletionLogsResponse>
+    suspend fun saveUser(username: String, password: String, role: String): Result<ActionSuccessResponse>
+    suspend fun deleteUser(username: String): Result<ActionSuccessResponse>
 }
