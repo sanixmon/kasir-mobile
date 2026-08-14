@@ -79,6 +79,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           cache-provider: basic
+          # Lint only reads the cache; the Build job is the sole writer so the
+          # two parallel jobs don't race to save the same key.
+          cache-read-only: true
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
