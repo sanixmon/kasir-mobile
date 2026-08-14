@@ -1,7 +1,6 @@
 package com.kasir.mobile.data.model
 
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.content
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

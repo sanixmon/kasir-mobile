@@ -3,8 +3,10 @@ package com.kasir.mobile.ui.screen.admin
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Delete
@@ -17,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -67,10 +70,12 @@ fun AdminMenuScreen(
     }
 
     Scaffold(containerColor = KasirSurface) { padding ->
+        // Whole page scrolls so nothing gets squashed or clipped on small screens.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
         ) {
             // ── Header ─────────────────────────────────────────────────────
             Row(
@@ -94,22 +99,25 @@ fun AdminMenuScreen(
                     )
                 }
                 Spacer(Modifier.width(12.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "EVREN HOUSE",
                         fontFamily = KasirDisplay,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp,
                         fontSize = 16.sp,
-                        color = KasirOnSurface
+                        color = KasirOnSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         "Menu Admin",
                         style = MaterialTheme.typography.labelMedium,
-                        color = KasirTextLow
+                        color = KasirTextLow,
+                        maxLines = 1
                     )
                 }
-                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.width(12.dp))
                 // Connection status badge
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -139,11 +147,13 @@ fun AdminMenuScreen(
             }
 
             // ── Bento grid ─────────────────────────────────────────────────
+            // Fixed height (not weight): inside a scrollable column weight can't
+            // stretch, and a fixed size keeps tiles from collapsing on small screens.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .padding(start = 16.dp, top = 16.dp, end = 16.dp),
+                    .padding(start = 16.dp, top = 16.dp, end = 16.dp)
+                    .height(252.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 AdminMenuTile(
@@ -278,21 +288,34 @@ private fun AdminMenuTile(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(18.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .background(tint.copy(alpha = 0.14f), RoundedCornerShape(14.dp)),
+                    .size(44.dp)
+                    .background(tint.copy(alpha = 0.14f), RoundedCornerShape(13.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(26.dp))
+                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
             }
             Column {
-                Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = KasirOnSurface)
-                Spacer(Modifier.height(4.dp))
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = KasirTextLow)
+                Text(
+                    title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = KasirOnSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = KasirTextLow,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
@@ -312,7 +335,7 @@ private fun StatsTile(
         shape = RoundedCornerShape(16.dp),
         color = KasirSurfaceCard,
         border = BorderStroke(1.dp, KasirLine),
-        modifier = modifier.height(96.dp)
+        modifier = modifier.height(84.dp)
     ) {
         Row(
             modifier = Modifier
@@ -360,16 +383,18 @@ private fun StatCell(
             style = MaterialTheme.typography.labelSmall,
             letterSpacing = 1.sp,
             color = KasirTextLow,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Spacer(Modifier.height(4.dp))
         Text(
             value,
             fontFamily = KasirMono,
             fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
+            fontSize = 14.sp,
             color = valueColor,
-            maxLines = 1
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -396,12 +421,12 @@ private fun StatusTile(
         shape = RoundedCornerShape(16.dp),
         color = KasirSurfaceCard,
         border = BorderStroke(1.dp, KasirLine),
-        modifier = modifier.height(84.dp)
+        modifier = modifier.height(76.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 18.dp, vertical = 14.dp),
+                .padding(horizontal = 18.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -416,13 +441,17 @@ private fun StatusTile(
                     fontFamily = KasirMono,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = if (isOnline) KasirGreen else KasirAccent
+                    color = if (isOnline) KasirGreen else KasirAccent,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     "Admin: ${shiftUser ?: "-"}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = KasirTextLow
+                    color = KasirTextLow,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
