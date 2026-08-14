@@ -8,6 +8,19 @@ android {
     namespace = "com.kasir.mobile"
     compileSdk = 34
 
+    signingConfigs {
+        create("release") {
+            // Stable release key so updates install over the previous build
+            // without reinstall. Passwords can be overridden later via
+            // -PKASIR_STORE_PASSWORD=... / -PKASIR_KEY_PASSWORD=... or env vars
+            // if moved to GitHub secrets.
+            storeFile = file("keystore/release.jks")
+            storePassword = (project.findProperty("KASIR_STORE_PASSWORD") as String?) ?: "evrenhouse2026"
+            keyAlias = (project.findProperty("KASIR_KEY_ALIAS") as String?) ?: "kasir"
+            keyPassword = (project.findProperty("KASIR_KEY_PASSWORD") as String?) ?: "evrenhouse2026"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.kasir.mobile"
         minSdk = 24
@@ -17,6 +30,19 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "API_BASE_URL", "\"https://utara.evrenhouse.online/\"")
+
+        // Ship a single arm64-v8a ABI for smaller, targeted APKs.
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
+        }
     }
 
     buildFeatures {

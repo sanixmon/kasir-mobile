@@ -82,6 +82,9 @@ fun DashboardScreen(
 
     val configuration = LocalConfiguration.current
     val isSmallScreen = configuration.screenWidthDp < 600
+    // Large screens keep the same 2-tab layout but show active sessions in a
+    // 3-column grid instead of a single column.
+    val sessionColumns = if (isSmallScreen) 1 else 3
 
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
 
@@ -187,9 +190,8 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (isSmallScreen) {
-                // Mobile layout with tabs
-                TabRow(
+            // Unified layout: "Sewa Baru" + "Sesi Aktif" tabs on all screen sizes.
+            TabRow(
                     selectedTabIndex = mobileSelectedTab,
                     containerColor = KasirSurfaceVariant,
                     contentColor = KasirGreen
@@ -237,67 +239,12 @@ fun DashboardScreen(
                             filteredSessions = filteredSessions,
                             onSelesai = { viewModel.activeCheckoutSession.value = it },
                             onShowQR = { viewModel.activeQrSession.value = it },
-                            onPrint = { viewModel.printSessionReceipt(it) }
+                            onPrint = { viewModel.printSessionReceipt(it) },
+                            columnCount = sessionColumns
                         )
                     }
                 }
-            } else {
-                // Tablet / Desktop side-by-side layout
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Surface(
-                        modifier = Modifier.weight(0.45f).fillMaxHeight(),
-                        shape = RoundedCornerShape(16.dp),
-                        color = KasirSurfaceVariant
-                    ) {
-                        Box(modifier = Modifier.padding(16.dp)) {
-                            SewaBaruContent(
-                                inputNama = inputNama,
-                                onNamaChange = { inputNama = it },
-                                payAwal = payAwal,
-                                onPayAwalChange = { payAwal = it },
-                                selectedQty = selectedQty,
-                                onQuantityChange = { code, delta ->
-                                    val current = selectedQty[code] ?: 0
-                                    selectedQty = selectedQty + (code to (current + delta).coerceAtLeast(0))
-                                },
-                                idrFormat = idrFormat,
-                                onStartRental = {
-                                    val items = ItemCatalog.ITEMS
-                                        .filter { (selectedQty[it.code] ?: 0) > 0 }
-                                        .map { ItemDto(code = it.code, qty = selectedQty[it.code] ?: 1) }
-                                    if (inputNama.isNotBlank() && items.isNotEmpty()) {
-                                        viewModel.startRental(inputNama.trim(), items, payAwal)
-                                        inputNama = ""
-                                        selectedQty = emptyMap()
-                                    }
-                                }
-                            )
-                        }
-                    }
 
-                    Surface(
-                        modifier = Modifier.weight(0.55f).fillMaxHeight(),
-                        shape = RoundedCornerShape(16.dp),
-                        color = KasirSurfaceVariant
-                    ) {
-                        Box(modifier = Modifier.padding(16.dp)) {
-                            SesiAktifContent(
-                                searchQuery = searchQuery,
-                                onSearchQueryChange = { searchQuery = it },
-                                filteredSessions = filteredSessions,
-                                onSelesai = { viewModel.activeCheckoutSession.value = it },
-                                onShowQR = { viewModel.activeQrSession.value = it },
-                                onPrint = { viewModel.printSessionReceipt(it) }
-                            )
-                        }
-                    }
-                }
-            }
         }
 
     }
@@ -475,7 +422,8 @@ fun SesiAktifContent(
     filteredSessions: List<SessionDto>,
     onSelesai: (SessionDto) -> Unit,
     onShowQR: (SessionDto) -> Unit,
-    onPrint: (SessionDto) -> Unit
+    onPrint: (SessionDto) -> Unit,
+    columnCount: Int = 1
 ) {
     // Single shared ticker drives every session card's timer (one coroutine,
     // not one per card).
@@ -509,6 +457,22 @@ fun SesiAktifContent(
         if (filteredSessions.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Tidak ada sesi sewa aktif", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else if (columnCount > 1) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(columnCount),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(filteredSessions, key = { it.id }) { session ->
+                    ActiveSessionCard(
+                        session = session,
+                        now = now,
+                        onSelesai = { onSelesai(session) },
+                        onShowQR = { onShowQR(session) },
+                        onPrint = { onPrint(session) }
+                    )
+                }
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
