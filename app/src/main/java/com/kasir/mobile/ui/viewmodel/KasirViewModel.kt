@@ -78,7 +78,6 @@ class KasirViewModel : ViewModel() {
     // Modals
     var activeCheckoutSession = MutableStateFlow<SessionDto?>(null)
     var activePaymentData = MutableStateFlow<PaymentCalcData?>(null)
-    var activeQrSession = MutableStateFlow<SessionDto?>(null)
     var activeEditSession = MutableStateFlow<SessionDto?>(null)
 
     // Admin PIN verification gate (non-null value = PIN dialog shown; the lambda

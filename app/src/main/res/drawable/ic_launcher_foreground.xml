@@ -3,10 +3,24 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#00897B"
-        android:pathData="M0,0h108v108h-108z"/>
+    <!-- Rear wheel -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M38,30h32v48h-32z"/>
+        android:pathData="M36,72 m-12,0 a12,12 0 1,1 24,0 a12,12 0 1,1 -24,0" />
+    <!-- Front wheel -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M76,72 m-12,0 a12,12 0 1,1 24,0 a12,12 0 1,1 -24,0" />
+    <!-- Deck -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,58 h56 a4,4 0 0 1 4,4 v8 a4,4 0 0 1 -4,4 h-56 a4,4 0 0 1 -4,-4 v-8 a4,4 0 0 1 4,-4 Z" />
+    <!-- Steering column -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M73,34 h7 v24 h-7 Z" />
+    <!-- Handlebar -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M59,30 h26 a4,4 0 0 1 4,4 v7 a4,4 0 0 1 -4,4 h-26 a4,4 0 0 1 -4,-4 v-7 a4,4 0 0 1 4,-4 Z" />
 </vector>

@@ -1,5 +1,6 @@
 package com.kasir.mobile.ui.screen.history
 
+import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -8,7 +9,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,12 +16,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.kasir.mobile.data.model.TransactionDto
-import com.kasir.mobile.ui.navigation.KasirBottomBar
+import com.kasir.mobile.ui.navigation.KasirResponsiveScaffold
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
 import com.kasir.mobile.ui.theme.KasirAccent
 import com.kasir.mobile.ui.theme.KasirCash
@@ -48,6 +49,8 @@ fun HistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isAdmin = uiState.currentUserRole == "admin"
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
 
     var searchQuery by remember { mutableStateOf("") }
@@ -100,7 +103,15 @@ fun HistoryScreen(
     val totalOT = totals.second
     val grandTotal = totals.third
 
-    Scaffold(
+    KasirResponsiveScaffold(
+        isLandscape = isLandscape,
+        selectedTab = uiState.activeTab,
+        onSelectTab = { tab ->
+            viewModel.setTab(tab)
+            if (tab == "dashboard") {
+                navController.popBackStack()
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -114,11 +125,6 @@ fun HistoryScreen(
                             letterSpacing = 1.sp,
                             color = if (isAdmin) KasirGreen else KasirTextLow
                         )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
                 },
                 actions = {
@@ -139,17 +145,6 @@ fun HistoryScreen(
             )
         },
         containerColor = KasirSurface,
-        bottomBar = {
-            KasirBottomBar(
-                selectedTab = uiState.activeTab,
-                onSelectTab = { tab ->
-                    viewModel.setTab(tab)
-                    if (tab == "dashboard") {
-                        navController.popBackStack()
-                    }
-                }
-            )
-        },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(

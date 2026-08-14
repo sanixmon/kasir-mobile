@@ -1,5 +1,6 @@
 package com.kasir.mobile.ui.screen.dashboard
 
+import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -8,6 +9,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -25,13 +28,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import com.kasir.mobile.data.model.CatalogItem
 import com.kasir.mobile.data.model.ItemCatalog
 import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
 import com.kasir.mobile.ui.components.rememberPressScale
-import com.kasir.mobile.ui.navigation.KasirBottomBar
+import com.kasir.mobile.ui.navigation.KasirResponsiveScaffold
 import com.kasir.mobile.ui.navigation.NavRoutes
 import com.kasir.mobile.ui.theme.KasirAccent
 import com.kasir.mobile.ui.theme.KasirCash
@@ -61,7 +65,6 @@ fun DashboardScreen(
     val uiState by viewModel.uiState.collectAsState()
     val activeCheckoutSession by viewModel.activeCheckoutSession.collectAsState()
     val activePaymentData by viewModel.activePaymentData.collectAsState()
-    val activeQrSession by viewModel.activeQrSession.collectAsState()
     val activeEditSession by viewModel.activeEditSession.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -79,13 +82,15 @@ fun DashboardScreen(
     var payAwal by remember { mutableStateOf("cash") }
     var selectedQty by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var searchQuery by remember { mutableStateOf("") }
-    var mobileSelectedTab by remember { mutableStateOf(0) } // 0: Sewa Baru, 1: Sesi Aktif
+    // 0: Sewa Baru, 1: Sesi Aktif — swipeable via HorizontalPager.
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerScope = rememberCoroutineScope()
 
     val configuration = LocalConfiguration.current
-    val isSmallScreen = configuration.screenWidthDp < 600
-    // Large screens keep the same 2-tab layout but show active sessions in a
-    // 3-column grid instead of a single column.
-    val sessionColumns = if (isSmallScreen) 1 else 3
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    // Landscape (tablet) keeps a dense 3-column session grid; portrait uses a
+    // single column so longer names aren't truncated.
+    val sessionColumns = if (isLandscape) 3 else 1
 
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
 
@@ -106,7 +111,15 @@ fun DashboardScreen(
         onDispose { viewModel.stopPolling() }
     }
 
-    Scaffold(
+    KasirResponsiveScaffold(
+        isLandscape = isLandscape,
+        selectedTab = uiState.activeTab,
+        onSelectTab = { tab ->
+            viewModel.setTab(tab)
+            if (tab == "history") {
+                navController.navigate(NavRoutes.POS) { launchSingleTop = true }
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -172,17 +185,6 @@ fun DashboardScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = KasirSurfaceVariant)
             )
         },
-        bottomBar = {
-            KasirBottomBar(
-                selectedTab = uiState.activeTab,
-                onSelectTab = { tab ->
-                    viewModel.setTab(tab)
-                    if (tab == "history") {
-                        navController.navigate(NavRoutes.POS) { launchSingleTop = true }
-                    }
-                }
-            )
-        },
         containerColor = KasirSurface,
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -192,25 +194,30 @@ fun DashboardScreen(
                 .padding(padding)
         ) {
             // Unified layout: "Sewa Baru" + "Sesi Aktif" tabs on all screen sizes.
+            // Tabs and swipe are synced through pagerState.
             TabRow(
-                    selectedTabIndex = mobileSelectedTab,
-                    containerColor = KasirSurfaceVariant,
-                    contentColor = KasirGreen
-                ) {
-                    Tab(
-                        selected = mobileSelectedTab == 0,
-                        onClick = { mobileSelectedTab = 0 },
-                        text = { Text("Sewa Baru", fontWeight = FontWeight.Bold) }
-                    )
-                    Tab(
-                        selected = mobileSelectedTab == 1,
-                        onClick = { mobileSelectedTab = 1 },
-                        text = { Text("Sesi Aktif (${filteredSessions.size})", fontWeight = FontWeight.Bold) }
-                    )
-                }
+                selectedTabIndex = pagerState.currentPage,
+                containerColor = KasirSurfaceVariant,
+                contentColor = KasirGreen
+            ) {
+                Tab(
+                    selected = pagerState.currentPage == 0,
+                    onClick = { pagerScope.launch { pagerState.animateScrollToPage(0) } },
+                    text = { Text("Sewa Baru", fontWeight = FontWeight.Bold) }
+                )
+                Tab(
+                    selected = pagerState.currentPage == 1,
+                    onClick = { pagerScope.launch { pagerState.animateScrollToPage(1) } },
+                    text = { Text("Sesi Aktif (${filteredSessions.size})", fontWeight = FontWeight.Bold) }
+                )
+            }
 
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
                 Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-                    if (mobileSelectedTab == 0) {
+                    if (page == 0) {
                         SewaBaruContent(
                             inputNama = inputNama,
                             onNamaChange = { inputNama = it },
@@ -222,6 +229,7 @@ fun DashboardScreen(
                                 selectedQty = selectedQty + (code to (current + delta).coerceAtLeast(0))
                             },
                             idrFormat = idrFormat,
+                            isLandscape = isLandscape,
                             onStartRental = {
                                 val items = ItemCatalog.ITEMS
                                     .filter { (selectedQty[it.code] ?: 0) > 0 }
@@ -239,12 +247,12 @@ fun DashboardScreen(
                             onSearchQueryChange = { searchQuery = it },
                             filteredSessions = filteredSessions,
                             onSelesai = { viewModel.activeCheckoutSession.value = it },
-                            onShowQR = { viewModel.activeQrSession.value = it },
                             onPrint = { viewModel.printSessionReceipt(it) },
                             columnCount = sessionColumns
                         )
                     }
                 }
+            }
 
         }
 
@@ -273,13 +281,6 @@ fun DashboardScreen(
         )
     }
 
-    activeQrSession?.let { session ->
-        QrCodeDialog(
-            session = session,
-            onClose = { viewModel.activeQrSession.value = null }
-        )
-    }
-
     // Admin PIN verification dialog (delete txn / clear history / edit session gate)
     AdminPinDialog(viewModel = viewModel)
 
@@ -302,116 +303,190 @@ fun SewaBaruContent(
     selectedQty: Map<String, Int>,
     onQuantityChange: (String, Int) -> Unit,
     idrFormat: NumberFormat,
-    onStartRental: () -> Unit
+    onStartRental: () -> Unit,
+    isLandscape: Boolean = false
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        val pressCash = rememberPressScale()
-        val pressQris = rememberPressScale()
-        val pressStart = rememberPressScale()
-        Text("Sewa Baru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = KasirGreen)
-        Spacer(Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = inputNama,
-            onValueChange = onNamaChange,
-            label = { Text("Nama Penyewa") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
-        )
-
-        Spacer(Modifier.height(8.dp))
-        Text("Metode Bayar Awal (Pokok)", style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.height(6.dp))
+    if (isLandscape) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            OutlinedButton(
-                onClick = { onPayAwalChange("cash") },
-                interactionSource = pressCash.interactionSource,
-                modifier = pressCash.modifier.weight(1f).height(52.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, if (payAwal == "cash") KasirCash else KasirLine),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (payAwal == "cash") KasirCash.copy(alpha = 0.15f) else KasirSurfaceCard
-                )
-            ) {
-                Icon(
-                    Icons.Filled.Payments,
-                    contentDescription = null,
-                    tint = if (payAwal == "cash") KasirCash else KasirOnSurfaceVariant,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    "Cash",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = if (payAwal == "cash") KasirCash else KasirOnSurfaceVariant
-                )
-            }
-            OutlinedButton(
-                onClick = { onPayAwalChange("qris") },
-                interactionSource = pressQris.interactionSource,
-                modifier = pressQris.modifier.weight(1f).height(52.dp),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, if (payAwal == "qris") KasirQris else KasirLine),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (payAwal == "qris") KasirQris.copy(alpha = 0.15f) else KasirSurfaceCard
-                )
-            ) {
-                Icon(
-                    Icons.Filled.QrCode,
-                    contentDescription = null,
-                    tint = if (payAwal == "qris") KasirQris else KasirOnSurfaceVariant,
-                    modifier = Modifier.size(22.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    "QRIS",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = if (payAwal == "qris") KasirQris else KasirOnSurfaceVariant
-                )
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-        Text("Pilih Item & Jumlah", style = MaterialTheme.typography.labelMedium)
-        Spacer(Modifier.height(4.dp))
-
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 150.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            items(ItemCatalog.ITEMS.size) { index ->
-                val item = ItemCatalog.ITEMS[index]
-                val qty = selectedQty[item.code] ?: 0
-                ItemCatalogCard(
-                    item = item,
-                    qty = qty,
+            // LEFT — product catalog
+            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                Text("Pilih Item & Jumlah", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(4.dp))
+                SewaCatalogGrid(
+                    selectedQty = selectedQty,
+                    onQuantityChange = onQuantityChange,
                     idrFormat = idrFormat,
-                    onQuantityChange = { delta -> onQuantityChange(item.code, delta) }
+                    modifier = Modifier.weight(1f)
                 )
             }
+            // RIGHT — name, payment method, start button
+            Column(modifier = Modifier.width(300.dp).fillMaxHeight()) {
+                val pressStart = rememberPressScale()
+                Text("Sewa Baru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = KasirGreen)
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = inputNama,
+                    onValueChange = onNamaChange,
+                    label = { Text("Nama Penyewa") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
+                )
+                Spacer(Modifier.height(8.dp))
+                Text("Metode Bayar Awal (Pokok)", style = MaterialTheme.typography.labelMedium)
+                Spacer(Modifier.height(6.dp))
+                SewaPaymentSelector(payAwal = payAwal, onPayAwalChange = onPayAwalChange)
+                Spacer(Modifier.weight(1f))
+                Button(
+                    onClick = onStartRental,
+                    enabled = inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
+                    interactionSource = pressStart.interactionSource,
+                    modifier = pressStart.modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                ) {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Mulai Sewa", fontWeight = FontWeight.Bold)
+                }
+            }
         }
+    } else {
+        Column(modifier = Modifier.fillMaxSize()) {
+            val pressStart = rememberPressScale()
+            Text("Sewa Baru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = KasirGreen)
+            Spacer(Modifier.height(8.dp))
 
-        Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = inputNama,
+                onValueChange = onNamaChange,
+                label = { Text("Nama Penyewa") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
+            )
 
-        Button(
-            onClick = onStartRental,
-            enabled = inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
-            interactionSource = pressStart.interactionSource,
-            modifier = pressStart.modifier.fillMaxWidth().height(46.dp),
+            Spacer(Modifier.height(8.dp))
+            Text("Metode Bayar Awal (Pokok)", style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.height(6.dp))
+            SewaPaymentSelector(payAwal = payAwal, onPayAwalChange = onPayAwalChange)
+
+            Spacer(Modifier.height(8.dp))
+            Text("Pilih Item & Jumlah", style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.height(4.dp))
+
+            SewaCatalogGrid(
+                selectedQty = selectedQty,
+                onQuantityChange = onQuantityChange,
+                idrFormat = idrFormat,
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Button(
+                onClick = onStartRental,
+                enabled = inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
+                interactionSource = pressStart.interactionSource,
+                modifier = pressStart.modifier.fillMaxWidth().height(46.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+            ) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                Spacer(Modifier.width(6.dp))
+                Text("Mulai Sewa", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SewaCatalogGrid(
+    selectedQty: Map<String, Int>,
+    onQuantityChange: (String, Int) -> Unit,
+    idrFormat: NumberFormat,
+    modifier: Modifier = Modifier
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 150.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+    ) {
+        items(ItemCatalog.ITEMS.size) { index ->
+            val item = ItemCatalog.ITEMS[index]
+            val qty = selectedQty[item.code] ?: 0
+            ItemCatalogCard(
+                item = item,
+                qty = qty,
+                idrFormat = idrFormat,
+                onQuantityChange = { delta -> onQuantityChange(item.code, delta) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SewaPaymentSelector(
+    payAwal: String,
+    onPayAwalChange: (String) -> Unit
+) {
+    val pressCash = rememberPressScale()
+    val pressQris = rememberPressScale()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedButton(
+            onClick = { onPayAwalChange("cash") },
+            interactionSource = pressCash.interactionSource,
+            modifier = pressCash.modifier.weight(1f).height(52.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+            border = BorderStroke(1.dp, if (payAwal == "cash") KasirCash else KasirLine),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = if (payAwal == "cash") KasirCash.copy(alpha = 0.15f) else KasirSurfaceCard
+            )
         ) {
-            Icon(Icons.Filled.PlayArrow, contentDescription = null)
+            Icon(
+                Icons.Filled.Payments,
+                contentDescription = null,
+                tint = if (payAwal == "cash") KasirCash else KasirOnSurfaceVariant,
+                modifier = Modifier.size(22.dp)
+            )
             Spacer(Modifier.width(6.dp))
-            Text("Mulai Sewa", fontWeight = FontWeight.Bold)
+            Text(
+                "Cash",
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = if (payAwal == "cash") KasirCash else KasirOnSurfaceVariant
+            )
+        }
+        OutlinedButton(
+            onClick = { onPayAwalChange("qris") },
+            interactionSource = pressQris.interactionSource,
+            modifier = pressQris.modifier.weight(1f).height(52.dp),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, if (payAwal == "qris") KasirQris else KasirLine),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = if (payAwal == "qris") KasirQris.copy(alpha = 0.15f) else KasirSurfaceCard
+            )
+        ) {
+            Icon(
+                Icons.Filled.QrCode,
+                contentDescription = null,
+                tint = if (payAwal == "qris") KasirQris else KasirOnSurfaceVariant,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                "QRIS",
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = if (payAwal == "qris") KasirQris else KasirOnSurfaceVariant
+            )
         }
     }
 }
@@ -422,7 +497,6 @@ fun SesiAktifContent(
     onSearchQueryChange: (String) -> Unit,
     filteredSessions: List<SessionDto>,
     onSelesai: (SessionDto) -> Unit,
-    onShowQR: (SessionDto) -> Unit,
     onPrint: (SessionDto) -> Unit,
     columnCount: Int = 1
 ) {
@@ -436,25 +510,7 @@ fun SesiAktifContent(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Sesi Aktif (${filteredSessions.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                placeholder = { Text("Cari...") },
-                singleLine = true,
-                modifier = Modifier.width(140.dp),
-                textStyle = MaterialTheme.typography.bodySmall
-            )
-        }
-
-        Spacer(Modifier.height(8.dp))
-
+    Box(modifier = Modifier.fillMaxSize()) {
         if (filteredSessions.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Tidak ada sesi sewa aktif", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -463,30 +519,58 @@ fun SesiAktifContent(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columnCount),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(bottom = 76.dp),
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(filteredSessions, key = { it.id }) { session ->
                     ActiveSessionCard(
                         session = session,
                         now = now,
                         onSelesai = { onSelesai(session) },
-                        onShowQR = { onShowQR(session) },
                         onPrint = { onPrint(session) }
                     )
                 }
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(bottom = 76.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
                 items(filteredSessions, key = { it.id }) { session ->
                     ActiveSessionCard(
                         session = session,
                         now = now,
                         onSelesai = { onSelesai(session) },
-                        onShowQR = { onShowQR(session) },
                         onPrint = { onPrint(session) }
                     )
                 }
             }
+        }
+
+        // Floating search bar pinned above the bottom nav
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = KasirSurfaceCard,
+            border = BorderStroke(1.dp, KasirLine),
+            shadowElevation = 6.dp
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchQueryChange,
+                placeholder = { Text("Cari nama / antrian / item...") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent
+                )
+            )
         }
     }
 }
@@ -634,7 +718,6 @@ fun ActiveSessionCard(
     session: SessionDto,
     now: Long,
     onSelesai: () -> Unit,
-    onShowQR: () -> Unit,
     onPrint: () -> Unit
 ) {
     val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
@@ -818,17 +901,6 @@ fun ActiveSessionCard(
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.Print, contentDescription = "Print Struk", tint = KasirOnSurfaceVariant, modifier = Modifier.size(18.dp))
-                    }
-                }
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = KasirSurfaceVariant,
-                    border = BorderStroke(1.dp, KasirLine),
-                    modifier = Modifier.size(42.dp),
-                    onClick = onShowQR
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.QrCode, contentDescription = "QR Code", tint = KasirOnSurfaceVariant, modifier = Modifier.size(18.dp))
                     }
                 }
             }
