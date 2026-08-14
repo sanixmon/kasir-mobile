@@ -5,6 +5,7 @@ import com.kasir.mobile.data.model.DeletionLogDto
 import com.kasir.mobile.data.model.DeletionLogsResponse
 import com.kasir.mobile.data.model.FetchAllDataResponse
 import com.kasir.mobile.data.model.KasirRpcRequest
+import com.kasir.mobile.data.model.LoginCashierResponse
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.VerifyAdminResponse
 import com.kasir.mobile.data.remote.KasirApiService
@@ -77,6 +78,13 @@ class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirReposi
 
     override suspend fun verifyAdmin(password: String): Result<VerifyAdminResponse> = runCatching {
         apiService.verifyAdmin(KasirRpcRequest(action = "verify_admin", payload = buildJsonObject { put("password", password) }))
+    }
+
+    override suspend fun loginCashier(username: String, password: String): Result<LoginCashierResponse> = runCatching {
+        apiService.loginCashier(KasirRpcRequest(action = "login_cashier", payload = buildJsonObject {
+            put("username", username)
+            put("password", password)
+        }))
     }
 
     override suspend fun changeAdminPass(oldPass: String, newPass: String): Result<ActionSuccessResponse> = runCatching {

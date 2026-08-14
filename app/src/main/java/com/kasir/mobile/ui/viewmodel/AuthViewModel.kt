@@ -43,8 +43,7 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Cashier shift login. Mirrors kasir-db LoginPage:
-     * username must exist in the server users list and the shift password must match
+     * Cashier shift login. Verified server-side via the login_cashier RPC
      * (empty stored password falls back to the default 'jayalahevren').
      */
     fun loginAsCashier(username: String, password: String, serverUrl: String) {
@@ -57,22 +56,16 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
             try {
                 ServiceLocator.setServerUrl(serverUrl)
                 val repository = ServiceLocator.repository()
-                val data = repository.fetchAllData().getOrThrow()
+                val res = repository.loginCashier(username.trim(), password).getOrThrow()
 
-                val userMatch = data.users.firstOrNull {
-                    it.username.equals(username.trim(), ignoreCase = true)
-                }
-                if (userMatch == null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Nama kasir tidak ditemukan!") }
+                if (!res.success || res.user == null) {
+                    _uiState.update {
+                        it.copy(isLoading = false, error = res.error ?: "Nama kasir tidak ditemukan!")
+                    }
                     return@launch
                 }
 
-                val validPass = userMatch.password.ifBlank { "jayalahevren" }
-                if (password != validPass) {
-                    _uiState.update { it.copy(isLoading = false, error = "Password shift tidak sesuai!") }
-                    return@launch
-                }
-
+                val userMatch = res.user
                 sessionManager.setServerUrl(serverUrl)
                 sessionManager.setCurrentUser(userMatch.username, userMatch.username)
                 val isAdmin = userMatch.role.equals("admin", ignoreCase = true)
@@ -84,7 +77,6 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
                         isLoggedIn = true,
                         username = userMatch.username,
                         isAdmin = isAdmin,
-                        users = data.users,
                         error = null
                     )
                 }

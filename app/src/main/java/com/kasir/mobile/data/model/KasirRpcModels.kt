@@ -31,6 +31,13 @@ data class VerifyAdminResponse(
 )
 
 @Serializable
+data class LoginCashierResponse(
+    val success: Boolean = false,
+    val error: String? = null,
+    val user: UserDto? = null
+)
+
+@Serializable
 data class DeletionLogsResponse(
     val logs: List<DeletionLogDto> = emptyList()
 )
