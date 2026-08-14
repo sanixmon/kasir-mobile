@@ -1,5 +1,6 @@
 package com.kasir.mobile.data.remote
 
+import com.kasir.mobile.BuildConfig
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -9,8 +10,6 @@ import retrofit2.Retrofit
 import java.util.concurrent.ConcurrentHashMap
 
 object RetrofitClient {
-
-    private const val DEFAULT_BASE_URL = "https://utara.evrenhouse.online"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -27,7 +26,7 @@ object RetrofitClient {
      * Returns a KasirApiService bound to [baseUrl]. Services are cached per URL.
      * Trailing slashes and a trailing "/api" path segment are normalized away.
      */
-    fun apiService(baseUrl: String = DEFAULT_BASE_URL): KasirApiService {
+    fun apiService(baseUrl: String): KasirApiService {
         val normalized = sanitizeServerUrl(baseUrl)
         return cache.getOrPut(normalized) {
             Retrofit.Builder()
@@ -47,7 +46,7 @@ object RetrofitClient {
      */
     fun sanitizeServerUrl(url: String): String {
         var u = url.trim()
-        if (u.isBlank()) return sanitizeServerUrl(DEFAULT_BASE_URL)
+        if (u.isBlank()) return sanitizeServerUrl(BuildConfig.API_BASE_URL)
 
         if (u.startsWith("http://")) {
             u = "https://${u.removePrefix("http://")}"

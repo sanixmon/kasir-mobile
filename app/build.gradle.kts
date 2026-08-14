@@ -34,7 +34,16 @@ android {
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL", "\"https://utara.evrenhouse.online/\"")
+
+        // Backend URL comes from the API_BASE_URL env var (GitHub Secret in CI)
+        // or a Gradle property locally — never hardcoded in the repo.
+        val apiBaseUrl = System.getenv("API_BASE_URL")
+            ?: (project.findProperty("API_BASE_URL") as? String)
+            ?: throw GradleException(
+                "Missing API_BASE_URL. Set it as an env var (CI) or " +
+                    "-PAPI_BASE_URL=... (local)."
+            )
+        buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.trimEnd('/')}\"")
 
         // Ship a single arm64-v8a ABI for smaller, targeted APKs.
         ndk {

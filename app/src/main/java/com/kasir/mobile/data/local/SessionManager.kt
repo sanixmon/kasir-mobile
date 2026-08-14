@@ -1,6 +1,7 @@
 package com.kasir.mobile.data.local
 
 import android.content.Context
+import com.kasir.mobile.BuildConfig
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -29,7 +30,7 @@ class SessionManager(private val context: Context) {
 
     val sessionDataFlow: Flow<SessionData> = context.dataStore.data.map { prefs ->
         SessionData(
-            serverUrl = prefs[SERVER_URL_KEY] ?: "https://utara.evrenhouse.online",
+            serverUrl = prefs[SERVER_URL_KEY] ?: BuildConfig.API_BASE_URL,
             currentUserId = prefs[CURRENT_USER_ID_KEY] ?: "",
             currentUserName = prefs[CURRENT_USER_NAME_KEY] ?: "",
             isAdmin = prefs[IS_ADMIN_KEY] ?: false

@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.kasir.mobile.data.ServiceLocator
 import com.kasir.mobile.ui.navigation.NavRoutes
 import com.kasir.mobile.ui.theme.KasirDisplay
 import com.kasir.mobile.ui.theme.KasirError
@@ -222,7 +223,7 @@ fun LoginScreen(
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
-                            placeholder = { Text("https://utara.evrenhouse.online") },
+                            placeholder = { Text(ServiceLocator.DEFAULT_SERVER_URL) },
                             colors = kasirFieldColors()
                         )
                         Spacer(modifier = Modifier.height(8.dp))

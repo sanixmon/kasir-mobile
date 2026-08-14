@@ -1,6 +1,7 @@
 package com.kasir.mobile.data
 
 import android.content.Context
+import com.kasir.mobile.BuildConfig
 import com.kasir.mobile.data.printer.BluetoothPrinterRepository
 import com.kasir.mobile.data.printer.PrinterRepository
 import com.kasir.mobile.data.remote.RetrofitClient
@@ -16,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap
  * URL so the whole app always talks to the same backend.
  */
 object ServiceLocator {
-    const val DEFAULT_SERVER_URL = "https://utara.evrenhouse.online"
+    val DEFAULT_SERVER_URL: String = BuildConfig.API_BASE_URL
 
     @Volatile
     var activeServerUrl: String = DEFAULT_SERVER_URL

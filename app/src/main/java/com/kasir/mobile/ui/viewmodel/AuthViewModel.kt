@@ -19,7 +19,7 @@ data class AuthUiState(
     val error: String? = null,
     val username: String = "",
     val isAdmin: Boolean = false,
-    val serverUrl: String = ServiceLocator.DEFAULT_SERVER_URL,
+    val serverUrl: String = "",
     val users: List<UserDto> = emptyList()
 )
 
