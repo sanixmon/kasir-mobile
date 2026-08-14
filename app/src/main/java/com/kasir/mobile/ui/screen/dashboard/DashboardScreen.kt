@@ -533,7 +533,20 @@ fun SesiAktifContent(
     Box(modifier = Modifier.fillMaxSize()) {
         if (filteredSessions.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Tidak ada sesi sewa aktif", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        Icons.Filled.SearchOff,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        if (searchQuery.isBlank()) "Tidak ada sesi sewa aktif"
+                        else "Tidak ada hasil untuk \"$searchQuery\"",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         } else if (columnCount > 1) {
             LazyVerticalGrid(
@@ -803,7 +816,19 @@ fun ActiveSessionCard(
                     if (isZombie) {
                         Spacer(Modifier.width(6.dp))
                         Surface(color = KasirError.copy(alpha = 0.15f), shape = RoundedCornerShape(4.dp)) {
-                            Text("⚠ ZOMBIE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = KasirError, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                            ) {
+                                Icon(
+                                    Icons.Filled.Warning,
+                                    contentDescription = null,
+                                    tint = KasirError,
+                                    modifier = Modifier.size(10.dp)
+                                )
+                                Spacer(Modifier.width(2.dp))
+                                Text("ZOMBIE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = KasirError)
+                            }
                         }
                     }
                 }

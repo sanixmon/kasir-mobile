@@ -583,7 +583,7 @@ fun TransactionCard(
             }
 
             Spacer(Modifier.height(8.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.surface)
+            HorizontalDivider(color = KasirLine)
             Spacer(Modifier.height(8.dp))
 
             // Payment breakdown — mirrors kasir-db HistoryTab columns
@@ -595,7 +595,7 @@ fun TransactionCard(
             BreakdownRow("Total QRIS", idrFormat.format(totalQris), KasirQris, bold = true)
 
             Spacer(Modifier.height(6.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.surface)
+            HorizontalDivider(color = KasirLine)
             Spacer(Modifier.height(6.dp))
 
             BreakdownRow("Grand Total", idrFormat.format(txn.totalAll), KasirAccent, bold = true, large = true)

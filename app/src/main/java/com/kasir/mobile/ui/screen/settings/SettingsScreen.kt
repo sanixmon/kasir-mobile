@@ -3,17 +3,23 @@ package com.kasir.mobile.ui.screen.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.kasir.mobile.data.ServiceLocator
@@ -159,23 +165,45 @@ fun SettingsScreen(
 
                     Spacer(Modifier.height(12.dp))
 
+                    var oldPinVisible by remember { mutableStateOf(false) }
                     OutlinedTextField(
                         value = oldPin,
                         onValueChange = { oldPin = it },
                         label = { Text("PIN Lama") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        visualTransformation = if (oldPinVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            IconButton(onClick = { oldPinVisible = !oldPinVisible }) {
+                                Icon(
+                                    imageVector = if (oldPinVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                    contentDescription = null
+                                )
+                            }
+                        },
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
                     )
 
                     Spacer(Modifier.height(8.dp))
 
+                    var newPinVisible by remember { mutableStateOf(false) }
                     OutlinedTextField(
                         value = newPin,
                         onValueChange = { newPin = it },
                         label = { Text("PIN Baru") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
+                        visualTransformation = if (newPinVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            IconButton(onClick = { newPinVisible = !newPinVisible }) {
+                                Icon(
+                                    imageVector = if (newPinVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                    contentDescription = null
+                                )
+                            }
+                        },
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
                     )
 
