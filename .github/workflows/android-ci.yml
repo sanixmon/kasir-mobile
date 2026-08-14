@@ -36,6 +36,8 @@ jobs:
 
       - name: Build release APK (arm64-v8a)
         run: ./gradlew assembleRelease --no-daemon
+        env:
+          KASIR_SIGNING_PASSWORD: ${{ secrets.KASIR_SIGNING_PASSWORD }}
 
       - name: Upload release APK
         uses: actions/upload-artifact@v6
@@ -83,6 +85,8 @@ jobs:
 
       - name: Run lint
         run: ./gradlew lintRelease --no-daemon
+        env:
+          KASIR_SIGNING_PASSWORD: ${{ secrets.KASIR_SIGNING_PASSWORD }}
 
       - name: Upload lint results
         uses: actions/upload-artifact@v6

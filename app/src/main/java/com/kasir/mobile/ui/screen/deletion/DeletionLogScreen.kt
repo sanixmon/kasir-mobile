@@ -30,7 +30,7 @@ fun DeletionLogScreen(
     viewModel: KasirViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
+    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
     val dateFormat = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
 
     // Load deletion audit logs from the server when the screen opens

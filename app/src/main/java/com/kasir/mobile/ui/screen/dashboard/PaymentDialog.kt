@@ -44,7 +44,7 @@ fun PaymentDialog(
     onClose: () -> Unit,
     onConfirm: (cash: Double, qris: Double) -> Unit
 ) {
-    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
+    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
     val grand = paymentData.otSum
     val isNoOT = grand == 0.0
 

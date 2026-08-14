@@ -40,7 +40,7 @@ fun CalculateRentalDialog(
     onClose: () -> Unit,
     onProceedPayment: (PaymentCalcData) -> Unit
 ) {
-    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
+    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val now = System.currentTimeMillis()
     val safeStart = if (session.startTime > 1577836800000L) session.startTime else now

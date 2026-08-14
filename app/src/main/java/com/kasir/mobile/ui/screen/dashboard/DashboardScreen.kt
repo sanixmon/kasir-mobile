@@ -87,7 +87,7 @@ fun DashboardScreen(
     // 3-column grid instead of a single column.
     val sessionColumns = if (isSmallScreen) 1 else 3
 
-    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
+    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
 
     val filteredSessions = remember(uiState.activeSessions, searchQuery) {
         uiState.activeSessions

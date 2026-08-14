@@ -48,7 +48,7 @@ fun HistoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isAdmin = uiState.currentUserRole == "admin"
-    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")) }
+    val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
 
     var searchQuery by remember { mutableStateOf("") }
     var txnToDelete by remember { mutableStateOf<TransactionDto?>(null) }

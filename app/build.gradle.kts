@@ -11,13 +11,18 @@ android {
     signingConfigs {
         create("release") {
             // Stable release key so updates install over the previous build
-            // without reinstall. Passwords can be overridden later via
-            // -PKASIR_STORE_PASSWORD=... / -PKASIR_KEY_PASSWORD=... or env vars
-            // if moved to GitHub secrets.
+            // without reinstall. Password comes from the KASIR_SIGNING_PASSWORD
+            // env var (GitHub Secret in CI) or a Gradle property locally.
+            val signingPassword = System.getenv("KASIR_SIGNING_PASSWORD")
+                ?: (project.findProperty("KASIR_SIGNING_PASSWORD") as? String)
+                ?: throw GradleException(
+                    "Missing KASIR_SIGNING_PASSWORD. Set it as an env var (CI) " +
+                        "or -PKASIR_SIGNING_PASSWORD=... (local)."
+                )
             storeFile = file("keystore/release.jks")
-            storePassword = (project.findProperty("KASIR_STORE_PASSWORD") as String?) ?: "evrenhouse2026"
-            keyAlias = (project.findProperty("KASIR_KEY_ALIAS") as String?) ?: "kasir"
-            keyPassword = (project.findProperty("KASIR_KEY_PASSWORD") as String?) ?: "evrenhouse2026"
+            storePassword = signingPassword
+            keyAlias = "kasir"
+            keyPassword = signingPassword
         }
     }
 
