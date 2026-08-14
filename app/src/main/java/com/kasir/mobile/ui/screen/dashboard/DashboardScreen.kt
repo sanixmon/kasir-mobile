@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -23,8 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -89,6 +93,7 @@ fun DashboardScreen(
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val focusManager = LocalFocusManager.current
     // Landscape (tablet) keeps a dense 3-column session grid; portrait uses a
     // single column so longer names aren't truncated.
     val sessionColumns = if (isLandscape) 3 else 1
@@ -193,6 +198,9 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { focusManager.clearFocus() })
+                }
         ) {
             // Unified layout: "Sewa Baru" + "Sesi Aktif" tabs on all screen sizes.
             // Tabs and swipe are synced through pagerState.
@@ -320,14 +328,13 @@ fun SewaBaruContent(
                     selectedQty = selectedQty,
                     onQuantityChange = onQuantityChange,
                     idrFormat = idrFormat,
+                    compact = true,
                     modifier = Modifier.weight(1f)
                 )
             }
             // RIGHT — name, payment method, start button
-            Column(modifier = Modifier.width(300.dp).fillMaxHeight()) {
+            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 val pressStart = rememberPressScale()
-                Text("Sewa Baru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = KasirGreen)
-                Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = inputNama,
                     onValueChange = onNamaChange,
@@ -340,7 +347,7 @@ fun SewaBaruContent(
                 Text("Metode Bayar Awal (Pokok)", style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(6.dp))
                 SewaPaymentSelector(payAwal = payAwal, onPayAwalChange = onPayAwalChange)
-                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.height(12.dp))
                 Button(
                     onClick = onStartRental,
                     enabled = inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
@@ -358,8 +365,6 @@ fun SewaBaruContent(
     } else {
         Column(modifier = Modifier.fillMaxSize()) {
             val pressStart = rememberPressScale()
-            Text("Sewa Baru", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = KasirGreen)
-            Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = inputNama,
@@ -409,10 +414,11 @@ private fun SewaCatalogGrid(
     selectedQty: Map<String, Int>,
     onQuantityChange: (String, Int) -> Unit,
     idrFormat: NumberFormat,
+    compact: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 150.dp),
+        columns = GridCells.Adaptive(minSize = if (compact) 130.dp else 150.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
@@ -424,6 +430,7 @@ private fun SewaCatalogGrid(
                 item = item,
                 qty = qty,
                 idrFormat = idrFormat,
+                compact = compact,
                 onQuantityChange = { delta -> onQuantityChange(item.code, delta) }
             )
         }
@@ -582,6 +589,7 @@ fun ItemCatalogCard(
     item: CatalogItem,
     qty: Int,
     idrFormat: NumberFormat,
+    compact: Boolean = false,
     onQuantityChange: (Int) -> Unit
 ) {
     val selected = qty > 0
@@ -613,17 +621,24 @@ fun ItemCatalogCard(
                     .background(KasirSurfaceCard.copy(alpha = 0.30f))
             )
             Column(
-                modifier = Modifier.padding(10.dp),
+                modifier = Modifier.padding(if (compact) 6.dp else 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = item.code,
-                fontFamily = KasirMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                color = if (selected) KasirGreen else KasirOnSurfaceVariant
+                    fontFamily = KasirMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = if (compact) 10.sp else 12.sp,
+                    color = if (selected) KasirGreen else KasirOnSurfaceVariant
+                )
+            Text(
+                text = item.name,
+                style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                color = KasirOnSurface
             )
-            Text(item.name, style = MaterialTheme.typography.labelSmall, maxLines = 1, color = KasirOnSurface)
             Spacer(Modifier.height(3.dp))
             Text(
                 text = if (item.isPackage) "Paket ${item.packageHours}j" else "/ jam",
@@ -634,14 +649,14 @@ fun ItemCatalogCard(
                 text = idrFormat.format(item.priceHour),
                 fontFamily = KasirMono,
                 fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
+                fontSize = if (compact) 10.sp else 11.sp,
                 color = KasirGreen
             )
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(if (compact) 40.dp else 48.dp)
                     .clip(RoundedCornerShape(10.dp))
             ) {
                 // Decrease — left half of the card itself
@@ -655,7 +670,7 @@ fun ItemCatalogCard(
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             "−",
-                            fontSize = 24.sp,
+                            fontSize = if (compact) 20.sp else 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (qty > 0) KasirOnSurfaceVariant else KasirTextLow
                         )
@@ -664,7 +679,7 @@ fun ItemCatalogCard(
                 // Quantity (center divider)
                 Box(
                     modifier = Modifier
-                        .width(52.dp)
+                        .width(if (compact) 44.dp else 52.dp)
                         .fillMaxHeight()
                         .background(KasirSurfaceVariant),
                     contentAlignment = Alignment.Center
@@ -673,7 +688,7 @@ fun ItemCatalogCard(
                         "$qty",
                         fontFamily = KasirMono,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
+                        fontSize = if (compact) 14.sp else 16.sp,
                         color = if (qty > 0) KasirGreen else KasirOnSurfaceVariant
                     )
                 }
@@ -687,7 +702,7 @@ fun ItemCatalogCard(
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             "+",
-                            fontSize = 24.sp,
+                            fontSize = if (compact) 20.sp else 24.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
