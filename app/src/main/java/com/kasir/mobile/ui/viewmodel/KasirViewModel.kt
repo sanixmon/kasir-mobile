@@ -398,6 +398,48 @@ class KasirViewModel : ViewModel() {
         )
     }
 
+    /**
+     * Mirrors kasir-db CalculateRentalModal handleReturnQtyChange: change how many
+     * of one item are returned now (the rest keeps renting) and recompute the
+     * whole bill — pokok, overtime, and the ot/otDur summary strings.
+     */
+    fun updateReturnQty(paymentData: PaymentCalcData, code: String, newReturnQty: Int): PaymentCalcData {
+        val updatedItems = paymentData.itemsCalc.map { calc ->
+            if (calc.item.code != code) calc
+            else {
+                val rq = newReturnQty.coerceIn(0, calc.item.qty)
+                calc.copy(
+                    returnQty = rq,
+                    baseCost = calc.catalogDef.priceHour * rq,
+                    otCost = (calc.otFullCount * calc.catalogDef.priceOT60 +
+                        calc.otHalfCount * calc.catalogDef.priceOT30) * rq
+                )
+            }
+        }
+
+        val baseSum = updatedItems.sumOf { it.baseCost }
+        val otSum = updatedItems.sumOf { it.otCost }
+        val otStr = updatedItems
+            .filter { it.returnQty > 0 && (it.otFullCount > 0 || it.otHalfCount > 0) }
+            .joinToString(", ") {
+                "${it.item.code}(${if (it.otFullCount > 0) "${it.otFullCount}×1j" else ""}${if (it.otHalfCount > 0) "+${it.otHalfCount}×½j" else ""})"
+            }
+            .ifEmpty { "-" }
+        val otDurStr = updatedItems
+            .filter { it.returnQty > 0 && (it.otFullCount > 0 || it.otHalfCount > 0) }
+            .joinToString(", ") { "${it.item.code}:${it.otFullCount * 60 + it.otHalfCount * 30}m" }
+            .ifEmpty { "-" }
+
+        return paymentData.copy(
+            itemsCalc = updatedItems,
+            baseSum = baseSum,
+            otSum = otSum,
+            grandTotal = baseSum + otSum,
+            otStr = otStr,
+            otDurStr = otDurStr
+        )
+    }
+
     fun finalizePayment(paymentData: PaymentCalcData, cash: Double, qris: Double) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -644,6 +686,22 @@ class KasirViewModel : ViewModel() {
                     onResult(
                         res.success,
                         if (res.success) "PIN Admin berhasil diperbarui!" else (res.error ?: "Gagal memperbarui PIN admin")
+                    )
+                }
+                .onFailure { e ->
+                    onResult(false, "Gagal terhubung ke server: ${e.message ?: "Periksa URL server"}")
+                }
+        }
+    }
+
+    /** Mirrors kasir-db SettingsTab handleBackup (backup_db RPC, admin-only). */
+    fun backupDatabase(onResult: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            repository().backupDatabase()
+                .onSuccess { res ->
+                    onResult(
+                        res.success,
+                        if (res.success) "Backup database berhasil!" else (res.error ?: "Backup gagal")
                     )
                 }
                 .onFailure { e ->

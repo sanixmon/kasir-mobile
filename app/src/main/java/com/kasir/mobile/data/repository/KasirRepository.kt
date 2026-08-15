@@ -1,6 +1,7 @@
 package com.kasir.mobile.data.repository
 
 import com.kasir.mobile.data.model.ActionSuccessResponse
+import com.kasir.mobile.data.model.BackupResponse
 import com.kasir.mobile.data.model.DeletionLogDto
 import com.kasir.mobile.data.model.DeletionLogsResponse
 import com.kasir.mobile.data.model.FetchAllDataResponse
@@ -26,4 +27,5 @@ interface KasirRepository {
     suspend fun getDeletionLogs(): Result<DeletionLogsResponse>
     suspend fun saveUser(username: String, password: String, role: String): Result<ActionSuccessResponse>
     suspend fun deleteUser(username: String): Result<ActionSuccessResponse>
+    suspend fun backupDatabase(): Result<BackupResponse>
 }

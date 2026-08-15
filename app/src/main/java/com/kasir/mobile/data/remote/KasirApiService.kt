@@ -1,6 +1,7 @@
 package com.kasir.mobile.data.remote
 
 import com.kasir.mobile.data.model.ActionSuccessResponse
+import com.kasir.mobile.data.model.BackupResponse
 import com.kasir.mobile.data.model.DeletionLogsResponse
 import com.kasir.mobile.data.model.FetchAllDataResponse
 import com.kasir.mobile.data.model.KasirRpcRequest
@@ -59,4 +60,7 @@ interface KasirApiService {
 
     @POST("api")
     suspend fun deleteUser(@Body request: KasirRpcRequest): ActionSuccessResponse
+
+    @POST("api")
+    suspend fun backupDatabase(@Body request: KasirRpcRequest): BackupResponse
 }

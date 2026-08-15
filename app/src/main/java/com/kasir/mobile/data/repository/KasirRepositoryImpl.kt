@@ -1,6 +1,7 @@
 package com.kasir.mobile.data.repository
 
 import com.kasir.mobile.data.model.ActionSuccessResponse
+import com.kasir.mobile.data.model.BackupResponse
 import com.kasir.mobile.data.model.DeletionLogDto
 import com.kasir.mobile.data.model.DeletionLogsResponse
 import com.kasir.mobile.data.model.FetchAllDataResponse
@@ -122,5 +123,9 @@ class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirReposi
         apiService.deleteUser(KasirRpcRequest(action = "delete_user", payload = buildJsonObject {
             put("username", username)
         }))
+    }
+
+    override suspend fun backupDatabase(): Result<BackupResponse> = runCatching {
+        apiService.backupDatabase(KasirRpcRequest(action = "backup_db"))
     }
 }

@@ -51,3 +51,10 @@ data class LoginAdminResponse(
 data class DeletionLogsResponse(
     val logs: List<DeletionLogDto> = emptyList()
 )
+
+@Serializable
+data class BackupResponse(
+    val success: Boolean = false,
+    val error: String? = null,
+    val path: String? = null
+)

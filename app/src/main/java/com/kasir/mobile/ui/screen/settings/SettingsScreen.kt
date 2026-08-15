@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Settings
@@ -16,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -40,8 +42,15 @@ fun SettingsScreen(
     var newPin by remember { mutableStateOf("") }
     var pinMessage by remember { mutableStateOf<String?>(null) }
     var pinError by remember { mutableStateOf(false) }
+    var backupMessage by remember { mutableStateOf<String?>(null) }
+    var backupError by remember { mutableStateOf(false) }
+    var backupLoading by remember { mutableStateOf(false) }
 
     val isAdmin = uiState.currentUserRole == "admin"
+
+    // Analytics reads from already-fetched state; make sure it's fresh
+    // (Dashboard polling is scoped to that screen only).
+    LaunchedEffect(Unit) { viewModel.loadData(showSync = false) }
 
     Scaffold(
         topBar = {
@@ -88,6 +97,13 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Section 0: Admin analytics (kasir-db SettingsAnalytics)
+            SettingsAnalyticsSection(
+                transactions = uiState.transactions,
+                activeSessionsCount = uiState.activeSessions.size,
+                currentShiftUser = uiState.currentShiftUser
+            )
+
             // Server info
             Surface(
                 shape = RoundedCornerShape(12.dp),
@@ -236,6 +252,64 @@ fun SettingsScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
                     ) {
                         Text("Simpan PIN Baru")
+                    }
+                }
+            }
+
+            // Section 3: Backup Database (kasir-db backup_db)
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = KasirSurfaceCard,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.CloudDownload, contentDescription = null, tint = KasirGreen)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Backup Database", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        "Buat salinan manual database SQLite di server (folder backups).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            backupLoading = true
+                            viewModel.backupDatabase { ok, msg ->
+                                backupLoading = false
+                                backupError = !ok
+                                backupMessage = msg
+                            }
+                        },
+                        enabled = !backupLoading,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                    ) {
+                        if (backupLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
+                        Text(if (backupLoading) "Mem-backup..." else "Backup Manual Sekarang")
+                    }
+
+                    backupMessage?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            it,
+                            color = if (backupError) MaterialTheme.colorScheme.error else KasirGreen,
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }
