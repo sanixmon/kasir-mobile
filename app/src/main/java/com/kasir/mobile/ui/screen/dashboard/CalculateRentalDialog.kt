@@ -25,10 +25,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.ui.theme.KasirAccent
+import com.kasir.mobile.ui.theme.KasirCash
 import com.kasir.mobile.ui.theme.KasirGreen
 import com.kasir.mobile.ui.theme.KasirLine
 import com.kasir.mobile.ui.theme.KasirOnSurface
 import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
+import com.kasir.mobile.ui.theme.KasirQris
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
 import com.kasir.mobile.ui.theme.KasirTextLow
@@ -57,6 +59,7 @@ fun CalculateRentalDialog(
     val now = System.currentTimeMillis()
     val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
     val elapsedMin = (now - safeStart) / 60000.0
+    val payAwalColor = if (session.payAwal == "qris") KasirQris else KasirCash
 
     var paymentCalc by remember { mutableStateOf(viewModel.preparePayment(session)) }
     val itemsCalc = paymentCalc.itemsCalc
@@ -112,7 +115,7 @@ fun CalculateRentalDialog(
 
                 Spacer(Modifier.height(14.dp))
 
-                // Base cost already lunas
+                // Base cost already lunas + how it was paid upfront
                 Surface(
                     color = KasirGreen.copy(alpha = 0.15f),
                     shape = RoundedCornerShape(12.dp),
@@ -128,7 +131,23 @@ fun CalculateRentalDialog(
                             Spacer(Modifier.width(8.dp))
                             Text("Tarif Sewa Pokok — Lunas", fontWeight = FontWeight.SemiBold, color = KasirGreen)
                         }
-                        Text(idrFormat.format(paymentCalc.baseSum), fontWeight = FontWeight.Bold, color = KasirGreen)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                color = payAwalColor.copy(alpha = 0.18f),
+                                shape = RoundedCornerShape(6.dp),
+                                border = BorderStroke(1.dp, payAwalColor.copy(alpha = 0.4f))
+                            ) {
+                                Text(
+                                    session.payAwal.uppercase(),
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = payAwalColor,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text(idrFormat.format(paymentCalc.baseSum), fontWeight = FontWeight.Bold, color = KasirGreen)
+                        }
                     }
                 }
 

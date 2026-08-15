@@ -53,6 +53,8 @@ fun PaymentDialog(
     var submitting by remember { mutableStateOf(false) }
 
     val changeVal = (cashAmt - grand).coerceAtLeast(0.0)
+    val payAwal = paymentData.session.payAwal
+    val payAwalColor = if (payAwal == "qris") KasirQris else KasirCash
     val pressCash = rememberPressScale()
     val pressQris = rememberPressScale()
     val pressConfirm = rememberPressScale()
@@ -112,7 +114,43 @@ fun PaymentDialog(
                     }
                 }
 
+                Spacer(Modifier.height(12.dp))
+
+                // Initial payment method — how the rental was paid upfront
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Bayar Awal (Pokok):",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = KasirOnSurfaceVariant
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Surface(
+                        color = payAwalColor.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(6.dp),
+                        border = BorderStroke(1.dp, payAwalColor.copy(alpha = 0.4f))
+                    ) {
+                        Text(
+                            payAwal.uppercase(),
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = payAwalColor,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
                 Spacer(Modifier.height(16.dp))
+
+                Text(
+                    "Pilih Jenis Pembayaran",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = KasirOnSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
 
                 // Pay method toggle
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

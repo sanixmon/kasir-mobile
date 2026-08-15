@@ -1,5 +1,13 @@
 package com.kasir.mobile.ui.screen.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
@@ -94,10 +102,15 @@ fun DashboardScreen(
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isTablet = configuration.screenWidthDp >= 600
     val focusManager = LocalFocusManager.current
-    // Landscape (tablet) keeps a dense 3-column session grid; portrait uses a
-    // single column so longer names aren't truncated.
-    val sessionColumns = if (isLandscape) 3 else 1
+    // Landscape → 3 columns (dense). Tablet portrait → 2 columns so names stay
+    // readable while fitting more sessions. Phone portrait → 1 column.
+    val sessionColumns = when {
+        isLandscape -> 3
+        isTablet -> 2
+        else -> 1
+    }
 
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
 
@@ -620,13 +633,19 @@ fun ItemCatalogCard(
     val selected = qty > 0
     val pressMinus = rememberPressScale()
     val pressPlus = rememberPressScale()
+    // Fade the selected tint instead of flipping it instantly for a softer tap feel.
+    val cardColor by animateColorAsState(
+        targetValue = if (selected) KasirGreen.copy(alpha = 0.12f) else KasirSurfaceCard,
+        label = "catalogCardColor"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) KasirGreen.copy(alpha = 0.6f) else KasirLine,
+        label = "catalogBorderColor"
+    )
     Surface(
         shape = RoundedCornerShape(14.dp),
-        color = if (selected) KasirGreen.copy(alpha = 0.12f) else KasirSurfaceCard,
-        border = BorderStroke(
-            width = 1.dp,
-            color = if (selected) KasirGreen.copy(alpha = 0.6f) else KasirLine
-        ),
+        color = cardColor,
+        border = BorderStroke(width = 1.dp, color = borderColor),
         modifier = Modifier.fillMaxWidth()
     ) {
         Box {
@@ -735,11 +754,15 @@ fun ItemCatalogCard(
                 }
             }
             }
-            if (selected) {
+            AnimatedVisibility(
+                visible = selected,
+                enter = fadeIn() + scaleIn(initialScale = 0.6f),
+                exit = fadeOut() + scaleOut(targetScale = 0.6f),
+                modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)
+            ) {
                 Surface(
                     color = KasirGreen,
-                    shape = CircleShape,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)
+                    shape = CircleShape
                 ) {
                     Icon(
                         Icons.Filled.Check,
@@ -782,12 +805,16 @@ fun ActiveSessionCard(
         else -> "NORMAL"
     }
     val urgency = (elapsedMin.toFloat() / 60f).coerceIn(0f, 1f)
+    // Smooth the status color + urgency bar so threshold crossings (NORMAL →
+    // GRACE → OVERTIME) and the per-second timer ticks fade instead of snap.
+    val animatedStatusColor by animateColorAsState(targetValue = statusColor, label = "statusColor")
+    val animatedUrgency by animateFloatAsState(targetValue = urgency, label = "urgency")
 
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = KasirSurfaceCard,
         border = BorderStroke(1.dp, KasirLine),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().animateContentSize()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(
@@ -891,13 +918,13 @@ fun ActiveSessionCard(
                         fontWeight = FontWeight.Bold,
                         fontSize = 26.sp,
                         letterSpacing = 1.sp,
-                        color = statusColor
+                        color = animatedStatusColor
                     )
                 }
                 Surface(
-                    color = statusColor.copy(alpha = 0.14f),
+                    color = animatedStatusColor.copy(alpha = 0.14f),
                     shape = RoundedCornerShape(6.dp),
-                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.35f))
+                    border = BorderStroke(1.dp, animatedStatusColor.copy(alpha = 0.35f))
                 ) {
                     Text(
                         statusLabel,
@@ -905,7 +932,7 @@ fun ActiveSessionCard(
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelSmall,
                         letterSpacing = 1.sp,
-                        color = statusColor,
+                        color = animatedStatusColor,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -922,9 +949,9 @@ fun ActiveSessionCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(urgency)
+                        .fillMaxWidth(animatedUrgency)
                         .height(3.dp)
-                        .background(statusColor, RoundedCornerShape(2.dp))
+                        .background(animatedStatusColor, RoundedCornerShape(2.dp))
                 )
             }
 
