@@ -52,7 +52,8 @@ fun CalculateRentalDialog(
     session: SessionDto,
     viewModel: KasirViewModel,
     onClose: () -> Unit,
-    onProceedPayment: (PaymentCalcData) -> Unit
+    onProceedPayment: (PaymentCalcData) -> Unit,
+    onCompleteOnTime: ((PaymentCalcData) -> Unit)? = null
 ) {
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -406,14 +407,31 @@ fun CalculateRentalDialog(
                     ) {
                         Text("Batal", fontWeight = FontWeight.Bold)
                     }
-                    Button(
-                        onClick = { onProceedPayment(paymentCalc) },
-                        enabled = canProceed,
-                        modifier = Modifier.weight(2f).height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
-                    ) {
-                        Text("Lanjut ke Pembayaran", fontWeight = FontWeight.Bold)
+                    if (paymentCalc.otSum == 0.0 && onCompleteOnTime != null) {
+                        Button(
+                            onClick = { onCompleteOnTime(paymentCalc) },
+                            enabled = canProceed,
+                            modifier = Modifier.weight(2f).height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                        ) {
+                            Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Selesai (Tepat Waktu)", fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Button(
+                            onClick = { onProceedPayment(paymentCalc) },
+                            enabled = canProceed,
+                            modifier = Modifier.weight(2f).height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                        ) {
+                            Text(
+                                if (paymentCalc.otSum > 0.0) "Bayar Overtime" else "Lanjut ke Pembayaran",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

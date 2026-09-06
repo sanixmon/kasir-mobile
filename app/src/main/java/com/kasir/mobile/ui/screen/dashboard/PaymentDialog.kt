@@ -145,119 +145,145 @@ fun PaymentDialog(
 
                 Spacer(Modifier.height(16.dp))
 
-                Text(
-                    "Pilih Jenis Pembayaran",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = KasirOnSurfaceVariant
-                )
-                Spacer(Modifier.height(8.dp))
-
-                // Pay method toggle
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Cash
-                    OutlinedButton(
-                        onClick = { payMode = "cash"; cashAmt = grand },
-                        enabled = !(isNoOT && paymentData.session.payAwal != "cash"),
-                        interactionSource = pressCash.interactionSource,
-                        modifier = pressCash.modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, if (payMode == "cash") KasirCash else KasirLine),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (payMode == "cash") KasirCash.copy(alpha = 0.14f) else KasirSurfaceCard
-                        )
-                    ) {
-                        Icon(
-                            Icons.Filled.Payments,
-                            contentDescription = null,
-                            tint = if (payMode == "cash") KasirCash else KasirOnSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            "Cash",
-                            fontWeight = FontWeight.Bold,
-                            color = if (payMode == "cash") KasirCash else KasirOnSurfaceVariant
-                        )
-                    }
-                    // QRIS
-                    OutlinedButton(
-                        onClick = { payMode = "qris"; cashAmt = 0.0 },
-                        enabled = !(isNoOT && paymentData.session.payAwal != "qris"),
-                        interactionSource = pressQris.interactionSource,
-                        modifier = pressQris.modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, if (payMode == "qris") KasirQris else KasirLine),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (payMode == "qris") KasirQris.copy(alpha = 0.14f) else KasirSurfaceCard
-                        )
-                    ) {
-                        Icon(
-                            Icons.Filled.QrCode,
-                            contentDescription = null,
-                            tint = if (payMode == "qris") KasirQris else KasirOnSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            "QRIS",
-                            fontWeight = FontWeight.Bold,
-                            color = if (payMode == "qris") KasirQris else KasirOnSurfaceVariant
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                if (payMode == "cash") {
-                    OutlinedTextField(
-                        value = if (cashAmt == 0.0) "" else cashAmt.toLong().toString(),
-                        onValueChange = { input ->
-                            cashAmt = input.filter { it.isDigit() }.toDoubleOrNull() ?: 0.0
-                        },
-                        label = { Text("Jumlah Uang Cash Diterima") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        enabled = !submitting,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
-                    )
-
-                    Spacer(Modifier.height(12.dp))
-
+                if (isNoOT) {
                     Surface(
-                        color = KasirGreen.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = KasirGreen.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, KasirGreen.copy(alpha = 0.35f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Kembalian", fontWeight = FontWeight.SemiBold, color = KasirGreen)
-                            Text(idrFormat.format(changeVal), fontWeight = FontWeight.Bold, color = KasirGreen)
+                            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = KasirGreen, modifier = Modifier.size(26.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text("Pengembalian Tepat Waktu", fontWeight = FontWeight.Bold, color = KasirGreen)
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    "Tarif sewa pokok sudah lunas via ${payAwal.uppercase()}. Tidak ada tagihan overtime.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = KasirOnSurfaceVariant
+                                )
+                            }
                         }
                     }
                 } else {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = KasirSurfaceVariant,
-                        border = BorderStroke(1.dp, KasirLine),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(14.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(Icons.Filled.QrCode, contentDescription = null, tint = KasirQris, modifier = Modifier.size(36.dp))
-                            Spacer(Modifier.height(4.dp))
-                            Text("Scan QRIS", fontWeight = FontWeight.Bold, color = KasirOnSurface)
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                idrFormat.format(grand),
-                                fontWeight = FontWeight.Bold,
-                                color = KasirAccent,
-                                textAlign = TextAlign.Center
+                    Text(
+                        "Pilih Jenis Pembayaran",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = KasirOnSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    // Pay method toggle
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Cash
+                        OutlinedButton(
+                            onClick = { payMode = "cash"; cashAmt = grand },
+                            enabled = true,
+                            interactionSource = pressCash.interactionSource,
+                            modifier = pressCash.modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, if (payMode == "cash") KasirCash else KasirLine),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (payMode == "cash") KasirCash.copy(alpha = 0.14f) else KasirSurfaceCard
                             )
+                        ) {
+                            Icon(
+                                Icons.Filled.Payments,
+                                contentDescription = null,
+                                tint = if (payMode == "cash") KasirCash else KasirOnSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "Cash",
+                                fontWeight = FontWeight.Bold,
+                                color = if (payMode == "cash") KasirCash else KasirOnSurfaceVariant
+                            )
+                        }
+                        // QRIS
+                        OutlinedButton(
+                            onClick = { payMode = "qris"; cashAmt = 0.0 },
+                            enabled = true,
+                            interactionSource = pressQris.interactionSource,
+                            modifier = pressQris.modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, if (payMode == "qris") KasirQris else KasirLine),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = if (payMode == "qris") KasirQris.copy(alpha = 0.14f) else KasirSurfaceCard
+                            )
+                        ) {
+                            Icon(
+                                Icons.Filled.QrCode,
+                                contentDescription = null,
+                                tint = if (payMode == "qris") KasirQris else KasirOnSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                "QRIS",
+                                fontWeight = FontWeight.Bold,
+                                color = if (payMode == "qris") KasirQris else KasirOnSurfaceVariant
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    if (payMode == "cash") {
+                        OutlinedTextField(
+                            value = if (cashAmt == 0.0) "" else cashAmt.toLong().toString(),
+                            onValueChange = { input ->
+                                cashAmt = input.filter { it.isDigit() }.toDoubleOrNull() ?: 0.0
+                            },
+                            label = { Text("Jumlah Uang Cash Diterima") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            enabled = !submitting,
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
+                        )
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Surface(
+                            color = KasirGreen.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Kembalian", fontWeight = FontWeight.SemiBold, color = KasirGreen)
+                                Text(idrFormat.format(changeVal), fontWeight = FontWeight.Bold, color = KasirGreen)
+                            }
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = KasirSurfaceVariant,
+                            border = BorderStroke(1.dp, KasirLine),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(14.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(Icons.Filled.QrCode, contentDescription = null, tint = KasirQris, modifier = Modifier.size(36.dp))
+                                Spacer(Modifier.height(4.dp))
+                                Text("Scan QRIS", fontWeight = FontWeight.Bold, color = KasirOnSurface)
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    idrFormat.format(grand),
+                                    fontWeight = FontWeight.Bold,
+                                    color = KasirAccent,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                 }
@@ -267,8 +293,8 @@ fun PaymentDialog(
                 Button(
                     onClick = {
                         submitting = true
-                        val finalCash = if (payMode == "cash") grand else 0.0
-                        val finalQris = if (payMode == "qris") grand else 0.0
+                        val finalCash = if (!isNoOT && payMode == "cash") grand else 0.0
+                        val finalQris = if (!isNoOT && payMode == "qris") grand else 0.0
                         onConfirm(finalCash, finalQris)
                     },
                     enabled = !submitting,
@@ -288,7 +314,10 @@ fun PaymentDialog(
                     } else {
                         Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Konfirmasi Pembayaran", fontWeight = FontWeight.Bold)
+                        Text(
+                            if (isNoOT) "Konfirmasi Selesai (Rp 0)" else "Konfirmasi Pembayaran",
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 
