@@ -209,6 +209,15 @@ class KasirViewModel : ViewModel() {
 
             repository().addSession(newSession)
                 .onSuccess { res ->
+                    if (!res.success) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal memulai sesi: ${res.error ?: "Ditolak server"}"
+                            )
+                        }
+                        return@onSuccess
+                    }
                     val saved = res.session ?: newSession
                     _uiState.update {
                         it.copy(
@@ -480,6 +489,15 @@ class KasirViewModel : ViewModel() {
 
             repository().claimSession(claimPayload)
                 .onSuccess { res ->
+                    if (!res.success) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal memproses pembayaran: ${res.error ?: "Ditolak server"}"
+                            )
+                        }
+                        return@onSuccess
+                    }
                     val newTxn = res.transaction ?: TransactionDto(
                         id = "t-${session.id.removePrefix("s-")}",
                         no = 0,
@@ -516,6 +534,8 @@ class KasirViewModel : ViewModel() {
                     if (_uiState.value.printSelesai) {
                         printTransactionReceipt(newTxn, announce = false)
                     }
+                    activeCheckoutSession.value = null
+                    activePaymentData.value = null
                 }
                 .onFailure { e ->
                     _uiState.update {
@@ -525,8 +545,6 @@ class KasirViewModel : ViewModel() {
                         )
                     }
                 }
-            activeCheckoutSession.value = null
-            activePaymentData.value = null
         }
     }
 
@@ -561,14 +579,16 @@ class KasirViewModel : ViewModel() {
 
             val deleteRes = repository().deleteTxn(txn.id, txn.no)
             val logRes = repository().addDeletionLog(log)
+            val delSuccess = deleteRes.isSuccess && (deleteRes.getOrNull()?.success == true)
             when {
-                deleteRes.isFailure -> {
+                !delSuccess -> {
+                    val errMsg = deleteRes.getOrNull()?.error ?: deleteRes.exceptionOrNull()?.message ?: "koneksi gagal"
                     _uiState.update {
-                        it.copy(errorMessage = "Gagal menghapus transaksi di server: ${deleteRes.exceptionOrNull()?.message ?: "koneksi gagal"}")
+                        it.copy(errorMessage = "Gagal menghapus transaksi di server: $errMsg")
                     }
                     loadData()
                 }
-                logRes.isFailure -> {
+                logRes.isFailure || logRes.getOrNull()?.success == false -> {
                     _uiState.update {
                         it.copy(errorMessage = "Transaksi terhapus, tetapi gagal mencatat log penghapusan")
                     }
@@ -592,7 +612,16 @@ class KasirViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             repository().clearAllTxns()
-                .onSuccess {
+                .onSuccess { res ->
+                    if (!res.success) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal membersihkan riwayat: ${res.error ?: "Ditolak server"}"
+                            )
+                        }
+                        return@onSuccess
+                    }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -622,6 +651,15 @@ class KasirViewModel : ViewModel() {
             _uiState.update { it.copy(isLoading = true) }
             repository().editSession(updated)
                 .onSuccess { res ->
+                    if (!res.success) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal memperbarui sesi: ${res.error ?: "Ditolak server"}"
+                            )
+                        }
+                        return@onSuccess
+                    }
                     val saved = res.session ?: updated
                     _uiState.update {
                         it.copy(
