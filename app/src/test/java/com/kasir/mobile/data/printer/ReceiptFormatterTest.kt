@@ -8,7 +8,7 @@ class ReceiptFormatterTest {
 
     @Test
     fun testAdditionalReceiptFormatting() {
-        val formatter = ReceiptFormatter(PrinterProfile.GENERIC_58MM)
+        val formatter = ReceiptFormatter(PrinterProfile.GENERIC_58MM, GbkPrinterCharset())
         val receipt = Receipt(
             type = ReceiptType.ADDITIONAL,
             queueNo = 7,
@@ -36,7 +36,7 @@ class ReceiptFormatterTest {
 
     @Test
     fun testMulaiReceiptFormatting() {
-        val formatter = ReceiptFormatter(PrinterProfile.GENERIC_58MM)
+        val formatter = ReceiptFormatter(PrinterProfile.GENERIC_58MM, GbkPrinterCharset())
         val receipt = Receipt(
             type = ReceiptType.MULAI,
             queueNo = 3,
@@ -58,7 +58,7 @@ class ReceiptFormatterTest {
 
     @Test
     fun testSelesaiReceiptFormatting() {
-        val formatter = ReceiptFormatter(PrinterProfile.GENERIC_58MM)
+        val formatter = ReceiptFormatter(PrinterProfile.GENERIC_58MM, GbkPrinterCharset())
         val receipt = Receipt(
             type = ReceiptType.SELESAI,
             queueNo = 3,

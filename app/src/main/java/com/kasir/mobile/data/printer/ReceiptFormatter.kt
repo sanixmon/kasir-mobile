@@ -8,8 +8,8 @@ import java.util.Locale
  * "Struk Mulai Sewa" and "Struk Selesai Sewa". All amounts are [Long] (Rupiah).
  */
 class ReceiptFormatter(
-    private val profile: PrinterProfile,
-    private val charset: PrinterCharset
+    private val profile: PrinterProfile = PrinterProfile.X583_V2,
+    private val charset: PrinterCharset = GbkPrinterCharset()
 ) {
     private val width: Int get() = profile.paper.charactersPerLine
     private val dashes: String get() = "-".repeat(width)

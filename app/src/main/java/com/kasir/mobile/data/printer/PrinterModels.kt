@@ -59,6 +59,9 @@ data class PrinterProfile(
             supportsBold = true,
             supportsDoubleSize = true
         )
+
+        /** Generic 58mm profile alias. */
+        val GENERIC_58MM = X583_V2
     }
 }
 
