@@ -80,6 +80,7 @@ fun DashboardScreen(
     val activeCheckoutSession by viewModel.activeCheckoutSession.collectAsState()
     val activePaymentData by viewModel.activePaymentData.collectAsState()
     val activeEditSession by viewModel.activeEditSession.collectAsState()
+    val activeAddItemSession by viewModel.activeAddItemSession.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -282,6 +283,7 @@ fun DashboardScreen(
                             filteredSessions = filteredSessions,
                             onSelesai = { viewModel.activeCheckoutSession.value = it },
                             onPrint = { viewModel.printSessionReceipt(it) },
+                            onAddItem = { viewModel.activeAddItemSession.value = it },
                             columnCount = sessionColumns
                         )
                     }
@@ -328,6 +330,15 @@ fun DashboardScreen(
             session = session,
             viewModel = viewModel,
             onClose = { viewModel.activeEditSession.value = null }
+        )
+    }
+
+    // Add item to active session dialog (cashier quick action)
+    activeAddItemSession?.let { session ->
+        AddItemDialog(
+            session = session,
+            viewModel = viewModel,
+            onClose = { viewModel.activeAddItemSession.value = null }
         )
     }
 }
@@ -535,6 +546,7 @@ fun SesiAktifContent(
     filteredSessions: List<SessionDto>,
     onSelesai: (SessionDto) -> Unit,
     onPrint: (SessionDto) -> Unit,
+    onAddItem: (SessionDto) -> Unit,
     columnCount: Int = 1
 ) {
     // Single shared ticker drives every session card's timer (one coroutine,
@@ -578,7 +590,8 @@ fun SesiAktifContent(
                         session = session,
                         now = now,
                         onSelesai = { onSelesai(session) },
-                        onPrint = { onPrint(session) }
+                        onPrint = { onPrint(session) },
+                        onAddItem = { onAddItem(session) }
                     )
                 }
             }
@@ -593,7 +606,8 @@ fun SesiAktifContent(
                         session = session,
                         now = now,
                         onSelesai = { onSelesai(session) },
-                        onPrint = { onPrint(session) }
+                        onPrint = { onPrint(session) },
+                        onAddItem = { onAddItem(session) }
                     )
                 }
             }
@@ -786,7 +800,8 @@ fun ActiveSessionCard(
     session: SessionDto,
     now: Long,
     onSelesai: () -> Unit,
-    onPrint: () -> Unit
+    onPrint: () -> Unit,
+    onAddItem: () -> Unit
 ) {
     val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
     val elapsedSec = ((now - safeStart) / 1000).coerceAtLeast(0)
@@ -962,8 +977,21 @@ fun ActiveSessionCard(
             Spacer(Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                OutlinedButton(
+                    onClick = onAddItem,
+                    modifier = Modifier.height(42.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, KasirAccent.copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = KasirAccent),
+                    contentPadding = PaddingValues(horizontal = 10.dp)
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Item", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
                 Button(
                     onClick = onSelesai,
                     interactionSource = pressSelesai.interactionSource,
@@ -980,7 +1008,7 @@ fun ActiveSessionCard(
                     shape = RoundedCornerShape(10.dp),
                     color = KasirSurfaceVariant,
                     border = BorderStroke(1.dp, KasirLine),
-                    modifier = Modifier.size(44.dp),
+                    modifier = Modifier.size(42.dp),
                     onClick = onPrint
                 ) {
                     Box(contentAlignment = Alignment.Center) {

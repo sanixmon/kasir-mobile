@@ -16,7 +16,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
 
         // Immersive fullscreen: hide the status/navigation bars. Swipe from the
         // screen edges to reveal them transiently (they auto-hide again).

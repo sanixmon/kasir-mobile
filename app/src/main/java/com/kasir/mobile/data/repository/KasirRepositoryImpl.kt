@@ -23,7 +23,11 @@ import kotlinx.serialization.json.put
 
 class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirRepository {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        explicitNulls = false
+    }
 
     override suspend fun fetchAllData(): Result<FetchAllDataResponse> = runCatching {
         apiService.fetchAllDataPost(KasirRpcRequest(action = "fetch_data"))

@@ -51,6 +51,7 @@ data class KasirUiState(
 )
 
 data class ItemCalcState(
+    val index: Int = 0,
     val item: ItemDto,
     val catalogDef: CatalogItem,
     val limitMin: Int,
@@ -58,7 +59,9 @@ data class ItemCalcState(
     var baseCost: Double,
     var otFullCount: Int,
     var otHalfCount: Int,
-    var otCost: Double
+    var otCost: Double,
+    val itemStart: Long = 0L,
+    val itemElapsedMin: Double = 0.0
 )
 
 data class PaymentCalcData(
@@ -81,6 +84,7 @@ class KasirViewModel : ViewModel() {
     var activeCheckoutSession = MutableStateFlow<SessionDto?>(null)
     var activePaymentData = MutableStateFlow<PaymentCalcData?>(null)
     var activeEditSession = MutableStateFlow<SessionDto?>(null)
+    var activeAddItemSession = MutableStateFlow<SessionDto?>(null)
 
     // Admin PIN verification gate (non-null value = PIN dialog shown; the lambda
     // is the protected action to run once the PIN is verified)
@@ -294,6 +298,135 @@ class KasirViewModel : ViewModel() {
     }
 
     /**
+     * "Struk Tambahan Sewa" (ADDITIONAL ORDER) — mirrors kasir-db handlePrintAdditional / generateAdditionalReceiptHTML.
+     */
+    fun printAdditionalReceipt(
+        session: SessionDto,
+        addedItems: List<ItemDto>,
+        payAwal: String,
+        announce: Boolean = false
+    ) {
+        viewModelScope.launch {
+            val dateFmt = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+            val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val now = System.currentTimeMillis()
+
+            val itemsText = addedItems.joinToString("\n") { item ->
+                val def = ItemCatalog.findByCode(item.code)
+                val name = def?.name ?: item.code
+                val unit = (def?.priceHour ?: 0.0).toLong()
+                "$name x${item.qty}  ${rp(unit * item.qty)}"
+            }
+            val totalPokok = addedItems.sumOf { item ->
+                val def = ItemCatalog.findByCode(item.code)
+                ((def?.priceHour ?: 0.0) * item.qty).toLong()
+            }
+
+            val receipt = Receipt(
+                type = ReceiptType.ADDITIONAL,
+                queueNo = session.queueNo,
+                nama = session.nama,
+                shift = _uiState.value.currentShiftUser,
+                tanggal = dateFmt.format(Date(now)),
+                startTime = timeFmt.format(Date(now)),
+                itemsText = itemsText,
+                totalPokok = totalPokok,
+                total = totalPokok,
+                payAwal = payAwal,
+                qrText = "${ServiceLocator.activeServerUrl}/#track/${session.id}",
+                qrCaption = "Scan QR untuk Cek Sisa Waktu",
+                footer = "Terima kasih!"
+            )
+            ServiceLocator.printerRepository().printReceipt(receipt)
+                .onSuccess {
+                    if (announce) {
+                        _uiState.update { it.copy(successMessage = "Struk tambahan dikirim ke printer") }
+                    }
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            errorMessage = "Gagal cetak struk: ${e.message ?: "printer belum terhubung"}. Hubungkan printer di menu Printer."
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * Adds rental items to an ongoing active session (Additional Order).
+     * Mirrors kasir-db useRentalActions addItemsToRental:
+     * Appends new items with their own startTime, payAwal, and priceBase,
+     * calls edit_session API, and triggers additional receipt printing.
+     */
+    fun addItemsToRental(
+        session: SessionDto,
+        newItems: List<ItemDto>,
+        additionalPayAwal: String,
+        onComplete: (Boolean) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            if (newItems.isEmpty()) {
+                _uiState.update { it.copy(errorMessage = "Pilih minimal 1 item tambahan") }
+                onComplete(false)
+                return@launch
+            }
+
+            _uiState.update { it.copy(isLoading = true) }
+            val now = System.currentTimeMillis()
+            val enrichedNewItems = newItems.map { item ->
+                val def = ItemCatalog.findByCode(item.code)
+                item.copy(
+                    startTime = now,
+                    payAwal = additionalPayAwal.lowercase(Locale.getDefault()),
+                    priceBase = def?.priceHour ?: 0.0
+                )
+            }
+
+            val mergedItems = session.items + enrichedNewItems
+            val updatedSession = session.copy(items = mergedItems)
+
+            repository().editSession(updatedSession)
+                .onSuccess { res ->
+                    if (!res.success) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal menambah item: ${res.error ?: "Ditolak server"}"
+                            )
+                        }
+                        onComplete(false)
+                        return@onSuccess
+                    }
+
+                    _uiState.update { state ->
+                        state.copy(
+                            isLoading = false,
+                            activeSessions = state.activeSessions.map { s ->
+                                if (s.id == session.id) updatedSession else s
+                            },
+                            successMessage = "Item tambahan berhasil ditambahkan ke antrian #${session.queueNo}!"
+                        )
+                    }
+
+                    if (_uiState.value.printMulai) {
+                        printAdditionalReceipt(session, enrichedNewItems, additionalPayAwal, announce = false)
+                    }
+                    onComplete(true)
+                }
+                .onFailure { e ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "Gagal menambah item: ${e.message ?: "Koneksi bermasalah"}"
+                        )
+                    }
+                    onComplete(false)
+                }
+        }
+    }
+
+    /**
      * "Struk Selesai Sewa" — mirrors kasir-db handlePrintSelesai. [announce] is
      * false when triggered automatically right after finalize so it doesn't
      * clobber the "Pembayaran berhasil" message.
@@ -363,15 +496,18 @@ class KasirViewModel : ViewModel() {
     }
 
     fun preparePayment(session: SessionDto): PaymentCalcData {
-        val safeStart = if (session.startTime > 1577836800000L) session.startTime else System.currentTimeMillis()
-        val elapsedMin = (System.currentTimeMillis() - safeStart) / 60000.0
+        val now = System.currentTimeMillis()
+        val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
 
-        val itemsCalc = session.items.mapNotNull { it ->
-            val def = ItemCatalog.findByCode(it.code) ?: return@mapNotNull null
+        val itemsCalc = session.items.mapIndexedNotNull { idx, it ->
+            val def = ItemCatalog.findByCode(it.code) ?: return@mapIndexedNotNull null
             val limitMin = if (def.isPackage) def.packageHours * 60 else 60
-            val otRes = OvertimeUtil.calcItemOT(elapsedMin, limitMin.toDouble(), def.priceOT30, def.priceOT60, it.qty)
+            val itemStart = if (it.startTime != null && it.startTime > 1577836800000L) it.startTime else safeStart
+            val itemElapsedMin = ((now - itemStart) / 60000.0).coerceAtLeast(0.0)
+            val otRes = OvertimeUtil.calcItemOT(itemElapsedMin, limitMin.toDouble(), def.priceOT30, def.priceOT60, it.qty)
 
             ItemCalcState(
+                index = idx,
                 item = it,
                 catalogDef = def,
                 limitMin = limitMin,
@@ -379,7 +515,9 @@ class KasirViewModel : ViewModel() {
                 baseCost = def.priceHour * it.qty,
                 otFullCount = otRes.otFullCount,
                 otHalfCount = otRes.otHalfCount,
-                otCost = otRes.otCost
+                otCost = otRes.otCost,
+                itemStart = itemStart,
+                itemElapsedMin = itemElapsedMin
             )
         }
 
@@ -403,7 +541,7 @@ class KasirViewModel : ViewModel() {
             grandTotal = grandTotal,
             otStr = otStr,
             otDurStr = otDurStr,
-            endTime = System.currentTimeMillis()
+            endTime = now
         )
     }
 
@@ -412,9 +550,9 @@ class KasirViewModel : ViewModel() {
      * of one item are returned now (the rest keeps renting) and recompute the
      * whole bill — pokok, overtime, and the ot/otDur summary strings.
      */
-    fun updateReturnQty(paymentData: PaymentCalcData, code: String, newReturnQty: Int): PaymentCalcData {
+    fun updateReturnQty(paymentData: PaymentCalcData, itemIndex: Int, newReturnQty: Int): PaymentCalcData {
         val updatedItems = paymentData.itemsCalc.map { calc ->
-            if (calc.item.code != code) calc
+            if (calc.index != itemIndex) calc
             else {
                 val rq = newReturnQty.coerceIn(0, calc.item.qty)
                 calc.copy(
@@ -449,6 +587,11 @@ class KasirViewModel : ViewModel() {
         )
     }
 
+    fun updateReturnQty(paymentData: PaymentCalcData, code: String, newReturnQty: Int): PaymentCalcData {
+        val idx = paymentData.itemsCalc.indexOfFirst { it.item.code == code }
+        return if (idx >= 0) updateReturnQty(paymentData, idx, newReturnQty) else paymentData
+    }
+
     fun finalizePayment(paymentData: PaymentCalcData, cash: Double, qris: Double) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
@@ -458,16 +601,27 @@ class KasirViewModel : ViewModel() {
                 .filter { it.returnQty > 0 }
                 .joinToString(", ") { "${it.item.code}×${it.returnQty}" }
 
-            val remainingItems = session.items.map { orig ->
-                val calc = paymentData.itemsCalc.find { it.item.code == orig.code }
+            val remainingItems = session.items.mapIndexed { idx, orig ->
+                val calc = paymentData.itemsCalc.find { it.index == idx }
                 val returned = calc?.returnQty ?: 0
-                ItemDto(code = orig.code, qty = orig.qty - returned)
+                orig.copy(qty = orig.qty - returned)
             }.filter { it.qty > 0 }
+
+            val remainingItemsPayload = remainingItems.map { it ->
+                val m = mutableMapOf<String, Any>(
+                    "code" to it.code,
+                    "qty" to it.qty
+                )
+                it.startTime?.let { s -> m["startTime"] = s }
+                it.payAwal?.let { p -> m["payAwal"] = p }
+                it.priceBase?.let { b -> m["priceBase"] = b }
+                m
+            }
 
             // Payload mirrors kasir-db App.jsx handleFinalizePayment
             val claimPayload = mapOf(
                 "sessionId" to session.id,
-                "remainingItems" to remainingItems.map { mapOf("code" to it.code, "qty" to it.qty) },
+                "remainingItems" to remainingItemsPayload,
                 "queueNo" to session.queueNo,
                 "nama" to session.nama,
                 "tanggal" to session.tanggal,

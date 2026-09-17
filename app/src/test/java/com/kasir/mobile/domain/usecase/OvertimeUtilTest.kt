@@ -117,4 +117,26 @@ class OvertimeUtilTest {
         assertEquals(1, pkgTrigger.otHalfCount)
         assertEquals(10000.0, pkgTrigger.otCost, 0.0)
     }
+
+    @Test
+    fun `additional items with later start time calculate overtime independently`() {
+        // Initial item started at t=0, additional item added at t=30min
+        // Current checkout time t=75min
+        val now = 75 * 60_000L
+        val item1Start = 0L
+        val item2Start = 30 * 60_000L
+
+        val item1ElapsedMin = (now - item1Start) / 60_000.0 // 75.0 min (15 min over -> OT half hour)
+        val item2ElapsedMin = (now - item2Start) / 60_000.0 // 45.0 min (under limit -> 0 OT)
+
+        val item1OT = OvertimeUtil.calcItemOT(item1ElapsedMin, 60.0, 25000.0, 50000.0, qty = 1)
+        val item2OT = OvertimeUtil.calcItemOT(item2ElapsedMin, 60.0, 25000.0, 50000.0, qty = 1)
+
+        assertEquals(1, item1OT.otHalfCount)
+        assertEquals(25000.0, item1OT.otCost, 0.0)
+
+        assertEquals(0, item2OT.otHalfCount)
+        assertEquals(0, item2OT.otFullCount)
+        assertEquals(0.0, item2OT.otCost, 0.0)
+    }
 }

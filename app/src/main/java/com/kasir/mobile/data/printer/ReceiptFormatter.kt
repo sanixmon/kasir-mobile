@@ -17,16 +17,24 @@ class ReceiptFormatter(
     fun toCommands(receipt: Receipt): ByteArray {
         val e = EscPosEncoder(charset).init()
         val w = width
-        val title = if (receipt.type == ReceiptType.MULAI) "Struk Mulai Sewa" else "Struk Selesai Sewa"
+        val title = when (receipt.type) {
+            ReceiptType.MULAI -> "Struk Mulai Sewa"
+            ReceiptType.SELESAI -> "Struk Selesai Sewa"
+            ReceiptType.ADDITIONAL -> "Struk Tambahan Sewa"
+        }
 
         // ── Header ──────────────────────────────────────────────────────────
+        if (receipt.type == ReceiptType.ADDITIONAL) {
+            e.alignCenter().bold(true).text("*** ADDITIONAL ORDER ***").bold(false).line()
+            e.alignLeft().text(dashes).line()
+        }
         e.alignCenter().bold(true).size(1, 2).text(receipt.storeName).size(1, 1).bold(false).line()
         e.alignCenter().text(receipt.subtitle).line()
         e.alignCenter().text(title).line()
         e.alignLeft().text(dashes).line()
 
         // ── Info ────────────────────────────────────────────────────────────
-        if (receipt.type == ReceiptType.MULAI) {
+        if (receipt.type == ReceiptType.MULAI || receipt.type == ReceiptType.ADDITIONAL) {
             e.alignCenter().text("Queue Number: ${receipt.queueNo}").line()
             e.alignLeft().text("Tgl: ${receipt.tanggal} | ${receipt.startTime}").line()
         }
@@ -49,23 +57,30 @@ class ReceiptFormatter(
         e.text(dashes).line()
 
         // ── Totals ──────────────────────────────────────────────────────────
-        if (receipt.type == ReceiptType.MULAI) {
-            e.bold(true).text(twoCol("Total Pokok:", rp(receipt.totalPokok), w)).bold(false).line()
-        } else {
-            val payLabel = receipt.payAwal?.uppercase(Locale.getDefault()) ?: "CASH"
-            e.text(twoCol("Sewa Pokok:", "${rp(receipt.totalPokok)} ($payLabel)", w)).line()
-            receipt.overtime?.takeIf { it > 0 }?.let {
-                e.text(twoCol("Overtime:", rp(it), w)).line()
+        when (receipt.type) {
+            ReceiptType.MULAI -> {
+                e.bold(true).text(twoCol("Total Pokok:", rp(receipt.totalPokok), w)).bold(false).line()
             }
-            e.text(dashes).line()
-            e.bold(true).text(twoCol("TOTAL:", rp(receipt.total), w)).bold(false).line()
-            receipt.cash?.takeIf { it > 0 }?.let { e.text(twoCol("Cash:", rp(it), w)).line() }
-            receipt.qris?.takeIf { it > 0 }?.let { e.text(twoCol("QRIS:", rp(it), w)).line() }
+            ReceiptType.ADDITIONAL -> {
+                val payLabel = receipt.payAwal?.uppercase(Locale.getDefault()) ?: "CASH"
+                e.bold(true).text(twoCol("Total Tambahan:", "${rp(receipt.totalPokok)} ($payLabel)", w)).bold(false).line()
+            }
+            ReceiptType.SELESAI -> {
+                val payLabel = receipt.payAwal?.uppercase(Locale.getDefault()) ?: "CASH"
+                e.text(twoCol("Sewa Pokok:", "${rp(receipt.totalPokok)} ($payLabel)", w)).line()
+                receipt.overtime?.takeIf { it > 0 }?.let {
+                    e.text(twoCol("Overtime:", rp(it), w)).line()
+                }
+                e.text(dashes).line()
+                e.bold(true).text(twoCol("TOTAL:", rp(receipt.total), w)).bold(false).line()
+                receipt.cash?.takeIf { it > 0 }?.let { e.text(twoCol("Cash:", rp(it), w)).line() }
+                receipt.qris?.takeIf { it > 0 }?.let { e.text(twoCol("QRIS:", rp(it), w)).line() }
+            }
         }
         e.text(dashes).line()
 
-        // ── QR (Struk Mulai Sewa only) ─────────────────────────────────────
-        if (receipt.type == ReceiptType.MULAI && profile.supportsQr && receipt.qrText != null) {
+        // ── QR (Struk Mulai Sewa & Additional) ──────────────────────────────
+        if ((receipt.type == ReceiptType.MULAI || receipt.type == ReceiptType.ADDITIONAL) && profile.supportsQr && receipt.qrText != null) {
             e.alignCenter().qr(receipt.qrText, 6, QrErrorCorrection.M)
             receipt.qrCaption?.let { e.alignCenter().text(it).line() }
             e.alignLeft().text(dashes).line()

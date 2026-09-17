@@ -67,11 +67,12 @@ enum class QrErrorCorrection { L, M, Q, H }
 enum class BarcodeType { CODE128, EAN13, CODE39 }
 
 /**
- * The two receipt layouts mirror kasir-db (App.jsx):
- *  - MULAI  = "Struk Mulai Sewa" (printed when a rental starts)
- *  - SELESAI = "Struk Selesai Sewa" (printed when a rental is closed/claimed)
+ * The receipt layouts mirror kasir-db (App.jsx & receiptTemplates.js):
+ *  - MULAI      = "Struk Mulai Sewa" (printed when a rental starts)
+ *  - SELESAI    = "Struk Selesai Sewa" (printed when a rental is closed/claimed)
+ *  - ADDITIONAL = "Struk Tambahan Sewa" (printed when items are added to an active session)
  */
-enum class ReceiptType { MULAI, SELESAI }
+enum class ReceiptType { MULAI, SELESAI, ADDITIONAL }
 
 data class Receipt(
     val type: ReceiptType,

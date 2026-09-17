@@ -5,7 +5,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ItemDto(
     val code: String,
-    val qty: Int = 1
+    val qty: Int = 1,
+    val startTime: Long? = null,
+    val payAwal: String? = null,
+    val priceBase: Double? = null
 )
 
 @Serializable

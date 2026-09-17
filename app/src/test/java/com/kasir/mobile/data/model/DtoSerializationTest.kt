@@ -177,4 +177,62 @@ class DtoSerializationTest {
         assertEquals("delete_user", deleteReq.action)
         assertEquals("kasir2", deleteReq.payload["username"]?.jsonPrimitive?.content)
     }
+
+    @Test
+    fun testItemDtoAdditionalOrderFields() {
+        val itemWithMeta = ItemDto(
+            code = "SD",
+            qty = 1,
+            startTime = 1725450000000L,
+            payAwal = "qris",
+            priceBase = 50000.0
+        )
+        val serialized = json.encodeToString(ItemDto.serializer(), itemWithMeta)
+        assertTrue(serialized.contains("\"code\":\"SD\""))
+        assertTrue(serialized.contains("\"startTime\":1725450000000"))
+        assertTrue(serialized.contains("\"payAwal\":\"qris\""))
+        assertTrue(serialized.contains("\"priceBase\":50000.0"))
+
+        val deserialized = json.decodeFromString<ItemDto>(serialized)
+        assertEquals("SD", deserialized.code)
+        assertEquals(1, deserialized.qty)
+        assertEquals(1725450000000L, deserialized.startTime)
+        assertEquals("qris", deserialized.payAwal)
+        assertEquals(50000.0, deserialized.priceBase ?: 0.0, 0.01)
+
+        // Backward compatibility: legacy item without metadata
+        val legacyJson = """{"code": "ST", "qty": 2}"""
+        val legacyItem = json.decodeFromString<ItemDto>(legacyJson)
+        assertEquals("ST", legacyItem.code)
+        assertEquals(2, legacyItem.qty)
+        assertEquals(null, legacyItem.startTime)
+        assertEquals(null, legacyItem.payAwal)
+        assertEquals(null, legacyItem.priceBase)
+    }
+
+    @Test
+    fun testSessionWithMixedAdditionalItems() {
+        val sessionJson = """
+            {
+                "id": "s-test-add",
+                "queueNo": 5,
+                "nama": "Pelanggan Tambahan",
+                "items": [
+                    {"code": "ST", "qty": 1},
+                    {"code": "SD", "qty": 1, "startTime": 1725450300000, "payAwal": "qris", "priceBase": 50000.0}
+                ],
+                "startTime": 1725450000000,
+                "tanggal": "2026-09-17",
+                "payAwal": "cash"
+            }
+        """.trimIndent()
+
+        val session = json.decodeFromString<SessionDto>(sessionJson)
+        assertEquals(2, session.items.size)
+        assertEquals("ST", session.items[0].code)
+        assertEquals(null, session.items[0].startTime)
+        assertEquals("SD", session.items[1].code)
+        assertEquals(1725450300000L, session.items[1].startTime)
+        assertEquals("qris", session.items[1].payAwal)
+    }
 }
