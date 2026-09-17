@@ -97,6 +97,7 @@ fun DashboardScreen(
     var payAwal by remember { mutableStateOf("cash") }
     var selectedQty by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var searchQuery by remember { mutableStateOf("") }
+    var isSortAscending by remember { mutableStateOf(false) }
     // 0: Sewa Baru, 1: Sesi Aktif — swipeable via HorizontalPager.
     val pagerState = rememberPagerState(pageCount = { 2 })
     val pagerScope = rememberCoroutineScope()
@@ -115,15 +116,19 @@ fun DashboardScreen(
 
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
 
-    val filteredSessions = remember(uiState.activeSessions, searchQuery) {
-        uiState.activeSessions
+    val filteredSessions = remember(uiState.activeSessions, searchQuery, isSortAscending) {
+        val filtered = uiState.activeSessions
             .filter { s ->
                 searchQuery.isBlank() ||
                     s.nama.contains(searchQuery, ignoreCase = true) ||
                     s.queueNo.toString().contains(searchQuery) ||
                     s.items.any { it.code.contains(searchQuery, ignoreCase = true) }
             }
-            .sortedByDescending { it.startTime }
+        if (isSortAscending) {
+            filtered.sortedBy { it.startTime }
+        } else {
+            filtered.sortedByDescending { it.startTime }
+        }
     }
 
     // Poll the server only while Dashboard is visible (stops on logout / other screens)
@@ -280,6 +285,8 @@ fun DashboardScreen(
                         SesiAktifContent(
                             searchQuery = searchQuery,
                             onSearchQueryChange = { searchQuery = it },
+                            isSortAscending = isSortAscending,
+                            onToggleSort = { isSortAscending = !isSortAscending },
                             filteredSessions = filteredSessions,
                             onSelesai = { viewModel.activeCheckoutSession.value = it },
                             onPrint = { viewModel.printSessionReceipt(it) },
@@ -355,6 +362,16 @@ fun SewaBaruContent(
     onStartRental: () -> Unit,
     isLandscape: Boolean = false
 ) {
+    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentTime = System.currentTimeMillis()
+            kotlinx.coroutines.delay(1000)
+        }
+    }
+    val clockFormat = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
+    val timeString = clockFormat.format(Date(currentTime))
+
     if (isLandscape) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -372,7 +389,7 @@ fun SewaBaruContent(
                     modifier = Modifier.weight(1f)
                 )
             }
-            // RIGHT — name, payment method, start button
+            // RIGHT — name, payment method, clock, start button
             Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 val pressStart = rememberPressScale()
                 OutlinedTextField(
@@ -387,7 +404,11 @@ fun SewaBaruContent(
                 Text("Metode Bayar Awal (Pokok)", style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(6.dp))
                 SewaPaymentSelector(payAwal = payAwal, onPayAwalChange = onPayAwalChange)
-                Spacer(Modifier.height(12.dp))
+
+                Spacer(Modifier.weight(1f))
+                RealtimeClockDisplay(timeString = timeString, isLandscape = true)
+                Spacer(Modifier.height(14.dp))
+
                 Button(
                     onClick = onStartRental,
                     enabled = inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
@@ -432,6 +453,8 @@ fun SewaBaruContent(
             )
 
             Spacer(Modifier.height(8.dp))
+            RealtimeClockDisplay(timeString = timeString, isLandscape = false)
+            Spacer(Modifier.height(8.dp))
 
             Button(
                 onClick = onStartRental,
@@ -445,6 +468,30 @@ fun SewaBaruContent(
                 Spacer(Modifier.width(6.dp))
                 Text("Mulai Sewa", fontWeight = FontWeight.Bold)
             }
+        }
+    }
+}
+
+@Composable
+private fun RealtimeClockDisplay(timeString: String, isLandscape: Boolean) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = KasirSurfaceVariant,
+        border = BorderStroke(1.dp, KasirLine),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier.padding(if (isLandscape) 16.dp else 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = timeString,
+                fontFamily = KasirMono,
+                fontWeight = FontWeight.Bold,
+                fontSize = if (isLandscape) 28.sp else 16.sp,
+                letterSpacing = if (isLandscape) 2.sp else 1.sp,
+                color = KasirAccent
+            )
         }
     }
 }
@@ -543,6 +590,8 @@ private fun SewaPaymentSelector(
 fun SesiAktifContent(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
+    isSortAscending: Boolean = false,
+    onToggleSort: () -> Unit = {},
     filteredSessions: List<SessionDto>,
     onSelesai: (SessionDto) -> Unit,
     onPrint: (SessionDto) -> Unit,
@@ -613,28 +662,54 @@ fun SesiAktifContent(
             }
         }
 
-        // Floating search bar pinned above the bottom nav
-        Surface(
+        // Floating search bar and sort button pinned above the bottom nav
+        Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            color = KasirSurfaceCard,
-            border = BorderStroke(1.dp, KasirLine),
-            shadowElevation = 6.dp
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                placeholder = { Text("Cari nama / antrian / item...") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Transparent,
-                    unfocusedBorderColor = Color.Transparent
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(16.dp),
+                color = KasirSurfaceCard,
+                border = BorderStroke(1.dp, KasirLine),
+                shadowElevation = 6.dp
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    placeholder = { Text("Cari nama / antrian / item...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent
+                    )
                 )
-            )
+            }
+
+            val pressSort = rememberPressScale()
+            Surface(
+                onClick = onToggleSort,
+                interactionSource = pressSort.interactionSource,
+                modifier = pressSort.modifier.size(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = if (isSortAscending) KasirAccent.copy(alpha = 0.18f) else KasirSurfaceCard,
+                border = BorderStroke(1.dp, if (isSortAscending) KasirAccent else KasirLine),
+                shadowElevation = 6.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = if (isSortAscending) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
+                        contentDescription = if (isSortAscending) "Urutkan: Terlama (Ascending)" else "Urutkan: Terbaru (Descending)",
+                        tint = if (isSortAscending) KasirAccent else KasirOnSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
         }
     }
 }
