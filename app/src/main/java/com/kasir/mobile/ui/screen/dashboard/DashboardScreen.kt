@@ -142,7 +142,6 @@ fun DashboardScreen(
     KasirResponsiveScaffold(
         isLandscape = isLandscape,
         selectedTab = uiState.activeTab,
-        containerColor = KasirSurface,
         onSelectTab = { tab ->
             viewModel.setTab(tab)
             if (tab == "history") {
