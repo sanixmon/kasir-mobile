@@ -347,13 +347,13 @@ fun PaymentDialog(
                                     interactionSource = pressConfirm.interactionSource,
                                     modifier = pressConfirm.modifier.fillMaxWidth().height(48.dp),
                                     shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
                                 ) {
                                     if (submitting) {
                                         CircularProgressIndicator(
                                             modifier = Modifier.size(18.dp),
                                             strokeWidth = 2.dp,
-                                            color = Color.White
+                                            color = KasirOnGreen
                                         )
                                         Spacer(Modifier.width(8.dp))
                                         Text("Menyimpan Transaksi...", fontWeight = FontWeight.Bold)
@@ -637,13 +637,13 @@ fun PaymentDialog(
                         interactionSource = pressConfirm.interactionSource,
                         modifier = pressConfirm.modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
                     ) {
                         if (submitting) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
-                                color = Color.White
+                                color = KasirOnGreen
                             )
                             Spacer(Modifier.width(8.dp))
                             Text("Menyimpan Transaksi...", fontWeight = FontWeight.Bold)

@@ -33,6 +33,7 @@ import com.kasir.mobile.ui.theme.KasirError
 import com.kasir.mobile.ui.theme.KasirGreen
 import com.kasir.mobile.ui.theme.KasirGreenDark
 import com.kasir.mobile.ui.theme.KasirLine
+import com.kasir.mobile.ui.theme.KasirOnGreen
 import com.kasir.mobile.ui.theme.KasirOnSurface
 import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
 import com.kasir.mobile.ui.theme.KasirSurface
@@ -155,7 +156,7 @@ fun LoginScreen(
                     Text(
                         text = if (portal == "cashier") "Login Shift Kasir" else "Verifikasi Keamanan Admin",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = KasirOnSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -240,7 +241,7 @@ fun LoginScreen(
                         ) {
                             Text(
                                 text = uiState.error!!,
-                                color = MaterialTheme.colorScheme.error,
+                                color = KasirError,
                                 style = MaterialTheme.typography.bodySmall,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -265,7 +266,7 @@ fun LoginScreen(
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = KasirGreen,
-                            contentColor = Color.White,
+                            contentColor = KasirOnGreen,
                             disabledContainerColor = KasirGreen.copy(alpha = 0.25f)
                         )
                     ) {
@@ -273,7 +274,7 @@ fun LoginScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp,
-                                color = KasirSurface
+                                color = KasirOnGreen
                             )
                         } else {
                             Text(

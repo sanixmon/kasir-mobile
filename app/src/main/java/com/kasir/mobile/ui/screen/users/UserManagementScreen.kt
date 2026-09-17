@@ -38,7 +38,9 @@ import com.kasir.mobile.ui.theme.KasirError
 import com.kasir.mobile.ui.theme.KasirGreen
 import com.kasir.mobile.ui.theme.KasirLine
 import com.kasir.mobile.ui.theme.KasirMono
+import com.kasir.mobile.ui.theme.KasirOnGreen
 import com.kasir.mobile.ui.theme.KasirOnSurface
+import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
@@ -98,7 +100,7 @@ fun UserManagementScreen(
                     showAddDialog = true
                 },
                 containerColor = KasirGreen,
-                contentColor = Color.White
+                contentColor = KasirOnGreen
             ) {
                 Icon(Icons.Filled.PersonAdd, contentDescription = "Tambah Kasir")
             }
@@ -115,11 +117,11 @@ fun UserManagementScreen(
                     Icon(
                         Icons.Filled.Group,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = KasirOnSurfaceVariant,
                         modifier = Modifier.size(40.dp)
                     )
                     Spacer(Modifier.height(8.dp))
-                    Text("Belum ada kasir terdaftar", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Belum ada kasir terdaftar", color = KasirOnSurfaceVariant)
                 }
             }
         } else {
@@ -176,7 +178,7 @@ fun UserManagementScreen(
                         viewModel.deleteCashier(user.username)
                     }
                 ) {
-                    Text("Hapus", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text("Hapus", color = KasirError, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -367,7 +369,7 @@ private fun AddCashierDialog(
                     Spacer(Modifier.height(10.dp))
                     Text(
                         text = errorMessage,
-                        color = MaterialTheme.colorScheme.error,
+                        color = KasirError,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

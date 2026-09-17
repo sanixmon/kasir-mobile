@@ -11,6 +11,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
 
 /**
@@ -50,7 +51,7 @@ fun KasirResponsiveScaffold(
     onSelectTab: (String) -> Unit,
     topBar: @Composable () -> Unit,
     snackbarHost: @Composable () -> Unit = {},
-    containerColor: Color = Color.Unspecified,
+    containerColor: Color = KasirSurface,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(

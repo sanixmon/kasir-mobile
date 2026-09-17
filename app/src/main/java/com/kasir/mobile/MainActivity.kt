@@ -10,6 +10,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.compose.rememberNavController
 import com.kasir.mobile.ui.navigation.KasirNavHost
+import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirTheme
 
 class MainActivity : ComponentActivity() {
@@ -27,7 +28,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             KasirTheme {
-                Surface {
+                Surface(color = KasirSurface) {
                     val navController = rememberNavController()
                     KasirNavHost(navController = navController)
                 }

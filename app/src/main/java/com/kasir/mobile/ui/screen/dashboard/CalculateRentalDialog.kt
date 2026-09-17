@@ -401,7 +401,7 @@ private fun ItemCalculationList(
                             )
                             Spacer(Modifier.width(6.dp))
                             QtyStepButton(
-                                icon = { Icon(Icons.Filled.Add, contentDescription = "Tambah", modifier = Modifier.size(16.dp), tint = Color.White) },
+                                icon = { Icon(Icons.Filled.Add, contentDescription = "Tambah", modifier = Modifier.size(16.dp)) },
                                 enabled = calcItem.returnQty < calcItem.item.qty,
                                 primary = true,
                                 onClick = {
@@ -572,7 +572,7 @@ private fun CheckoutActions(
                 enabled = canProceed,
                 modifier = Modifier.weight(2f).height(48.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
             ) {
                 Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
@@ -584,7 +584,7 @@ private fun CheckoutActions(
                 enabled = canProceed,
                 modifier = Modifier.weight(2f).height(48.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
             ) {
                 Text(
                     if (isOT) "Bayar Overtime" else "Lanjut ke Pembayaran",
@@ -607,6 +607,7 @@ private fun QtyStepButton(
         enabled = enabled,
         shape = RoundedCornerShape(7.dp),
         color = if (primary) KasirGreen else KasirSurfaceVariant,
+        contentColor = if (primary) KasirOnGreen else KasirOnSurface,
         modifier = Modifier.size(32.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {

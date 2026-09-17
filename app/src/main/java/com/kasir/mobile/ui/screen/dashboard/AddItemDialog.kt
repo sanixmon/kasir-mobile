@@ -359,7 +359,7 @@ private fun ItemCatalogList(
                             shape = RoundedCornerShape(8.dp),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = if (qty > 0) KasirAccent else KasirSurfaceVariant,
-                                contentColor = if (qty > 0) Color.Black else KasirOnSurface
+                                contentColor = if (qty > 0) KasirOnAccent else KasirOnSurface
                             )
                         ) {
                             Icon(Icons.Filled.Add, contentDescription = "Tambah", modifier = Modifier.size(16.dp))
@@ -529,7 +529,7 @@ private fun ActionButtons(
             shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = KasirAccent,
-                contentColor = Color.Black
+                contentColor = KasirOnAccent
             )
         ) {
             Text(

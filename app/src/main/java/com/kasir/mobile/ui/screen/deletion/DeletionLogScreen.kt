@@ -1,5 +1,6 @@
 package com.kasir.mobile.ui.screen.deletion
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +16,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.kasir.mobile.data.model.DeletionLogDto
+import com.kasir.mobile.ui.theme.KasirError
+import com.kasir.mobile.ui.theme.KasirLine
+import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
@@ -82,7 +86,7 @@ fun DeletionLogScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Belum ada catatan log penghapusan", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Belum ada catatan log penghapusan", color = KasirOnSurfaceVariant)
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -104,6 +108,7 @@ fun DeletionLogCard(
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = KasirSurfaceCard,
+        border = BorderStroke(1.dp, KasirLine),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
@@ -113,14 +118,14 @@ fun DeletionLogCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Filled.Delete, contentDescription = null, tint = KasirError)
                     Spacer(Modifier.width(8.dp))
                     Text("Txn #${log.txnNo ?: "-"} — ${log.txnNama}", fontWeight = FontWeight.Bold)
                 }
                 Text(
                     idrFormat.format(log.txnTotalAll),
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error
+                    color = KasirError
                 )
             }
 
@@ -128,7 +133,7 @@ fun DeletionLogCard(
             Text(
                 "Dihapus pada: ${dateFormat.format(Date(log.deletedAt))} oleh ${log.deletedBy}",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = KasirOnSurfaceVariant
             )
         }
     }

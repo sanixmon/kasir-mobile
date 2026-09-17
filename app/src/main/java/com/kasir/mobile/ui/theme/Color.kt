@@ -31,6 +31,11 @@ val KasirDarkAccent = Color(0xFFF59E0B)         // amber — overtime, warnings
 val KasirDarkError = Color(0xFFEF4444)          // crimson — zombie, delete
 val KasirDarkCash = Color(0xFF10B981)           // cash — emerald (kasir-db --green)
 val KasirDarkQris = Color(0xFF06B6D4)           // qris — cyan (kasir-db --cyan)
+val KasirDarkOnGreen = Color.White
+val KasirDarkOnAccent = Color(0xFF0A0E13)       // dark contrast on bright amber
+val KasirDarkOnCash = Color.White
+val KasirDarkOnQris = Color.White
+val KasirDarkOnError = Color.White
 
 // ── Light palette (paper counter) ───────────────────────────────────────────
 val KasirLightSurface = Color(0xFFF5F7FA)        // app background
@@ -47,6 +52,11 @@ val KasirLightAccent = Color(0xFFB45309)         // amber — overtime, warnings
 val KasirLightError = Color(0xFFDC2626)          // crimson — zombie, delete
 val KasirLightCash = Color(0xFF047857)           // cash — emerald (>=4.5:1 on white)
 val KasirLightQris = Color(0xFF0369A1)           // qris — cyan (>=4.5:1 on white)
+val KasirLightOnGreen = Color.White
+val KasirLightOnAccent = Color.White             // white contrast on dark amber
+val KasirLightOnCash = Color.White
+val KasirLightOnQris = Color.White
+val KasirLightOnError = Color.White
 
 // ── Theme-aware tokens (used across screens) ────────────────────────────────
 val KasirSurface: Color
@@ -90,3 +100,18 @@ val KasirCash: Color
 
 val KasirQris: Color
     @Composable @ReadOnlyComposable get() = LocalKasirColors.current.qris
+
+val KasirOnGreen: Color
+    @Composable @ReadOnlyComposable get() = LocalKasirColors.current.onGreen
+
+val KasirOnAccent: Color
+    @Composable @ReadOnlyComposable get() = LocalKasirColors.current.onAccent
+
+val KasirOnCash: Color
+    @Composable @ReadOnlyComposable get() = LocalKasirColors.current.onCash
+
+val KasirOnQris: Color
+    @Composable @ReadOnlyComposable get() = LocalKasirColors.current.onQris
+
+val KasirOnError: Color
+    @Composable @ReadOnlyComposable get() = LocalKasirColors.current.onError

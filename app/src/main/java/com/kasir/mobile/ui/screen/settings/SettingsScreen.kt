@@ -25,7 +25,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.kasir.mobile.data.ServiceLocator
+import com.kasir.mobile.ui.theme.KasirError
 import com.kasir.mobile.ui.theme.KasirGreen
+import com.kasir.mobile.ui.theme.KasirOnGreen
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
@@ -290,12 +292,12 @@ fun SettingsScreen(
                         },
                         enabled = !backupLoading,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
                     ) {
                         if (backupLoading) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
-                                color = Color.White,
+                                color = KasirOnGreen,
                                 strokeWidth = 2.dp
                             )
                             Spacer(Modifier.width(8.dp))
@@ -307,7 +309,7 @@ fun SettingsScreen(
                         Spacer(Modifier.height(8.dp))
                         Text(
                             it,
-                            color = if (backupError) MaterialTheme.colorScheme.error else KasirGreen,
+                            color = if (backupError) KasirError else KasirGreen,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }

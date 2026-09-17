@@ -44,7 +44,12 @@ data class KasirColors(
     val cash: Color,
     val qris: Color,
     val accent: Color,
-    val error: Color
+    val error: Color,
+    val onGreen: Color = Color.White,
+    val onAccent: Color,
+    val onCash: Color = Color.White,
+    val onQris: Color = Color.White,
+    val onError: Color = Color.White
 )
 
 val DarkKasirColors = KasirColors(
@@ -61,7 +66,12 @@ val DarkKasirColors = KasirColors(
     cash = KasirDarkCash,
     qris = KasirDarkQris,
     accent = KasirDarkAccent,
-    error = KasirDarkError
+    error = KasirDarkError,
+    onGreen = KasirDarkOnGreen,
+    onAccent = KasirDarkOnAccent,
+    onCash = KasirDarkOnCash,
+    onQris = KasirDarkOnQris,
+    onError = KasirDarkOnError
 )
 
 val LightKasirColors = KasirColors(
@@ -78,21 +88,27 @@ val LightKasirColors = KasirColors(
     cash = KasirLightCash,
     qris = KasirLightQris,
     accent = KasirLightAccent,
-    error = KasirLightError
+    error = KasirLightError,
+    onGreen = KasirLightOnGreen,
+    onAccent = KasirLightOnAccent,
+    onCash = KasirLightOnCash,
+    onQris = KasirLightOnQris,
+    onError = KasirLightOnError
 )
 
 val LocalKasirColors = staticCompositionLocalOf { DarkKasirColors }
 
 private val DarkColorScheme = darkColorScheme(
     primary = KasirDarkGreen,
-    onPrimary = Color.White,
+    onPrimary = KasirDarkOnGreen,
     primaryContainer = KasirDarkGreenDark,
     onPrimaryContainer = KasirDarkGreenLight,
     secondary = KasirDarkAccent,
-    onSecondary = KasirDarkSurface,
-    secondaryContainer = KasirDarkGreenDark,
-    onSecondaryContainer = KasirDarkGreenLight,
+    onSecondary = KasirDarkOnAccent,
+    secondaryContainer = KasirDarkAccent.copy(alpha = 0.2f),
+    onSecondaryContainer = KasirDarkAccent,
     error = KasirDarkError,
+    onError = KasirDarkOnError,
     background = KasirDarkSurface,
     onBackground = KasirDarkOnSurface,
     surface = KasirDarkSurfaceVariant,
@@ -100,18 +116,20 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = KasirDarkSurfaceCard,
     onSurfaceVariant = KasirDarkOnSurfaceVariant,
     outline = KasirDarkLine,
+    outlineVariant = KasirDarkLine.copy(alpha = 0.5f)
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = KasirLightGreen,
-    onPrimary = Color.White,
+    onPrimary = KasirLightOnGreen,
     primaryContainer = KasirLightGreenDark,
     onPrimaryContainer = KasirLightGreenLight,
     secondary = KasirLightAccent,
-    onSecondary = Color.White,
-    secondaryContainer = KasirLightGreenLight,
-    onSecondaryContainer = KasirLightGreenDark,
+    onSecondary = KasirLightOnAccent,
+    secondaryContainer = KasirLightAccent.copy(alpha = 0.15f),
+    onSecondaryContainer = KasirLightAccent,
     error = KasirLightError,
+    onError = KasirLightOnError,
     background = KasirLightSurface,
     onBackground = KasirLightOnSurface,
     surface = KasirLightSurfaceVariant,
@@ -119,6 +137,7 @@ private val LightColorScheme = lightColorScheme(
     surfaceVariant = KasirLightSurfaceCard,
     onSurfaceVariant = KasirLightOnSurfaceVariant,
     outline = KasirLightLine,
+    outlineVariant = KasirLightLine.copy(alpha = 0.5f)
 )
 
 private val KasirTypography = Typography(

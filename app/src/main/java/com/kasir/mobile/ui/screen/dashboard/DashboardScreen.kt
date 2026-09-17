@@ -57,6 +57,8 @@ import com.kasir.mobile.ui.theme.KasirError
 import com.kasir.mobile.ui.theme.KasirGreen
 import com.kasir.mobile.ui.theme.KasirLine
 import com.kasir.mobile.ui.theme.KasirMono
+import com.kasir.mobile.ui.theme.KasirOnError
+import com.kasir.mobile.ui.theme.KasirOnGreen
 import com.kasir.mobile.ui.theme.KasirOnSurface
 import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
 import com.kasir.mobile.ui.theme.KasirQris
@@ -140,6 +142,7 @@ fun DashboardScreen(
     KasirResponsiveScaffold(
         isLandscape = isLandscape,
         selectedTab = uiState.activeTab,
+        containerColor = KasirSurface,
         onSelectTab = { tab ->
             viewModel.setTab(tab)
             if (tab == "history") {
@@ -833,6 +836,7 @@ fun ItemCatalogCard(
                 Surface(
                     onClick = { onQuantityChange(1) },
                     color = KasirGreen,
+                    contentColor = KasirOnGreen,
                     interactionSource = pressPlus.interactionSource,
                     modifier = pressPlus.modifier.weight(1f).fillMaxHeight()
                 ) {
@@ -841,7 +845,7 @@ fun ItemCatalogCard(
                             "+",
                             fontSize = if (compact) 20.sp else 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = KasirOnGreen
                         )
                     }
                 }
@@ -855,12 +859,13 @@ fun ItemCatalogCard(
             ) {
                 Surface(
                     color = KasirGreen,
+                    contentColor = KasirOnGreen,
                     shape = CircleShape
                 ) {
                     Icon(
                         Icons.Filled.Check,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = KasirOnGreen,
                         modifier = Modifier.size(16.dp).padding(3.dp)
                     )
                 }
@@ -1074,7 +1079,7 @@ fun ActiveSessionCard(
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isZombie || elapsedMin >= 71) KasirError else KasirGreen,
-                        contentColor = Color.White
+                        contentColor = if (isZombie || elapsedMin >= 71) KasirOnError else KasirOnGreen
                     )
                 ) {
                     Text("Selesai & Bayar", fontWeight = FontWeight.Bold, fontSize = 13.sp)

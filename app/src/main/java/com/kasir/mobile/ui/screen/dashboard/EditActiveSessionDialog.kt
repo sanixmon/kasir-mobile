@@ -19,6 +19,8 @@ import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.ui.theme.KasirCash
 import com.kasir.mobile.ui.theme.KasirGreen
+import com.kasir.mobile.ui.theme.KasirOnCash
+import com.kasir.mobile.ui.theme.KasirOnQris
 import com.kasir.mobile.ui.theme.KasirQris
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
@@ -102,13 +104,19 @@ fun EditActiveSessionDialog(
                         selected = payAwal == "cash",
                         onClick = { payAwal = "cash" },
                         label = { Text("Cash") },
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirCash)
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = KasirCash,
+                            selectedLabelColor = KasirOnCash
+                        )
                     )
                     FilterChip(
                         selected = payAwal == "qris",
                         onClick = { payAwal = "qris" },
                         label = { Text("QRIS") },
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = KasirQris)
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = KasirQris,
+                            selectedLabelColor = KasirOnQris
+                        )
                     )
                 }
 

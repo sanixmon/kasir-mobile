@@ -32,6 +32,7 @@ import com.kasir.mobile.ui.theme.KasirAccent
 import com.kasir.mobile.ui.theme.KasirError
 import com.kasir.mobile.ui.theme.KasirGreen
 import com.kasir.mobile.ui.theme.KasirLine
+import com.kasir.mobile.ui.theme.KasirOnGreen
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceCard
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
@@ -138,10 +139,10 @@ fun PrinterScreen(
                 enabled = !scanning,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
             ) {
                 if (scanning) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = KasirOnGreen)
                     Spacer(Modifier.width(8.dp))
                     Text("Memindai…")
                 } else {
