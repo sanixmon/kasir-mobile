@@ -115,7 +115,7 @@ fun HistoryScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                    Column {
                         Text("Riwayat Transaksi", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
                             text = if (isAdmin) "ADMIN · ${uiState.currentShiftUser ?: "Admin"}"
