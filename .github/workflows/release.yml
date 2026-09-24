@@ -48,7 +48,7 @@ jobs:
             TAG="${GITHUB_REF#refs/tags/}"
           else
             VERSION=$(grep 'versionName = ' app/build.gradle.kts | head -n1 | sed -E 's/.*versionName = "([^"]+)".*/\1/')
-            TAG="v${VERSION:-1.0.0}"
+            TAG="v${VERSION:-1.0.0}-${GITHUB_RUN_NUMBER}"
           fi
           
           TITLE="${{ github.event.inputs.release_title }}"

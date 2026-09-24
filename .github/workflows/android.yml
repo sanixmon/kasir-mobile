@@ -7,9 +7,12 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build & Test
+    name: Build & Release
     runs-on: ubuntu-latest
 
     steps:
@@ -40,9 +43,44 @@ jobs:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: ./gradlew testReleaseUnitTest --no-daemon
 
-      - name: Upload APK
+      - name: Package Release Assets
+        id: package
+        run: |
+          VERSION=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -1)
+          TAG="v${VERSION:-1.0.0}-${GITHUB_RUN_NUMBER}"
+          mkdir -p release-assets
+
+          RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n1)
+          if [ -f "$RELEASE_APK" ]; then
+            cp "$RELEASE_APK" "release-assets/kasir-mobile-${TAG}.apk"
+            cp "$RELEASE_APK" "release-assets/app-release.apk"
+          fi
+
+          cd release-assets
+          sha256sum *.apk > checksums.txt 2>/dev/null || true
+          cd ..
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: kasir-mobile-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: release-assets/*
           retention-days: 30
+
+      - name: Create GitHub Release
+        if: (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')) || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.package.outputs.tag }}"
+          VERSION="${{ steps.package.outputs.version }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* --clobber
+          else
+            gh release create "$TAG" release-assets/* \
+              --title "Kasir Mobile v${VERSION} (build ${GITHUB_RUN_NUMBER})" \
+              --notes "Auto-built signed release APK (arm64-v8a) from commit ${GITHUB_SHA}."
+          fi
