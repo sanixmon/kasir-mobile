@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -81,10 +82,10 @@ fun PaymentDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Filled.CreditCard, contentDescription = null, tint = KasirGreen)
                             Spacer(Modifier.width(8.dp))
-                            Text("Pembayaran Sewa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("Pembayaran Sewa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         IconButton(onClick = onClose, enabled = !submitting) {
                             Icon(Icons.Filled.Close, contentDescription = "Tutup")
@@ -174,7 +175,7 @@ fun PaymentDialog(
                                     ) {
                                         Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = KasirGreen, modifier = Modifier.size(26.dp))
                                         Spacer(Modifier.width(12.dp))
-                                        Column {
+                                        Column(modifier = Modifier.weight(1f)) {
                                             Text("Pengembalian Tepat Waktu", fontWeight = FontWeight.Bold, color = KasirGreen)
                                             Spacer(Modifier.height(2.dp))
                                             Text(
@@ -394,10 +395,10 @@ fun PaymentDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Filled.CreditCard, contentDescription = null, tint = KasirGreen)
                             Spacer(Modifier.width(8.dp))
-                            Text("Pembayaran", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("Pembayaran", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         IconButton(onClick = onClose, enabled = !submitting) {
                             Icon(Icons.Filled.Close, contentDescription = "Tutup")
@@ -476,7 +477,7 @@ fun PaymentDialog(
                             ) {
                                 Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = KasirGreen, modifier = Modifier.size(26.dp))
                                 Spacer(Modifier.width(12.dp))
-                                Column {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text("Pengembalian Tepat Waktu", fontWeight = FontWeight.Bold, color = KasirGreen)
                                     Spacer(Modifier.height(2.dp))
                                     Text(

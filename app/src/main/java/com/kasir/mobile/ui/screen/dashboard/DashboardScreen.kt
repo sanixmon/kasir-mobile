@@ -12,6 +12,8 @@ import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -204,12 +206,6 @@ fun DashboardScreen(
                         Icon(Icons.Filled.Refresh, contentDescription = "Refresh Data")
                     }
                     if (uiState.currentUserRole == "admin") {
-                        IconButton(onClick = {
-                            viewModel.loadDeletionLogs()
-                            navController.navigate(NavRoutes.DELETION_LOGS)
-                        }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Log Hapus")
-                        }
                         IconButton(onClick = { navController.navigate(NavRoutes.USERS) }) {
                             Icon(Icons.Filled.Group, contentDescription = "Kelola Kasir")
                         }
@@ -937,7 +933,7 @@ fun ActiveSessionCard(
                         )
                     }
                     Spacer(Modifier.width(10.dp))
-                    Text(session.nama, fontWeight = FontWeight.Bold, color = KasirOnSurface, maxLines = 1)
+                    Text(session.nama, fontWeight = FontWeight.Bold, color = KasirOnSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     if (isZombie) {
                         Spacer(Modifier.width(6.dp))
                         Surface(color = KasirError.copy(alpha = 0.15f), shape = RoundedCornerShape(4.dp)) {
@@ -975,7 +971,7 @@ fun ActiveSessionCard(
             }
 
             Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 session.items.forEach { item ->
                     Surface(
                         color = KasirSurfaceVariant,
@@ -1081,7 +1077,7 @@ fun ActiveSessionCard(
                         contentColor = if (isZombie || elapsedMin >= 71) KasirOnError else KasirOnGreen
                     )
                 ) {
-                    Text("Selesai & Bayar", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("Selesai & Bayar", fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Surface(
                     shape = RoundedCornerShape(10.dp),

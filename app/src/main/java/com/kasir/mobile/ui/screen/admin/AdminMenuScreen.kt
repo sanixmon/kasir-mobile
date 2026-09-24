@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ElectricScooter
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material3.*
@@ -153,7 +152,7 @@ fun AdminMenuScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, top = 16.dp, end = 16.dp)
-                    .height(252.dp),
+                    .height(170.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 AdminMenuTile(
@@ -166,32 +165,16 @@ fun AdminMenuScreen(
                         .weight(1f)
                         .fillMaxHeight()
                 )
-                Column(
+                AdminMenuTile(
+                    title = "Manajemen Kasir",
+                    subtitle = "Tambah & hapus akun kasir",
+                    icon = Icons.Filled.Group,
+                    tint = KasirAccent,
+                    onClick = { navController.navigate(NavRoutes.USERS) },
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    AdminMenuTile(
-                        title = "Manajemen Kasir",
-                        subtitle = "Tambah & hapus akun kasir",
-                        icon = Icons.Filled.Group,
-                        tint = KasirAccent,
-                        onClick = { navController.navigate(NavRoutes.USERS) },
-                        modifier = Modifier.weight(1f)
-                    )
-                    AdminMenuTile(
-                        title = "Log Penghapusan",
-                        subtitle = "Audit transaksi yang dihapus",
-                        icon = Icons.Filled.Delete,
-                        tint = KasirError,
-                        onClick = {
-                            viewModel.loadDeletionLogs()
-                            navController.navigate(NavRoutes.DELETION_LOGS)
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                        .fillMaxHeight()
+                )
             }
 
             // ── Ringkasan hari ini ────────────────────────────────────────
@@ -335,7 +318,7 @@ private fun StatsTile(
         shape = RoundedCornerShape(16.dp),
         color = KasirSurfaceCard,
         border = BorderStroke(1.dp, KasirLine),
-        modifier = modifier.height(84.dp)
+        modifier = modifier.heightIn(min = 84.dp)
     ) {
         Row(
             modifier = Modifier
@@ -421,7 +404,7 @@ private fun StatusTile(
         shape = RoundedCornerShape(16.dp),
         color = KasirSurfaceCard,
         border = BorderStroke(1.dp, KasirLine),
-        modifier = modifier.height(76.dp)
+        modifier = modifier.heightIn(min = 76.dp)
     ) {
         Row(
             modifier = Modifier

@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -44,10 +45,10 @@ fun AdminPinDialog(viewModel: KasirViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Filled.Lock, contentDescription = null, tint = KasirGreen)
                         Spacer(Modifier.width(8.dp))
-                        Text("Verifikasi Admin", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Verifikasi Admin", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     IconButton(onClick = { viewModel.cancelAdminPin() }) {
                         Icon(Icons.Filled.Close, contentDescription = "Tutup")

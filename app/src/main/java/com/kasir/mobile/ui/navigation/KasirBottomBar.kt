@@ -10,6 +10,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
 import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
@@ -29,13 +30,13 @@ fun KasirBottomBar(
             selected = selectedTab == "dashboard",
             onClick = { onSelectTab("dashboard") },
             icon = { Icon(Icons.Filled.Home, contentDescription = "Dashboard") },
-            label = { Text("Dashboard") }
+            label = { Text("Dashboard", maxLines = 1, overflow = TextOverflow.Ellipsis) }
         )
         NavigationBarItem(
             selected = selectedTab == "history",
             onClick = { onSelectTab("history") },
             icon = { Icon(Icons.Filled.History, contentDescription = "Riwayat") },
-            label = { Text("Riwayat") }
+            label = { Text("Riwayat", maxLines = 1, overflow = TextOverflow.Ellipsis) }
         )
     }
 }

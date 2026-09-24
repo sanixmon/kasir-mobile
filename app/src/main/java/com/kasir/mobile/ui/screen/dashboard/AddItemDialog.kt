@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -115,10 +116,10 @@ fun AddItemDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Filled.AddCircle, contentDescription = null, tint = KasirAccent)
                             Spacer(Modifier.width(8.dp))
-                            Text("Tambah Barang Sewa (Additional Order)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("Tambah Barang Sewa (Additional Order)", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         IconButton(onClick = onClose, enabled = !isSubmitting) {
                             Icon(Icons.Filled.Close, contentDescription = "Tutup")
@@ -202,10 +203,10 @@ fun AddItemDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Filled.AddCircle, contentDescription = null, tint = KasirAccent)
                             Spacer(Modifier.width(8.dp))
-                            Text("Tambah Barang Sewa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("Tambah Barang Sewa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         IconButton(onClick = onClose, enabled = !isSubmitting) {
                             Icon(Icons.Filled.Close, contentDescription = "Tutup")
@@ -284,9 +285,9 @@ private fun SessionInfoBadge(session: SessionDto) {
                 )
             }
             Spacer(Modifier.width(10.dp))
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text("Penyewa", style = MaterialTheme.typography.labelSmall, color = KasirTextLow)
-                Text(session.nama.ifBlank { "Penyewa" }, fontWeight = FontWeight.Bold, color = KasirOnSurface)
+                Text(session.nama.ifBlank { "Penyewa" }, fontWeight = FontWeight.Bold, color = KasirOnSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -323,7 +324,7 @@ private fun ItemCatalogList(
                                 fontSize = 12.sp
                             )
                             Spacer(Modifier.width(6.dp))
-                            Text(item.name, fontWeight = FontWeight.SemiBold, color = KasirOnSurface, fontSize = 13.sp)
+                            Text(item.name, fontWeight = FontWeight.SemiBold, color = KasirOnSurface, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         Spacer(Modifier.height(2.dp))
                         Text(

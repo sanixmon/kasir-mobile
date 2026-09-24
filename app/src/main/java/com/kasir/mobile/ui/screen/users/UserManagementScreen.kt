@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -228,7 +229,7 @@ private fun UserRow(
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(user.username, fontWeight = FontWeight.Bold, color = KasirOnSurface)
+                    Text(user.username, fontWeight = FontWeight.Bold, color = KasirOnSurface, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     if (isSelf) {
                         Spacer(Modifier.width(6.dp))
                         Surface(color = KasirSurfaceVariant, shape = RoundedCornerShape(4.dp)) {

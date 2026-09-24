@@ -1,0 +1,132 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag version (e.g. v1.0.0). If empty, uses app versionName.'
+        required: false
+        default: ''
+      release_title:
+        description: 'Release Title (optional, defaults to Release <tag>)'
+        required: false
+        default: ''
+      draft:
+        description: 'Create as Draft release'
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        description: 'Create as Pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine tag and release title
+        id: vars
+        run: |
+          if [ -n "${{ github.event.inputs.tag_name }}" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+          elif [ "${{ startsWith(github.ref, 'refs/tags/') }}" = "true" ]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION=$(grep 'versionName = ' app/build.gradle.kts | head -n1 | sed -E 's/.*versionName = "([^"]+)".*/\1/')
+            TAG="v${VERSION:-1.0.0}"
+          fi
+          
+          TITLE="${{ github.event.inputs.release_title }}"
+          if [ -z "$TITLE" ]; then
+            TITLE="Release $TAG"
+          fi
+          
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+          echo "Resolved TAG=$TAG, TITLE=$TITLE"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        env:
+          KASIR_SIGNING_PASSWORD: ${{ secrets.KASIR_SIGNING_PASSWORD }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Package Release Assets
+        id: package
+        run: |
+          TAG="${{ steps.vars.outputs.tag }}"
+          mkdir -p release-assets
+          
+          RELEASE_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n1)
+          if [ -f "$RELEASE_APK" ]; then
+            cp "$RELEASE_APK" "release-assets/kasir-mobile-${TAG}-release.apk"
+            cp "$RELEASE_APK" "release-assets/kasir-mobile-${TAG}.apk"
+          fi
+          
+          cd release-assets
+          sha256sum *.apk > checksums.txt
+          cd ..
+          
+          echo "Generated assets:"
+          ls -la release-assets/
+
+      - name: Upload artifacts to workflow run
+        uses: actions/upload-artifact@v4
+        with:
+          name: kasir-mobile-${{ steps.vars.outputs.tag }}-apks
+          path: release-assets/*
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.vars.outputs.tag }}
+          TITLE: ${{ steps.vars.outputs.title }}
+          DRAFT: ${{ github.event.inputs.draft || 'false' }}
+          PRERELEASE: ${{ github.event.inputs.prerelease || 'false' }}
+        run: |
+          FLAGS=()
+          if [ "$DRAFT" = "true" ]; then
+            FLAGS+=("--draft")
+          fi
+          if [ "$PRERELEASE" = "true" ]; then
+            FLAGS+=("--prerelease")
+          fi
+          
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists. Uploading/updating assets..."
+            gh release upload "$TAG" release-assets/* --clobber
+          else
+            echo "Creating new release $TAG..."
+            gh release create "$TAG" release-assets/* \
+              --title "$TITLE" \
+              --generate-notes \
+              "${FLAGS[@]}"
+          fi

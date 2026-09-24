@@ -1,0 +1,48 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build release APK
+        env:
+          KASIR_SIGNING_PASSWORD: ${{ secrets.KASIR_SIGNING_PASSWORD }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Run unit tests
+        env:
+          KASIR_SIGNING_PASSWORD: ${{ secrets.KASIR_SIGNING_PASSWORD }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: ./gradlew testReleaseUnitTest --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: kasir-mobile-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          retention-days: 30

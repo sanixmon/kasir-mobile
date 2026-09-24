@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -55,7 +56,6 @@ fun HistoryScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var txnToDelete by remember { mutableStateOf<TransactionDto?>(null) }
-    var showClearConfirm by remember { mutableStateOf(false) }
 
     // Admin-only filter state
     var filterMode by remember { mutableStateOf("daily") } // "daily" | "monthly" | "yearly"
@@ -115,30 +115,23 @@ fun HistoryScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text("Riwayat Transaksi", fontWeight = FontWeight.Bold)
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                        Text("Riwayat Transaksi", fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
                             text = if (isAdmin) "ADMIN · ${uiState.currentShiftUser ?: "Admin"}"
                             else "KASIR · ${uiState.currentShiftUser ?: "-"}",
                             style = MaterialTheme.typography.labelSmall,
                             fontFamily = KasirMono,
                             letterSpacing = 1.sp,
-                            color = if (isAdmin) KasirGreen else KasirTextLow
+                            color = if (isAdmin) KasirGreen else KasirTextLow,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.loadData() }) {
                         Icon(Icons.Filled.Refresh, contentDescription = "Refresh Riwayat")
-                    }
-                    if (isAdmin) {
-                        IconButton(onClick = { showClearConfirm = true }) {
-                            Icon(
-                                Icons.Filled.DeleteForever,
-                                contentDescription = "Bersihkan Semua",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = KasirSurfaceVariant)
@@ -165,15 +158,17 @@ fun HistoryScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Summary Cards Row
+            // Summary Cards Row - horizontally scrollable so values don't get squished
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                SummaryCard("Transaksi", "${filteredTxns.size}", Modifier.weight(1f))
-                SummaryCard("Total Pokok", idrFormat.format(totalPokok), Modifier.weight(1.2f))
-                SummaryCard("Total Overtime", idrFormat.format(totalOT), Modifier.weight(1.2f))
-                SummaryCard("Grand Total", idrFormat.format(grandTotal), Modifier.weight(1.4f), highlight = true)
+                SummaryCard("Transaksi", "${filteredTxns.size}", Modifier.widthIn(min = 100.dp))
+                SummaryCard("Total Pokok", idrFormat.format(totalPokok), Modifier.widthIn(min = 125.dp))
+                SummaryCard("Total Overtime", idrFormat.format(totalOT), Modifier.widthIn(min = 125.dp))
+                SummaryCard("Grand Total", idrFormat.format(grandTotal), Modifier.widthIn(min = 135.dp), highlight = true)
             }
 
             Spacer(Modifier.height(12.dp))
@@ -253,31 +248,6 @@ fun HistoryScreen(
         )
     }
 
-    // Clear-all confirmation (admin only)
-    if (showClearConfirm) {
-        AlertDialog(
-            onDismissRequest = { showClearConfirm = false },
-            title = { Text("Bersihkan Semua Riwayat?") },
-            text = {
-                Text("Seluruh ${uiState.transactions.size} transaksi akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.clearAllHistory()
-                        showClearConfirm = false
-                    }
-                ) {
-                    Text("Bersihkan", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showClearConfirm = false }) {
-                    Text("Batal")
-                }
-            }
-        )
-    }
 
     // Date picker (admin only)
     if (showDatePicker) {
@@ -450,7 +420,9 @@ fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier, hig
                 title.uppercase(),
                 style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 1.sp,
-                color = KasirTextLow
+                color = KasirTextLow,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.height(4.dp))
             Text(
@@ -458,7 +430,9 @@ fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier, hig
                 fontFamily = KasirMono,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
-                color = if (highlight) KasirGreen else MaterialTheme.colorScheme.onSurface
+                color = if (highlight) KasirGreen else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -477,7 +451,7 @@ private fun BreakdownRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = KasirOnSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = KasirOnSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         Text(
             value,
             fontFamily = KasirMono,
@@ -534,7 +508,7 @@ fun TransactionCard(
                         )
                     }
                     Spacer(Modifier.width(8.dp))
-                    Text(txn.nama, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(txn.nama, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     Spacer(Modifier.width(8.dp))
                     Surface(color = KasirSurfaceVariant, shape = RoundedCornerShape(4.dp)) {
                         Text(

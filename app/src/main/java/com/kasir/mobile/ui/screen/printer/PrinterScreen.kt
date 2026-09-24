@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -225,9 +226,9 @@ private fun StatusCard(state: PrinterConnectionState) {
                     .background(dotColor, CircleShape)
             )
             Spacer(Modifier.width(12.dp))
-            Column {
-                Text(title, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = KasirTextLow)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = KasirTextLow, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -255,8 +256,8 @@ private fun PrinterDeviceRow(
             Icon(Icons.Filled.Print, contentDescription = null, tint = if (isConnected) KasirGreen else KasirTextLow)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
-                Text(device.name, fontWeight = FontWeight.SemiBold)
-                Text(device.address, style = MaterialTheme.typography.bodySmall, color = KasirTextLow)
+                Text(device.name, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(device.address, style = MaterialTheme.typography.bodySmall, color = KasirTextLow, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (isConnected) {
                 Text("Terhubung", color = KasirGreen, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)

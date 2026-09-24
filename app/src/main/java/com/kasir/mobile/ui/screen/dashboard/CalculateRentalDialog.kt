@@ -94,10 +94,10 @@ fun CalculateRentalDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Filled.Calculate, contentDescription = null, tint = KasirAccent)
                             Spacer(Modifier.width(8.dp))
-                            Text("Hitung Sewa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("Hitung Sewa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         IconButton(onClick = onClose) {
                             Icon(Icons.Filled.Close, contentDescription = "Tutup")
@@ -190,10 +190,10 @@ fun CalculateRentalDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             Icon(Icons.Filled.Calculate, contentDescription = null, tint = KasirAccent)
                             Spacer(Modifier.width(8.dp))
-                            Text("Hitung Sewa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                            Text("Hitung Sewa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         IconButton(onClick = onClose) {
                             Icon(Icons.Filled.Close, contentDescription = "Tutup")
@@ -274,10 +274,10 @@ private fun BaseCostPaidBadge(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = KasirGreen)
                 Spacer(Modifier.width(8.dp))
-                Text("Tarif Sewa Pokok — Lunas", fontWeight = FontWeight.SemiBold, color = KasirGreen)
+                Text("Tarif Sewa Pokok — Lunas", fontWeight = FontWeight.SemiBold, color = KasirGreen, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
@@ -322,7 +322,10 @@ private fun OvertimeAlertBanner(isOT: Boolean, maxOver: Double) {
                 else "Durasi dalam batas normal.",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isOT) KasirAccent else KasirGreen
+                color = if (isOT) KasirAccent else KasirGreen,
+                modifier = Modifier.weight(1f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -539,7 +542,8 @@ private fun GrandTotalSummaryBox(grandTotal: Double, idrFormat: NumberFormat) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Total Biaya Keseluruhan", fontWeight = FontWeight.Bold, color = KasirGreen)
+            Text("Total Biaya Keseluruhan", fontWeight = FontWeight.Bold, color = KasirGreen, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.width(8.dp))
             Text(
                 idrFormat.format(grandTotal),
                 fontWeight = FontWeight.Bold,

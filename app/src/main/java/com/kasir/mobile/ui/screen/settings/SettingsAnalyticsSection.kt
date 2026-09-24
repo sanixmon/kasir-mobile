@@ -174,25 +174,20 @@ fun SettingsAnalyticsSection(
 
             // ── Payment distribution ──────────────────────────────────────
             Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "DISTRIBUSI PEMBAYARAN SHIFT",
-                        style = MaterialTheme.typography.labelSmall,
-                        letterSpacing = 1.sp,
-                        color = KasirTextLow
-                    )
-                    Text(
-                        "Cash ${idrFormat.format(totalCashAll)} ($cashPct%) · QRIS ${idrFormat.format(totalQrisAll)} ($qrisPct%)",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = KasirOnSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Text(
+                    "DISTRIBUSI PEMBAYARAN SHIFT",
+                    style = MaterialTheme.typography.labelSmall,
+                    letterSpacing = 1.sp,
+                    color = KasirTextLow
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "Cash ${idrFormat.format(totalCashAll)} ($cashPct%) · QRIS ${idrFormat.format(totalQrisAll)} ($qrisPct%)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KasirOnSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 Spacer(Modifier.height(6.dp))
                 Box(
                     modifier = Modifier
@@ -314,7 +309,7 @@ private fun AnalyticsStatCard(
                 sub,
                 style = MaterialTheme.typography.labelSmall,
                 color = KasirOnSurfaceVariant,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
         }

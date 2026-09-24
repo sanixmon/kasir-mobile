@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.kasir.mobile.data.model.ItemCatalog
@@ -74,10 +75,10 @@ fun EditActiveSessionDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Filled.Edit, contentDescription = null, tint = KasirGreen)
                         Spacer(Modifier.width(8.dp))
-                        Text("Edit Sesi Aktif", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text("Edit Sesi Aktif", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     IconButton(onClick = onClose) {
                         Icon(Icons.Filled.Close, contentDescription = "Tutup")
@@ -132,9 +133,9 @@ fun EditActiveSessionDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            Text(item.code, style = MaterialTheme.typography.labelSmall, color = KasirGreen, fontWeight = FontWeight.Bold)
-                            Text(item.name, style = MaterialTheme.typography.bodySmall)
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(item.code, style = MaterialTheme.typography.labelSmall, color = KasirGreen, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(item.name, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(onClick = { changeQty(item.code, -1) }, modifier = Modifier.size(44.dp)) {

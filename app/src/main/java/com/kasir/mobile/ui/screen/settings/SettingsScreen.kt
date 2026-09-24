@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -118,9 +119,9 @@ fun SettingsScreen(
                 ) {
                     Icon(Icons.Filled.Settings, contentDescription = null, tint = KasirGreen)
                     Spacer(Modifier.width(8.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text("Server Aktif", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(ServiceLocator.activeServerUrl, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Text(ServiceLocator.activeServerUrl, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -145,7 +146,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Cetak Struk Otomatis Saat Mulai Sewa")
+                        Text("Cetak Struk Otomatis Saat Mulai Sewa", modifier = Modifier.weight(1f))
+                        Spacer(Modifier.width(8.dp))
                         Switch(
                             checked = uiState.printMulai,
                             onCheckedChange = { viewModel.togglePrintMulai(it) },
@@ -158,7 +160,8 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Cetak Struk Otomatis Saat Selesai Sewa")
+                        Text("Cetak Struk Otomatis Saat Selesai Sewa", modifier = Modifier.weight(1f))
+                        Spacer(Modifier.width(8.dp))
                         Switch(
                             checked = uiState.printSelesai,
                             onCheckedChange = { viewModel.togglePrintSelesai(it) },
