@@ -55,7 +55,6 @@ fun HistoryScreen(
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
 
     var searchQuery by remember { mutableStateOf("") }
-    var txnToDelete by remember { mutableStateOf<TransactionDto?>(null) }
 
     // Admin-only filter state
     var filterMode by remember { mutableStateOf("daily") } // "daily" | "monthly" | "yearly"
@@ -212,40 +211,12 @@ fun HistoryScreen(
                         TransactionCard(
                             txn = txn,
                             idrFormat = idrFormat,
-                            canDelete = isAdmin,
-                            onDelete = { txnToDelete = txn },
                             onPrint = { viewModel.printTransactionReceipt(txn) }
                         )
                     }
                 }
             }
         }
-    }
-
-    // Delete confirmation (admin only)
-    txnToDelete?.let { txn ->
-        AlertDialog(
-            onDismissRequest = { txnToDelete = null },
-            title = { Text("Hapus Transaksi?") },
-            text = {
-                Text("Bill #${txn.no} atas nama \"${txn.nama}\" (${idrFormat.format(txn.totalAll)}) akan dihapus permanen.")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteTransaction(txn)
-                        txnToDelete = null
-                    }
-                ) {
-                    Text("Hapus", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { txnToDelete = null }) {
-                    Text("Batal")
-                }
-            }
-        )
     }
 
 
@@ -466,8 +437,6 @@ private fun BreakdownRow(
 fun TransactionCard(
     txn: TransactionDto,
     idrFormat: NumberFormat,
-    canDelete: Boolean,
-    onDelete: () -> Unit,
     onPrint: () -> Unit
 ) {
     val timeFmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -590,19 +559,6 @@ fun TransactionCard(
                         tint = KasirGreen,
                         modifier = Modifier.size(20.dp)
                     )
-                }
-                if (canDelete) {
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(44.dp)
-                    ) {
-                        Icon(
-                            Icons.Filled.Delete,
-                            contentDescription = "Hapus Transaksi",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
                 }
             }
         }
