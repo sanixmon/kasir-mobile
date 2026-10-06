@@ -52,7 +52,7 @@ fun PaymentDialog(
     var payMode by remember { mutableStateOf(if (isNoOT) paymentData.session.payAwal else "cash") }
     var cashAmt by remember { mutableStateOf(grand) }
     var localSubmitting by remember { mutableStateOf(false) }
-    val effectiveSubmitting = isSubmitting || localSubmitting
+    val submitting = isSubmitting || localSubmitting
     LaunchedEffect(isSubmitting) {
         if (!isSubmitting) localSubmitting = false
     }
@@ -65,7 +65,7 @@ fun PaymentDialog(
     val pressConfirm = rememberPressScale()
 
     Dialog(
-        onDismissRequest = { if (!effectiveSubmitting) onClose() },
+        onDismissRequest = { if (!submitting) onClose() },
         properties = DialogProperties(usePlatformDefaultWidth = !isLandscape)
     ) {
         Surface(
@@ -92,7 +92,7 @@ fun PaymentDialog(
                             Spacer(Modifier.width(8.dp))
                             Text("Pembayaran Sewa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        IconButton(onClick = onClose, enabled = !effectiveSubmitting) {
+                        IconButton(onClick = onClose, enabled = !submitting) {
                             Icon(Icons.Filled.Close, contentDescription = "Tutup")
                         }
                     }
@@ -349,13 +349,13 @@ fun PaymentDialog(
                                         val finalQris = if (!isNoOT && payMode == "qris") grand else 0.0
                                         onConfirm(finalCash, finalQris)
                                     },
-                                    enabled = !effectiveSubmitting,
+                                    enabled = !submitting,
                                     interactionSource = pressConfirm.interactionSource,
                                     modifier = pressConfirm.modifier.fillMaxWidth().height(48.dp),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
                                 ) {
-                                    if (effectiveSubmitting) {
+                                    if (submitting) {
                                         CircularProgressIndicator(
                                             modifier = Modifier.size(18.dp),
                                             strokeWidth = 2.dp,
@@ -377,7 +377,7 @@ fun PaymentDialog(
 
                                 OutlinedButton(
                                     onClick = onClose,
-                                    enabled = !effectiveSubmitting,
+                                    enabled = !submitting,
                                     modifier = Modifier.fillMaxWidth().height(44.dp),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
@@ -639,13 +639,13 @@ fun PaymentDialog(
                             val finalQris = if (!isNoOT && payMode == "qris") grand else 0.0
                             onConfirm(finalCash, finalQris)
                         },
-                        enabled = !effectiveSubmitting,
+                        enabled = !submitting,
                         interactionSource = pressConfirm.interactionSource,
                         modifier = pressConfirm.modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
                     ) {
-                        if (effectiveSubmitting) {
+                        if (submitting) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
@@ -667,7 +667,7 @@ fun PaymentDialog(
 
                     OutlinedButton(
                         onClick = onClose,
-                        enabled = !effectiveSubmitting,
+                        enabled = !submitting,
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
