@@ -16,7 +16,7 @@ object RetrofitClient {
 
     /** Attaches the current session token (if any) as a Bearer header. */
     private val authInterceptor = Interceptor { chain ->
-        val token = AuthTokenHolder.token
+        val token = AuthTokenHolder.activeToken
         val request = if (token != null) {
             chain.request().newBuilder()
                 .header("Authorization", "Bearer $token")
@@ -24,10 +24,18 @@ object RetrofitClient {
         } else {
             chain.request()
         }
-        chain.proceed(request)
+        val response = chain.proceed(request)
+        if (response.code == 401 && AuthTokenHolder.escalationToken != null) {
+            // Escalation token expired on server — drop it so subsequent requests fall back to loginToken
+            AuthTokenHolder.clearEscalation()
+        }
+        response
     }
 
     private val client = OkHttpClient.Builder()
+        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
         .addInterceptor(authInterceptor)
         .addInterceptor(HttpLoggingInterceptor().apply {
             // BASIC only — BODY would leak shift passwords in logs

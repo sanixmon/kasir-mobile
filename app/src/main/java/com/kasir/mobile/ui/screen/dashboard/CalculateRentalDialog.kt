@@ -57,7 +57,8 @@ fun CalculateRentalDialog(
     val now = System.currentTimeMillis()
     val safeStart = if (session.startTime > 1577836800000L) session.startTime else now
     val payAwalColor = if (session.payAwal == "qris") KasirQris else KasirCash
-
+    val uiState by viewModel.uiState.collectAsState()
+    val isSubmitting = uiState.isLoading
     var paymentCalc by remember { mutableStateOf(viewModel.preparePayment(session)) }
     val itemsCalc = paymentCalc.itemsCalc
 
@@ -171,6 +172,7 @@ fun CalculateRentalDialog(
                                 onClose = onClose,
                                 isOT = paymentCalc.otSum > 0.0,
                                 canProceed = canProceed,
+                                isSubmitting = isSubmitting,
                                 onCompleteOnTime = onCompleteOnTime?.let { { it(paymentCalc) } },
                                 onProceedPayment = { onProceedPayment(paymentCalc) }
                             )
@@ -248,6 +250,7 @@ fun CalculateRentalDialog(
                         onClose = onClose,
                         isOT = paymentCalc.otSum > 0.0,
                         canProceed = canProceed,
+                        isSubmitting = isSubmitting,
                         onCompleteOnTime = onCompleteOnTime?.let { { it(paymentCalc) } },
                         onProceedPayment = { onProceedPayment(paymentCalc) }
                     )
@@ -559,6 +562,7 @@ private fun CheckoutActions(
     onClose: () -> Unit,
     isOT: Boolean,
     canProceed: Boolean,
+    isSubmitting: Boolean = false,
     onCompleteOnTime: (() -> Unit)?,
     onProceedPayment: () -> Unit
 ) {
@@ -573,14 +577,24 @@ private fun CheckoutActions(
         if (!isOT && onCompleteOnTime != null) {
             Button(
                 onClick = onCompleteOnTime,
-                enabled = canProceed,
+                enabled = canProceed && !isSubmitting,
                 modifier = Modifier.weight(2f).height(48.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
             ) {
-                Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Selesai (Tepat Waktu)", fontWeight = FontWeight.Bold)
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = KasirOnGreen
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Menyimpan...", fontWeight = FontWeight.Bold)
+                } else {
+                    Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Selesai (Tepat Waktu)", fontWeight = FontWeight.Bold)
+                }
             }
         } else {
             Button(

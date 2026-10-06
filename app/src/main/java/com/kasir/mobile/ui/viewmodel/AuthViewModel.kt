@@ -32,10 +32,22 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
     init {
-        // Restore the last used server URL
+        // Restore the last used server URL and persisted login token
         viewModelScope.launch {
             val session = sessionManager.sessionDataFlow.first()
-            _uiState.update { it.copy(serverUrl = session.serverUrl.ifBlank { ServiceLocator.DEFAULT_SERVER_URL }) }
+            val effectiveUrl = session.serverUrl.ifBlank { ServiceLocator.DEFAULT_SERVER_URL }
+            _uiState.update { it.copy(serverUrl = effectiveUrl) }
+            if (session.token.isNotBlank() && session.currentUserName.isNotBlank()) {
+                AuthTokenHolder.loginToken = session.token
+                ServiceLocator.setServerUrl(effectiveUrl)
+                _uiState.update {
+                    it.copy(
+                        isLoggedIn = true,
+                        username = session.currentUserName,
+                        isAdmin = session.isAdmin
+                    )
+                }
+            }
         }
     }
 
@@ -67,12 +79,12 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
                 }
 
                 val userMatch = res.user
-                AuthTokenHolder.token = res.token
+                AuthTokenHolder.loginToken = res.token
                 sessionManager.setServerUrl(serverUrl)
+                sessionManager.setAuthToken(res.token ?: "")
                 sessionManager.setCurrentUser(userMatch.username, userMatch.username)
                 val isAdmin = userMatch.role.equals("admin", ignoreCase = true)
                 sessionManager.setAdminStatus(isAdmin)
-
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -116,11 +128,11 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
                     return@launch
                 }
 
-                AuthTokenHolder.token = res.token
+                AuthTokenHolder.loginToken = res.token
                 sessionManager.setServerUrl(serverUrl)
+                sessionManager.setAuthToken(res.token ?: "")
                 sessionManager.setCurrentUser("admin", "Admin")
                 sessionManager.setAdminStatus(true)
-
                 _uiState.update {
                     it.copy(
                         isLoading = false,
@@ -142,7 +154,8 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
     }
 
     fun logout() {
-        AuthTokenHolder.token = null
+        AuthTokenHolder.clearAll()
+        viewModelScope.launch { sessionManager.clearSession() }
         _uiState.update { AuthUiState(serverUrl = _uiState.value.serverUrl) }
     }
 }

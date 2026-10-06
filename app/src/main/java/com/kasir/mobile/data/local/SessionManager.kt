@@ -17,7 +17,8 @@ data class SessionData(
     val serverUrl: String,
     val currentUserId: String,
     val currentUserName: String,
-    val isAdmin: Boolean
+    val isAdmin: Boolean,
+    val token: String = ""
 )
 
 class SessionManager(private val context: Context) {
@@ -26,6 +27,7 @@ class SessionManager(private val context: Context) {
         val CURRENT_USER_ID_KEY = stringPreferencesKey("current_user_id")
         val CURRENT_USER_NAME_KEY = stringPreferencesKey("current_user_name")
         val IS_ADMIN_KEY = booleanPreferencesKey("is_admin")
+        val AUTH_TOKEN_KEY = stringPreferencesKey("auth_token")
     }
 
     val sessionDataFlow: Flow<SessionData> = context.dataStore.data.map { prefs ->
@@ -33,7 +35,8 @@ class SessionManager(private val context: Context) {
             serverUrl = prefs[SERVER_URL_KEY] ?: BuildConfig.API_BASE_URL,
             currentUserId = prefs[CURRENT_USER_ID_KEY] ?: "",
             currentUserName = prefs[CURRENT_USER_NAME_KEY] ?: "",
-            isAdmin = prefs[IS_ADMIN_KEY] ?: false
+            isAdmin = prefs[IS_ADMIN_KEY] ?: false,
+            token = prefs[AUTH_TOKEN_KEY] ?: ""
         )
     }
 
@@ -51,12 +54,17 @@ class SessionManager(private val context: Context) {
     suspend fun setAdminStatus(isAdmin: Boolean) {
         context.dataStore.edit { it[IS_ADMIN_KEY] = isAdmin }
     }
-    
+
+    suspend fun setAuthToken(token: String) {
+        context.dataStore.edit { it[AUTH_TOKEN_KEY] = token }
+    }
+
     suspend fun clearSession() {
-        context.dataStore.edit { 
+        context.dataStore.edit {
             it.remove(CURRENT_USER_ID_KEY)
             it.remove(CURRENT_USER_NAME_KEY)
             it.remove(IS_ADMIN_KEY)
+            it.remove(AUTH_TOKEN_KEY)
         }
     }
 }

@@ -310,7 +310,6 @@ fun DashboardScreen(
                 viewModel.activePaymentData.value = calcData
             },
             onCompleteOnTime = { calcData ->
-                viewModel.activeCheckoutSession.value = null
                 viewModel.finalizePayment(calcData, cash = 0.0, qris = 0.0)
             }
         )
@@ -322,7 +321,8 @@ fun DashboardScreen(
             onClose = { viewModel.activePaymentData.value = null },
             onConfirm = { cash, qris ->
                 viewModel.finalizePayment(paymentData, cash, qris)
-            }
+            },
+            isSubmitting = uiState.isLoading
         )
     }
 

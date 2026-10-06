@@ -91,7 +91,8 @@ class KasirViewModel : ViewModel() {
     var pendingAdminAction = MutableStateFlow<(() -> Unit)?>(null)
     var adminPinError = MutableStateFlow<String?>(null)
 
-    private var syncingNow = false
+    private val syncingNow = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val recentlyClaimedSessionIds = java.util.Collections.synchronizedSet(java.util.LinkedHashSet<String>())
     private var pollingJob: Job? = null
 
     init {
@@ -129,7 +130,7 @@ class KasirViewModel : ViewModel() {
     }
 
     fun logout() {
-        AuthTokenHolder.token = null
+        AuthTokenHolder.clearAll()
         _uiState.update {
             it.copy(
                 currentShiftUser = null,
@@ -151,50 +152,61 @@ class KasirViewModel : ViewModel() {
     }
 
     fun loadData(showSync: Boolean = true) {
-        if (syncingNow) return
-        syncingNow = true
+        if (!syncingNow.compareAndSet(false, true)) return
         viewModelScope.launch {
-            if (showSync) _uiState.update { it.copy(isSyncing = true) }
-            val result = withContext(Dispatchers.Default) {
-                repository().fetchAllData().map { data ->
-                    data.copy(
-                        sessions = data.sessions.sortedByDescending { s -> s.startTime },
-                        transactions = data.transactions.sortedBy { t -> t.no }
-                    )
-                }
-            }
-            result
-                .onSuccess { data ->
-                    val cur = _uiState.value
-                    // Skip the state write (and the full recomposition it triggers)
-                    // when nothing actually changed — common during idle polling.
-                    val changed = cur.activeSessions != data.sessions ||
-                        cur.transactions != data.transactions ||
-                        cur.users != data.users ||
-                        !cur.apiConnected ||
-                        cur.isSyncing
-                    if (changed) {
-                        _uiState.update {
-                            it.copy(
-                                isSyncing = false,
-                                activeSessions = data.sessions,
-                                transactions = data.transactions,
-                                users = data.users,
-                                apiConnected = true,
-                                lastSyncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-                            )
-                        }
-                    }
-                }
-                .onFailure {
-                    _uiState.update {
-                        it.copy(
-                            isSyncing = false,
-                            apiConnected = false
+            try {
+                if (showSync) _uiState.update { it.copy(isSyncing = true) }
+                val result = withContext(Dispatchers.Default) {
+                    repository().fetchAllData().map { data ->
+                        data.copy(
+                            sessions = data.sessions.sortedByDescending { s -> s.startTime },
+                            transactions = data.transactions.sortedBy { t -> t.no }
                         )
                     }
                 }
-            syncingNow = false
+                result
+                    .onSuccess { data ->
+                        val sanitizedSessions = data.sessions.filter { s -> !recentlyClaimedSessionIds.contains(s.id) }
+                        val cur = _uiState.value
+                        val changed = cur.activeSessions != sanitizedSessions ||
+                            cur.transactions != data.transactions ||
+                            cur.users != data.users ||
+                            !cur.apiConnected ||
+                            cur.isSyncing
+                        if (changed) {
+                            _uiState.update {
+                                it.copy(
+                                    isSyncing = false,
+                                    activeSessions = sanitizedSessions,
+                                    transactions = data.transactions,
+                                    users = data.users,
+                                    apiConnected = true,
+                                    lastSyncTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                                )
+                            }
+                        }
+                    }
+                    .onFailure { e ->
+                        if (e is retrofit2.HttpException && e.code() == 401) {
+                            _uiState.update {
+                                it.copy(
+                                    isSyncing = false,
+                                    apiConnected = false,
+                                    errorMessage = "Sesi login berakhir. Silakan login kembali."
+                                )
+                            }
+                        } else {
+                            _uiState.update {
+                                it.copy(
+                                    isSyncing = false,
+                                    apiConnected = false
+                                )
+                            }
+                        }
+                    }
+            } finally {
+                syncingNow.set(false)
+            }
         }
     }
 
@@ -624,7 +636,7 @@ class KasirViewModel : ViewModel() {
                 "remainingItems" to remainingItemsPayload,
                 "queueNo" to session.queueNo,
                 "nama" to session.nama,
-                "tanggal" to session.tanggal,
+                "tanggal" to ShiftDateUtil.getShiftDateFromNow(),
                 "startTime" to session.startTime,
                 "endTime" to paymentData.endTime,
                 "items" to itemStr,
@@ -644,20 +656,44 @@ class KasirViewModel : ViewModel() {
             repository().claimSession(claimPayload)
                 .onSuccess { res ->
                     if (!res.success) {
+                        val errMsg = res.error ?: "Ditolak server"
+                        val isAlreadyClaimed = errMsg.contains("already claimed", ignoreCase = true) ||
+                            errMsg.contains("not found", ignoreCase = true)
+
+                        if (isAlreadyClaimed) {
+                            // Ghost session cleanup: session is already closed/claimed on server.
+                            // Immediately evict it from active sessions so it never blocks the UI.
+                            recentlyClaimedSessionIds.add(session.id)
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    activeSessions = it.activeSessions.filter { s -> s.id != session.id },
+                                    successMessage = "Sesi ${session.nama} sudah diselesaikan sebelumnya."
+                                )
+                            }
+                            activeCheckoutSession.value = null
+                            activePaymentData.value = null
+                            loadData(showSync = false)
+                            return@onSuccess
+                        }
+
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                errorMessage = "Gagal memproses pembayaran: ${res.error ?: "Ditolak server"}"
+                                errorMessage = "Gagal memproses pembayaran: $errMsg"
                             )
                         }
                         return@onSuccess
+                    }
+                    if (remainingItems.isEmpty()) {
+                        recentlyClaimedSessionIds.add(session.id)
                     }
                     val newTxn = res.transaction ?: TransactionDto(
                         id = "t-${session.id.removePrefix("s-")}",
                         no = 0,
                         queueNo = session.queueNo,
                         nama = session.nama,
-                        tanggal = session.tanggal,
+                        tanggal = ShiftDateUtil.getShiftDateFromNow(),
                         startTime = session.startTime,
                         endTime = paymentData.endTime,
                         items = itemStr,
@@ -690,6 +726,7 @@ class KasirViewModel : ViewModel() {
                     }
                     activeCheckoutSession.value = null
                     activePaymentData.value = null
+                    loadData(showSync = false)
                 }
                 .onFailure { e ->
                     _uiState.update {
@@ -839,13 +876,16 @@ class KasirViewModel : ViewModel() {
         viewModelScope.launch {
             val res = repository().verifyAdmin(pin).getOrNull()
             if (res?.valid == true) {
-                // Escalate the session with the short-lived admin token returned
-                // by verify_admin so the pending destructive action is authorized.
-                AuthTokenHolder.token = res.token ?: AuthTokenHolder.token
+                // Escalate with the short-lived admin token for the pending action
+                AuthTokenHolder.setEscalation(res.token)
                 val action = pendingAdminAction.value
                 pendingAdminAction.value = null
                 adminPinError.value = null
-                action?.invoke()
+                try {
+                    action?.invoke()
+                } finally {
+                    AuthTokenHolder.clearEscalation()
+                }
             } else {
                 adminPinError.value = "Password admin salah!"
             }

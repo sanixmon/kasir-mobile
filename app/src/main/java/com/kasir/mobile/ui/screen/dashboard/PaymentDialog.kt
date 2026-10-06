@@ -40,7 +40,8 @@ import java.util.*
 fun PaymentDialog(
     paymentData: PaymentCalcData,
     onClose: () -> Unit,
-    onConfirm: (cash: Double, qris: Double) -> Unit
+    onConfirm: (cash: Double, qris: Double) -> Unit,
+    isSubmitting: Boolean = false
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -50,7 +51,11 @@ fun PaymentDialog(
 
     var payMode by remember { mutableStateOf(if (isNoOT) paymentData.session.payAwal else "cash") }
     var cashAmt by remember { mutableStateOf(grand) }
-    var submitting by remember { mutableStateOf(false) }
+    var localSubmitting by remember { mutableStateOf(false) }
+    val effectiveSubmitting = isSubmitting || localSubmitting
+    LaunchedEffect(isSubmitting) {
+        if (!isSubmitting) localSubmitting = false
+    }
 
     val changeVal = (cashAmt - grand).coerceAtLeast(0.0)
     val payAwal = paymentData.session.payAwal
@@ -60,7 +65,7 @@ fun PaymentDialog(
     val pressConfirm = rememberPressScale()
 
     Dialog(
-        onDismissRequest = { if (!submitting) onClose() },
+        onDismissRequest = { if (!effectiveSubmitting) onClose() },
         properties = DialogProperties(usePlatformDefaultWidth = !isLandscape)
     ) {
         Surface(
@@ -87,7 +92,7 @@ fun PaymentDialog(
                             Spacer(Modifier.width(8.dp))
                             Text("Pembayaran Sewa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        IconButton(onClick = onClose, enabled = !submitting) {
+                        IconButton(onClick = onClose, enabled = !effectiveSubmitting) {
                             Icon(Icons.Filled.Close, contentDescription = "Tutup")
                         }
                     }
@@ -339,18 +344,18 @@ fun PaymentDialog(
                             Column {
                                 Button(
                                     onClick = {
-                                        submitting = true
+                                        localSubmitting = true
                                         val finalCash = if (!isNoOT && payMode == "cash") grand else 0.0
                                         val finalQris = if (!isNoOT && payMode == "qris") grand else 0.0
                                         onConfirm(finalCash, finalQris)
                                     },
-                                    enabled = !submitting,
+                                    enabled = !effectiveSubmitting,
                                     interactionSource = pressConfirm.interactionSource,
                                     modifier = pressConfirm.modifier.fillMaxWidth().height(48.dp),
                                     shape = RoundedCornerShape(12.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
                                 ) {
-                                    if (submitting) {
+                                    if (effectiveSubmitting) {
                                         CircularProgressIndicator(
                                             modifier = Modifier.size(18.dp),
                                             strokeWidth = 2.dp,
@@ -372,7 +377,7 @@ fun PaymentDialog(
 
                                 OutlinedButton(
                                     onClick = onClose,
-                                    enabled = !submitting,
+                                    enabled = !effectiveSubmitting,
                                     modifier = Modifier.fillMaxWidth().height(44.dp),
                                     shape = RoundedCornerShape(12.dp)
                                 ) {
@@ -629,18 +634,18 @@ fun PaymentDialog(
 
                     Button(
                         onClick = {
-                            submitting = true
+                            localSubmitting = true
                             val finalCash = if (!isNoOT && payMode == "cash") grand else 0.0
                             val finalQris = if (!isNoOT && payMode == "qris") grand else 0.0
                             onConfirm(finalCash, finalQris)
                         },
-                        enabled = !submitting,
+                        enabled = !effectiveSubmitting,
                         interactionSource = pressConfirm.interactionSource,
                         modifier = pressConfirm.modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
                     ) {
-                        if (submitting) {
+                        if (effectiveSubmitting) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(18.dp),
                                 strokeWidth = 2.dp,
@@ -662,7 +667,7 @@ fun PaymentDialog(
 
                     OutlinedButton(
                         onClick = onClose,
-                        enabled = !submitting,
+                        enabled = !effectiveSubmitting,
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
