@@ -65,11 +65,11 @@ jobs:
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: kasir-mobile-release-apk
           path: release-assets/*
           retention-days: 30
-
       - name: Create GitHub Release
         if: (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')) || github.event_name == 'workflow_dispatch'
         env:
