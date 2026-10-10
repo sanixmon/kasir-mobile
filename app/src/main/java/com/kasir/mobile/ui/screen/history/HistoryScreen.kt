@@ -156,7 +156,7 @@ fun HistoryScreen(
             )
 
             Spacer(Modifier.height(12.dp))
-            // Hero KPI Metrics Summary Card (Grand Total, Cash Fisik, QRIS)
+            // Hero KPI Metrics Summary Card (Revenue, Cash, QRIS)
             HistoryMetricsSummaryCard(
                 grandTotal = grandTotal,
                 totalCash = totalCash,
@@ -411,7 +411,7 @@ private fun HistoryMetricsSummaryCard(
             ) {
                 Column {
                     Text(
-                        text = "TOTAL OMSET",
+                        text = "REVENUE",
                         style = MaterialTheme.typography.labelSmall,
                         letterSpacing = 1.sp,
                         color = KasirTextLow,
@@ -478,7 +478,7 @@ private fun HistoryMetricsSummaryCard(
                         Spacer(Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "CASH FISIK",
+                                text = "CASH",
                                 style = MaterialTheme.typography.labelSmall,
                                 letterSpacing = 0.5.sp,
                                 color = KasirCash,

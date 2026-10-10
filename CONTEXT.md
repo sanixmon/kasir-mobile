@@ -39,3 +39,11 @@ _Avoid_: Light mode, white theme
 **Night Counter Theme**:
 The low-glare dark theme surface mood designed for evening or dim rental counter environments.
 _Avoid_: Dark mode, black theme
+
+**Revenue**:
+The total monetary intake across all completed transactions within a given filter period or shift.
+_Avoid_: Omset, sales volume
+
+**Cash**:
+Physical currency payments collected in the register drawer.
+_Avoid_: Cash fisik, uang tunai
