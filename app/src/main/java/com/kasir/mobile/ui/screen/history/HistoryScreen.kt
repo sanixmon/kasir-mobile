@@ -2,6 +2,8 @@ package com.kasir.mobile.ui.screen.history
 
 import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,6 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,17 +29,7 @@ import androidx.navigation.NavController
 import com.kasir.mobile.data.model.TransactionDto
 import com.kasir.mobile.ui.navigation.KasirResponsiveScaffold
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
-import com.kasir.mobile.ui.theme.KasirAccent
-import com.kasir.mobile.ui.theme.KasirCash
-import com.kasir.mobile.ui.theme.KasirGreen
-import com.kasir.mobile.ui.theme.KasirLine
-import com.kasir.mobile.ui.theme.KasirMono
-import com.kasir.mobile.ui.theme.KasirOnSurfaceVariant
-import com.kasir.mobile.ui.theme.KasirQris
-import com.kasir.mobile.ui.theme.KasirSurface
-import com.kasir.mobile.ui.theme.KasirSurfaceCard
-import com.kasir.mobile.ui.theme.KasirSurfaceVariant
-import com.kasir.mobile.ui.theme.KasirTextLow
+import com.kasir.mobile.ui.theme.*
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -91,16 +85,22 @@ fun HistoryScreen(
         else filtered.sortedByDescending { it.endTime }
     }
 
-    val totals = remember(filteredTxns) {
-        Triple(
-            filteredTxns.sumOf { it.totalBase },
-            filteredTxns.sumOf { it.totalOT },
-            filteredTxns.sumOf { it.totalAll }
-        )
+    val summaryData = remember(filteredTxns) {
+        var sumCash = 0.0
+        var sumQris = 0.0
+        var sumGrand = 0.0
+        filteredTxns.forEach { t ->
+            val pokokCash = if (t.payAwal == "cash") t.totalBase else 0.0
+            val pokokQris = if (t.payAwal == "qris") t.totalBase else 0.0
+            sumCash += (pokokCash + t.cash)
+            sumQris += (pokokQris + t.qris)
+            sumGrand += t.totalAll
+        }
+        Triple(sumGrand, sumCash, sumQris)
     }
-    val totalPokok = totals.first
-    val totalOT = totals.second
-    val grandTotal = totals.third
+    val grandTotal = summaryData.first
+    val totalCash = summaryData.second
+    val totalQris = summaryData.third
 
     KasirResponsiveScaffold(
         isLandscape = isLandscape,
@@ -122,7 +122,7 @@ fun HistoryScreen(
                             style = MaterialTheme.typography.labelSmall,
                             fontFamily = KasirMono,
                             letterSpacing = 1.sp,
-                            color = if (isAdmin) KasirGreen else KasirTextLow,
+                            color = if (isAdmin) KasirPrimary else KasirTextLow,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -156,20 +156,14 @@ fun HistoryScreen(
             )
 
             Spacer(Modifier.height(12.dp))
-
-            // Summary Cards Row - horizontally scrollable so values don't get squished
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SummaryCard("Transaksi", "${filteredTxns.size}", Modifier.widthIn(min = 100.dp))
-                SummaryCard("Total Pokok", idrFormat.format(totalPokok), Modifier.widthIn(min = 125.dp))
-                SummaryCard("Total Overtime", idrFormat.format(totalOT), Modifier.widthIn(min = 125.dp))
-                SummaryCard("Grand Total", idrFormat.format(grandTotal), Modifier.widthIn(min = 135.dp), highlight = true)
-            }
-
+            // Hero KPI Metrics Summary Card (Grand Total, Cash Fisik, QRIS)
+            HistoryMetricsSummaryCard(
+                grandTotal = grandTotal,
+                totalCash = totalCash,
+                totalQris = totalQris,
+                txnCount = filteredTxns.size,
+                idrFormat = idrFormat
+            )
             Spacer(Modifier.height(12.dp))
 
             // Search Bar
@@ -180,7 +174,8 @@ fun HistoryScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirPrimary),
+                shape = RoundedCornerShape(12.dp)
             )
 
             Spacer(Modifier.height(12.dp))
@@ -353,7 +348,7 @@ private fun HistoryFilterBar(
                 Icon(
                     Icons.Filled.CalendarToday,
                     contentDescription = null,
-                    tint = KasirGreen,
+                    tint = KasirPrimary,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(8.dp))
@@ -365,49 +360,190 @@ private fun HistoryFilterBar(
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        "Mode Kasir — hanya lihat riwayat hari ini",
+                        "Mode Kasir — riwayat shift berjalan",
                         style = MaterialTheme.typography.labelSmall,
                         color = KasirTextLow
                     )
                 }
+                Spacer(Modifier.width(8.dp))
+                AssistChip(
+                    onClick = onToggleSort,
+                    label = {
+                        Text(
+                            if (sortOrder == "desc") "Terbaru" else "Terlama",
+                            fontFamily = KasirMono,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            if (sortOrder == "desc") Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier, highlight: Boolean = false) {
+private fun HistoryMetricsSummaryCard(
+    grandTotal: Double,
+    totalCash: Double,
+    totalQris: Double,
+    txnCount: Int,
+    idrFormat: NumberFormat
+) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (highlight) KasirGreen.copy(alpha = 0.12f) else KasirSurfaceCard,
-        border = BorderStroke(
-            1.dp,
-            if (highlight) KasirGreen.copy(alpha = 0.4f) else KasirLine
-        ),
-        modifier = modifier
+        shape = RoundedCornerShape(16.dp),
+        color = KasirSurfaceCard,
+        border = BorderStroke(1.dp, KasirLine.copy(alpha = 0.7f)),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                title.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                letterSpacing = 1.sp,
-                color = KasirTextLow,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                value,
-                fontFamily = KasirMono,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                color = if (highlight) KasirGreen else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Row 1: Grand Total Hero + Txn Count
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "TOTAL OMSET",
+                        style = MaterialTheme.typography.labelSmall,
+                        letterSpacing = 1.sp,
+                        color = KasirTextLow,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = idrFormat.format(grandTotal),
+                        fontFamily = KasirMono,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                        color = KasirPrimary
+                    )
+                }
+                Surface(
+                    color = KasirSurfaceVariant,
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, KasirLine.copy(alpha = 0.5f))
+                ) {
+                    Text(
+                        text = "$txnCount Transaksi",
+                        fontFamily = KasirMono,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = KasirOnSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            HorizontalDivider(color = KasirLine.copy(alpha = 0.4f))
+            Spacer(Modifier.height(14.dp))
+
+            // Row 2: Cash Fisik & QRIS Pillars
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Cash Pill
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = KasirCashContainer,
+                    border = BorderStroke(1.dp, KasirCash.copy(alpha = 0.35f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(KasirCash.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.Payments,
+                                contentDescription = null,
+                                tint = KasirCash,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "CASH FISIK",
+                                style = MaterialTheme.typography.labelSmall,
+                                letterSpacing = 0.5.sp,
+                                color = KasirCash,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = idrFormat.format(totalCash),
+                                fontFamily = KasirMono,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = KasirOnSurface
+                            )
+                        }
+                    }
+                }
+
+                // QRIS Pill
+                Surface(
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = KasirQrisContainer,
+                    border = BorderStroke(1.dp, KasirQris.copy(alpha = 0.35f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(KasirQris.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Filled.QrCode,
+                                contentDescription = null,
+                                tint = KasirQris,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "QRIS",
+                                style = MaterialTheme.typography.labelSmall,
+                                letterSpacing = 0.5.sp,
+                                color = KasirQris,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = idrFormat.format(totalQris),
+                                fontFamily = KasirMono,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = KasirOnSurface
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
+
+// SummaryCard replaced by HistoryMetricsSummaryCard
 
 @Composable
 private fun BreakdownRow(
@@ -444,42 +580,54 @@ fun TransactionCard(
     val isCash = txn.payAwal == "cash"
     val pokokCash = if (isCash) txn.totalBase else 0.0
     val pokokQris = if (isCash) 0.0 else txn.totalBase
-    val cashExtra = txn.cash > 0
-    val qrisExtra = txn.qris > 0
     val totalCash = pokokCash + txn.cash
     val totalQris = pokokQris + txn.qris
+    val isSplit = totalCash > 0 && totalQris > 0
 
     Surface(
         shape = RoundedCornerShape(14.dp),
         color = KasirSurfaceCard,
-        border = BorderStroke(1.dp, KasirLine),
+        border = BorderStroke(1.dp, KasirLine.copy(alpha = 0.7f)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
+            // Header: #001 · Nama · Shift · Tanggal
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f, fill = false)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
                     Surface(
-                        color = KasirGreen.copy(alpha = 0.12f),
+                        color = KasirPrimaryContainer,
                         shape = RoundedCornerShape(6.dp),
-                        border = BorderStroke(1.dp, KasirGreen.copy(alpha = 0.35f))
+                        border = BorderStroke(1.dp, KasirPrimary.copy(alpha = 0.35f))
                     ) {
                         Text(
                             "#${txn.no.toString().padStart(3, '0')}",
                             fontFamily = KasirMono,
                             fontWeight = FontWeight.Bold,
-                            color = KasirGreen,
+                            color = KasirPrimary,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
                     Spacer(Modifier.width(8.dp))
-                    Text(txn.nama, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Text(
+                        txn.nama,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
                     Spacer(Modifier.width(8.dp))
-                    Surface(color = KasirSurfaceVariant, shape = RoundedCornerShape(4.dp)) {
+                    Surface(
+                        color = KasirSurfaceVariant,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
                         Text(
                             shiftCode(txn.shift),
                             fontFamily = KasirMono,
@@ -490,11 +638,17 @@ fun TransactionCard(
                         )
                     }
                 }
-                Text(txn.tanggal, fontFamily = KasirMono, style = MaterialTheme.typography.labelSmall, color = KasirTextLow)
+                Text(
+                    txn.tanggal,
+                    fontFamily = KasirMono,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KasirTextLow
+                )
             }
 
             Spacer(Modifier.height(6.dp))
-            // Waktu close bill (mulai → selesai)
+
+            // Jam rental: mulai → selesai
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     formatTimeMillis(txn.startTime, timeFmt),
@@ -508,55 +662,119 @@ fun TransactionCard(
                     fontFamily = KasirMono,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
-                    color = KasirQris
+                    color = KasirPrimary
                 )
             }
 
             Spacer(Modifier.height(4.dp))
             Text("Item: ${txn.items}", style = MaterialTheme.typography.bodySmall, color = KasirOnSurfaceVariant)
 
+            // Overtime row: sembunyikan jika tidak ada overtime!
             if (txn.ot != "-" && txn.ot.isNotBlank()) {
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(3.dp))
                 Text(
-                    "OT: ${txn.ot}  ·  ${txn.otDur}",
+                    "Overtime: ${txn.ot} · ${txn.otDur}",
                     fontFamily = KasirMono,
                     style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
                     color = KasirAccent
                 )
             }
 
+            // Sembunyikan breakdown jika hanya 1 metode dan tidak ada pecahan extra
+            if (isSplit || (txn.cash > 0 && isCash) || (txn.qris > 0 && !isCash)) {
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider(color = KasirLine.copy(alpha = 0.4f))
+                Spacer(Modifier.height(6.dp))
+
+                if (totalCash > 0) {
+                    BreakdownRow(
+                        label = if (isSplit) "Total Cash" else "Cash",
+                        value = idrFormat.format(totalCash),
+                        valueColor = KasirCash
+                    )
+                }
+                if (totalQris > 0) {
+                    BreakdownRow(
+                        label = if (isSplit) "Total QRIS" else "QRIS",
+                        value = idrFormat.format(totalQris),
+                        valueColor = KasirQris
+                    )
+                }
+            }
+
             Spacer(Modifier.height(8.dp))
-            HorizontalDivider(color = KasirLine)
+            HorizontalDivider(color = KasirLine.copy(alpha = 0.4f))
             Spacer(Modifier.height(8.dp))
 
-            // Payment breakdown — mirrors kasir-db HistoryTab columns
-            BreakdownRow("Pokok (Cash)", if (isCash) idrFormat.format(pokokCash) else "—", KasirCash)
-            BreakdownRow("Pokok (QRIS)", if (!isCash) idrFormat.format(pokokQris) else "—", KasirQris)
-            BreakdownRow("Tambahan (Cash)", if (cashExtra) idrFormat.format(txn.cash) else "—", KasirCash)
-            BreakdownRow("Tambahan (QRIS)", if (qrisExtra) idrFormat.format(txn.qris) else "—", KasirQris)
-            BreakdownRow("Total Cash", idrFormat.format(totalCash), KasirCash, bold = true)
-            BreakdownRow("Total QRIS", idrFormat.format(totalQris), KasirQris, bold = true)
-
-            Spacer(Modifier.height(6.dp))
-            HorizontalDivider(color = KasirLine)
-            Spacer(Modifier.height(6.dp))
-
-            BreakdownRow("Grand Total", idrFormat.format(txn.totalAll), KasirAccent, bold = true, large = true)
-
-            Spacer(Modifier.height(4.dp))
+            // Footer kompak: Payment Badge + Grand Total + Print Icon dalam 1 baris
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Badge tipe bayar
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = when {
+                            isSplit -> KasirAccentContainer
+                            totalCash > 0 -> KasirCashContainer
+                            else -> KasirQrisContainer
+                        },
+                        border = BorderStroke(
+                            1.dp,
+                            when {
+                                isSplit -> KasirAccent.copy(alpha = 0.4f)
+                                totalCash > 0 -> KasirCash.copy(alpha = 0.4f)
+                                else -> KasirQris.copy(alpha = 0.4f)
+                            }
+                        )
+                    ) {
+                        Text(
+                            text = when {
+                                isSplit -> "SPLIT"
+                                totalCash > 0 -> "CASH"
+                                else -> "QRIS"
+                            },
+                            fontFamily = KasirMono,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = when {
+                                isSplit -> KasirAccent
+                                totalCash > 0 -> KasirCash
+                                else -> KasirQris
+                            },
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    Spacer(Modifier.width(10.dp))
+
+                    Column {
+                        Text(
+                            text = "Grand Total",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = KasirTextLow
+                        )
+                        Text(
+                            text = idrFormat.format(txn.totalAll),
+                            fontFamily = KasirMono,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = KasirOnSurface
+                        )
+                    }
+                }
+
                 IconButton(
                     onClick = onPrint,
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier.size(38.dp)
                 ) {
                     Icon(
                         Icons.Filled.Print,
                         contentDescription = "Print Ulang Struk",
-                        tint = KasirGreen,
+                        tint = KasirPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
