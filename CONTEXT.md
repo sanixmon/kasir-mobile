@@ -27,3 +27,15 @@ _Avoid_: Login session, account
 **Session**:
 An active customer rental period for scooters or strollers tracking elapsed time and equipment items.
 _Avoid_: Order, booking
+
+**Primary Signal**:
+The primary cobalt blue functional color token (`KasirPrimary`) representing user actions, primary buttons, and active indicators.
+_Avoid_: KasirGreen, brand color
+
+**Paper Counter Theme**:
+The default high-contrast light theme surface mood designed for readability under direct daylight counter conditions.
+_Avoid_: Light mode, white theme
+
+**Night Counter Theme**:
+The low-glare dark theme surface mood designed for evening or dim rental counter environments.
+_Avoid_: Dark mode, black theme

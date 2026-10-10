@@ -1,0 +1,3 @@
+# 3. Unified Role-Based Color Tokens and Persistent Theme Selection
+
+The design system previously suffered from a semantic misnomer where primary blue signal colors were named `KasirGreen`, container backgrounds relied on ad-hoc alpha scaling, and the dark palette was dormant due to a hardcoded light theme in the root activity. We decided to rename the primary signal tokens to `KasirPrimary` while retaining deprecated aliases for backward compatibility, define formal Material 3 container tokens (`primaryContainer`, `errorContainer`, `cashContainer`, `qrisContainer`), and persist user theme preference (`is_dark_theme`) in DataStore so operators can freely toggle between daylight "paper counter" and evening "night counter" themes.

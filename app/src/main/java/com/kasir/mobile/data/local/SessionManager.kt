@@ -18,7 +18,8 @@ data class SessionData(
     val currentUserId: String,
     val currentUserName: String,
     val isAdmin: Boolean,
-    val token: String = ""
+    val token: String = "",
+    val isDarkTheme: Boolean = false
 )
 
 class SessionManager(private val context: Context) {
@@ -28,6 +29,7 @@ class SessionManager(private val context: Context) {
         val CURRENT_USER_NAME_KEY = stringPreferencesKey("current_user_name")
         val IS_ADMIN_KEY = booleanPreferencesKey("is_admin")
         val AUTH_TOKEN_KEY = stringPreferencesKey("auth_token")
+        val IS_DARK_THEME_KEY = booleanPreferencesKey("is_dark_theme")
     }
 
     val sessionDataFlow: Flow<SessionData> = context.dataStore.data.map { prefs ->
@@ -36,7 +38,8 @@ class SessionManager(private val context: Context) {
             currentUserId = prefs[CURRENT_USER_ID_KEY] ?: "",
             currentUserName = prefs[CURRENT_USER_NAME_KEY] ?: "",
             isAdmin = prefs[IS_ADMIN_KEY] ?: false,
-            token = prefs[AUTH_TOKEN_KEY] ?: ""
+            token = prefs[AUTH_TOKEN_KEY] ?: "",
+            isDarkTheme = prefs[IS_DARK_THEME_KEY] ?: false
         )
     }
 
@@ -57,6 +60,10 @@ class SessionManager(private val context: Context) {
 
     suspend fun setAuthToken(token: String) {
         context.dataStore.edit { it[AUTH_TOKEN_KEY] = token }
+    }
+
+    suspend fun setDarkTheme(isDark: Boolean) {
+        context.dataStore.edit { it[IS_DARK_THEME_KEY] = isDark }
     }
 
     suspend fun clearSession() {

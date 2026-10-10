@@ -3,6 +3,10 @@ package com.kasir.mobile.ui.screen.settings
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.filled.DarkMode
+import com.kasir.mobile.data.local.SessionData
+import com.kasir.mobile.data.local.SessionManager
+import com.kasir.mobile.ui.theme.KasirPrimary
 import androidx.compose.ui.platform.LocalContext
 import com.kasir.mobile.BuildConfig
 import com.kasir.mobile.data.remote.UpdateInfo
@@ -206,6 +210,63 @@ fun SettingsScreen(
                             }
                             Text(if (isCheckingUpdate) "Memeriksa..." else "Periksa Update")
                         }
+                    }
+                }
+            }
+
+            // Section: Tampilan & Tema
+            val sessionManager = remember { SessionManager(context) }
+            val sessionData by sessionManager.sessionDataFlow.collectAsState(
+                initial = SessionData(
+                    serverUrl = "",
+                    currentUserId = "",
+                    currentUserName = "",
+                    isAdmin = false,
+                    token = "",
+                    isDarkTheme = false
+                )
+            )
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = KasirSurfaceCard,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.DarkMode, contentDescription = null, tint = KasirPrimary)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Tampilan & Tema", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Tema Gelap (Night Counter)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Mengurangi silau saat bertugas di malam hari.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Switch(
+                            checked = sessionData.isDarkTheme,
+                            onCheckedChange = { isDark ->
+                                checkUpdateScope.launch {
+                                    sessionManager.setDarkTheme(isDark)
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = KasirPrimary
+                            )
+                        )
                     }
                 }
             }

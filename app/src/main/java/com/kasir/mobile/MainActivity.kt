@@ -4,6 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.kasir.mobile.data.local.SessionData
+import com.kasir.mobile.data.local.SessionManager
 import androidx.compose.material3.Surface
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -26,8 +30,21 @@ class MainActivity : ComponentActivity() {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         insetsController.hide(WindowInsetsCompat.Type.systemBars())
 
+        val sessionManager = SessionManager(this)
+
         setContent {
-            KasirTheme {
+            val session by sessionManager.sessionDataFlow.collectAsState(
+                initial = SessionData(
+                    serverUrl = "",
+                    currentUserId = "",
+                    currentUserName = "",
+                    isAdmin = false,
+                    token = "",
+                    isDarkTheme = false
+                )
+            )
+
+            KasirTheme(darkTheme = session.isDarkTheme) {
                 Surface(color = KasirSurface) {
                     val navController = rememberNavController()
                     KasirNavHost(navController = navController)
