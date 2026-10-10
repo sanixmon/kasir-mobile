@@ -1,5 +1,11 @@
 package com.kasir.mobile.ui.screen.auth
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
+import com.kasir.mobile.BuildConfig
+import com.kasir.mobile.data.remote.UpdateManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.rememberScrollState
@@ -51,6 +57,14 @@ fun LoginScreen(
     kasirViewModel: KasirViewModel,
     authViewModel: AuthViewModel = viewModel()
 ) {
+    val availableUpdate by UpdateManager.availableUpdate.collectAsState()
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        if (!UpdateManager.dismissedThisSession) {
+            UpdateManager.checkForUpdates()
+        }
+    }
     val uiState by authViewModel.uiState.collectAsState()
     var portal by remember { mutableStateOf("cashier") } // "cashier" | "admin"
     var username by remember { mutableStateOf("") }
@@ -312,11 +326,54 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Konter sewa Evren House · akses terbatas kasir",
+                text = "Konter sewa Evren House · v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})",
                 style = MaterialTheme.typography.labelSmall,
                 color = KasirTextLow
             )
         }
+    }
+
+    if (availableUpdate?.hasUpdate == true && !UpdateManager.dismissedThisSession) {
+        val update = availableUpdate!!
+        AlertDialog(
+            onDismissRequest = { UpdateManager.dismiss() },
+            title = { Text("Pembaruan Tersedia") },
+            text = {
+                Column {
+                    Text(
+                        "Versi baru ${update.latestVersion} telah dirilis.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (update.releaseNotes.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            update.releaseNotes,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 6,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(update.downloadUrl))
+                        context.startActivity(intent)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                ) {
+                    Text("Perbarui Sekarang")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { UpdateManager.dismiss() }) {
+                    Text("Nanti")
+                }
+            }
+        )
     }
 }
 

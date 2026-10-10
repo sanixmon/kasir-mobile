@@ -1,5 +1,13 @@
 package com.kasir.mobile.ui.screen.settings
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.ui.platform.LocalContext
+import com.kasir.mobile.BuildConfig
+import com.kasir.mobile.data.remote.UpdateInfo
+import com.kasir.mobile.data.remote.UpdateManager
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +59,12 @@ fun SettingsScreen(
     var backupError by remember { mutableStateOf(false) }
     var backupLoading by remember { mutableStateOf(false) }
     var showLogoutConfirm by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val checkUpdateScope = rememberCoroutineScope()
+    var isCheckingUpdate by remember { mutableStateOf(false) }
+    var updateStatusText by remember { mutableStateOf("Status: siap diperiksa") }
+    var updateAvailableInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
 
     val isAdmin = uiState.currentUserRole == "admin"
 
@@ -125,6 +139,73 @@ fun SettingsScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Server Aktif", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(ServiceLocator.activeServerUrl, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+
+            // App Version & Update Card
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = KasirSurfaceCard,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Filled.SystemUpdate, contentDescription = null, tint = KasirGreen)
+                        Spacer(Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Versi Aplikasi", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = updateStatusText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (updateAvailableInfo != null) KasirGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                checkUpdateScope.launch {
+                                    isCheckingUpdate = true
+                                    updateStatusText = "Memeriksa update..."
+                                    val res = UpdateManager.checkForUpdates(isManualCheck = true)
+                                    isCheckingUpdate = false
+                                    res.onSuccess { info ->
+                                        if (info?.hasUpdate == true) {
+                                            updateAvailableInfo = info
+                                            updateStatusText = "Versi baru v${info.latestVersion} tersedia!"
+                                            showUpdateDialog = true
+                                        } else {
+                                            updateAvailableInfo = null
+                                            updateStatusText = "Aplikasi sudah versi terbaru"
+                                        }
+                                    }.onFailure {
+                                        updateStatusText = "Gagal memeriksa (periksa internet)"
+                                    }
+                                }
+                            },
+                            enabled = !isCheckingUpdate,
+                            colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
+                        ) {
+                            if (isCheckingUpdate) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = KasirOnGreen, strokeWidth = 2.dp)
+                                Spacer(Modifier.width(6.dp))
+                            }
+                            Text(if (isCheckingUpdate) "Memeriksa..." else "Periksa Update")
+                        }
                     }
                 }
             }
@@ -381,6 +462,50 @@ fun SettingsScreen(
             dismissButton = {
                 TextButton(onClick = { showLogoutConfirm = false }) {
                     Text("Batal")
+                }
+            }
+        )
+    }
+
+    if (showUpdateDialog && updateAvailableInfo != null) {
+        val update = updateAvailableInfo!!
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = { Text("Pembaruan Tersedia") },
+            text = {
+                Column {
+                    Text(
+                        "Versi baru ${update.latestVersion} telah dirilis.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (update.releaseNotes.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            update.releaseNotes,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 6,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showUpdateDialog = false
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(update.downloadUrl))
+                        context.startActivity(intent)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                ) {
+                    Text("Unduh Update")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUpdateDialog = false }) {
+                    Text("Tutup")
                 }
             }
         )

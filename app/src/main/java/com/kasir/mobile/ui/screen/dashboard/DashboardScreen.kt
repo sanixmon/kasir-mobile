@@ -1110,7 +1110,7 @@ fun ActiveSessionCard(
                         contentColor = if (isZombie || elapsedMin >= 71) KasirOnError else KasirOnGreen
                     )
                 ) {
-                    Text("Selesai & Bayar", fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("Selesai", fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Surface(
                     shape = RoundedCornerShape(10.dp),

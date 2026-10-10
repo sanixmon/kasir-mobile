@@ -12,13 +12,14 @@ permissions:
 
 jobs:
   build:
-    name: Build & Release
+    name: CI Build & Test
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -31,18 +32,17 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build release APK
-        env:
-          KASIR_SIGNING_PASSWORD: ${{ secrets.KASIR_SIGNING_PASSWORD }}
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
-        run: ./gradlew assembleRelease --no-daemon
-
       - name: Run unit tests
         env:
           KASIR_SIGNING_PASSWORD: ${{ secrets.KASIR_SIGNING_PASSWORD }}
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
         run: ./gradlew testReleaseUnitTest --no-daemon
 
+      - name: Build release APK
+        env:
+          KASIR_SIGNING_PASSWORD: ${{ secrets.KASIR_SIGNING_PASSWORD }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+        run: ./gradlew assembleRelease --no-daemon
       - name: Package Release Assets
         id: package
         run: |
@@ -63,24 +63,10 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Upload APK Artifact
+      - name: Upload CI APK Artifact
         uses: actions/upload-artifact@v4
         continue-on-error: true
         with:
-          name: kasir-mobile-release-apk
+          name: kasir-mobile-ci-build
           path: release-assets/*
-          retention-days: 30
-      - name: Create GitHub Release
-        if: (github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')) || github.event_name == 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.package.outputs.tag }}"
-          VERSION="${{ steps.package.outputs.version }}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" release-assets/* --clobber
-          else
-            gh release create "$TAG" release-assets/* \
-              --title "Kasir Mobile v${VERSION} (build ${GITHUB_RUN_NUMBER})" \
-              --notes "Auto-built signed release APK (arm64-v8a) from commit ${GITHUB_SHA}."
-          fi
+          retention-days: 14

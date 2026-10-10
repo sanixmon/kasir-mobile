@@ -4,6 +4,20 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+fun computeGitCommitCount(): Int {
+    return try {
+        val proc = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .start()
+        val text = proc.inputStream.bufferedReader().readText().trim()
+        proc.waitFor()
+        val count = text.toIntOrNull()
+        if (count != null && count > 0) count else 75
+    } catch (_: Exception) {
+        75
+    }
+}
+
 android {
     namespace = "com.kasir.mobile"
     compileSdk = 34
@@ -26,13 +40,20 @@ android {
         }
     }
 
+    val computedVersionCode: Int = (project.findProperty("versionCode") as? String)?.toIntOrNull()
+        ?: System.getenv("VERSION_CODE")?.toIntOrNull()
+        ?: computeGitCommitCount()
+
+    val computedVersionName: String = (project.findProperty("versionName") as? String)
+        ?: System.getenv("VERSION_NAME")
+        ?: "1.0.2"
+
     defaultConfig {
         applicationId = "com.kasir.mobile"
         minSdk = 24
         targetSdk = 34
-        versionCode = 6
-        versionName = "1.0.2"
-
+        versionCode = computedVersionCode
+        versionName = computedVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Backend URL comes from the API_BASE_URL env var (GitHub Secret in CI)
