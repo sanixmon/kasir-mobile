@@ -2,28 +2,27 @@ package com.kasir.mobile.ui.screen.settings
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.material.icons.filled.SystemUpdate
-import androidx.compose.material.icons.filled.DarkMode
-import com.kasir.mobile.data.local.SessionData
-import com.kasir.mobile.data.local.SessionManager
-import com.kasir.mobile.ui.theme.KasirPrimary
-import androidx.compose.ui.platform.LocalContext
-import com.kasir.mobile.BuildConfig
-import com.kasir.mobile.data.remote.UpdateInfo
-import com.kasir.mobile.data.remote.UpdateManager
-import kotlinx.coroutines.launch
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Print
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.filled.SystemUpdate
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -31,22 +30,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.kasir.mobile.ui.navigation.NavRoutes
+import com.kasir.mobile.BuildConfig
 import com.kasir.mobile.data.ServiceLocator
-import com.kasir.mobile.ui.theme.KasirError
-import com.kasir.mobile.ui.theme.KasirGreen
-import com.kasir.mobile.ui.theme.KasirOnGreen
-import com.kasir.mobile.ui.theme.KasirSurface
-import com.kasir.mobile.ui.theme.KasirSurfaceCard
-import com.kasir.mobile.ui.theme.KasirSurfaceVariant
+import com.kasir.mobile.data.local.SessionData
+import com.kasir.mobile.data.local.SessionManager
+import com.kasir.mobile.data.remote.UpdateInfo
+import com.kasir.mobile.data.remote.UpdateManager
+import com.kasir.mobile.ui.navigation.NavRoutes
+import com.kasir.mobile.ui.theme.*
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +58,9 @@ fun SettingsScreen(
     viewModel: KasirViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isAdmin = uiState.currentUserRole == "admin"
+
+    var selectedTab by remember { mutableStateOf(0) } // 0: Preferensi, 1: Admin & Laporan
     var oldPin by remember { mutableStateOf("") }
     var newPin by remember { mutableStateOf("") }
     var pinMessage by remember { mutableStateOf<String?>(null) }
@@ -63,273 +69,327 @@ fun SettingsScreen(
     var backupError by remember { mutableStateOf(false) }
     var backupLoading by remember { mutableStateOf(false) }
     var showLogoutConfirm by remember { mutableStateOf(false) }
+
     val context = LocalContext.current
     val checkUpdateScope = rememberCoroutineScope()
     var isCheckingUpdate by remember { mutableStateOf(false) }
-    var updateStatusText by remember { mutableStateOf("Status: siap diperiksa") }
+    var updateStatusText by remember { mutableStateOf<String?>(null) }
     var updateAvailableInfo by remember { mutableStateOf<UpdateInfo?>(null) }
     var showUpdateDialog by remember { mutableStateOf(false) }
 
-    val isAdmin = uiState.currentUserRole == "admin"
+    val sessionManager = remember { SessionManager(context) }
+    val sessionData by sessionManager.sessionDataFlow.collectAsState(
+        initial = SessionData(
+            serverUrl = "",
+            currentUserId = "",
+            currentUserName = "",
+            isAdmin = false,
+            token = "",
+            isDarkTheme = false
+        )
+    )
 
-    // Analytics reads from already-fetched state; make sure it's fresh
-    // (Dashboard polling is scoped to that screen only).
+    val isPrinterConnected = remember {
+        runCatching { ServiceLocator.printerRepository().isConnected() }.getOrDefault(false)
+    }
+
+    // Refresh analytics data silently when opening screen
     LaunchedEffect(Unit) { viewModel.loadData(showSync = false) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Pengaturan", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+            Column {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Pengaturan",
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = KasirSurfaceVariant)
+                )
+
+                // Only show role-aware TabRow for Admin users
+                if (isAdmin) {
+                    TabRow(
+                        selectedTabIndex = selectedTab,
+                        containerColor = KasirSurfaceVariant,
+                        contentColor = KasirPrimary
+                    ) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("Preferensi", fontWeight = FontWeight.SemiBold) },
+                            icon = { Icon(Icons.Filled.Tune, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("Admin & Laporan", fontWeight = FontWeight.SemiBold) },
+                            icon = { Icon(Icons.Filled.BarChart, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = KasirSurfaceVariant)
-            )
+                }
+            }
         },
         containerColor = KasirSurface
     ) { padding ->
-        if (!isAdmin) {
-            // Mirrors kasir-db: Pengaturan is admin-only
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(12.dp))
-                    Text("Akses Ditolak", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Hanya Admin yang dapat mengakses Pengaturan.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-            return@Scaffold
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 14.dp)
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Section 0: Admin analytics (kasir-db SettingsAnalytics)
-            SettingsAnalyticsSection(
-                transactions = uiState.transactions,
-                activeSessionsCount = uiState.activeSessions.size,
-                currentShiftUser = uiState.currentShiftUser
-            )
+            if (!isAdmin || selectedTab == 0) {
+                // ═════════════════════════════════════════════════════════════
+                // TAB 0: PREFERENSI (Akses: Kasir & Admin)
+                // ═════════════════════════════════════════════════════════════
 
-            // Server info
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = KasirSurfaceCard,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Filled.Settings, contentDescription = null, tint = KasirGreen)
-                    Spacer(Modifier.width(8.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Server Aktif", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(ServiceLocator.activeServerUrl, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                }
-            }
-
-            // App Version & Update Card
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = KasirSurfaceCard,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Filled.SystemUpdate, contentDescription = null, tint = KasirGreen)
-                        Spacer(Modifier.width(8.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Versi Aplikasi", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = updateStatusText,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (updateAvailableInfo != null) KasirGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Button(
-                            onClick = {
-                                checkUpdateScope.launch {
-                                    isCheckingUpdate = true
-                                    updateStatusText = "Memeriksa update..."
-                                    val res = UpdateManager.checkForUpdates(isManualCheck = true)
-                                    isCheckingUpdate = false
-                                    res.onSuccess { info ->
-                                        if (info?.hasUpdate == true) {
-                                            updateAvailableInfo = info
-                                            updateStatusText = "Versi baru v${info.latestVersion} tersedia!"
-                                            showUpdateDialog = true
-                                        } else {
-                                            updateAvailableInfo = null
-                                            updateStatusText = "Aplikasi sudah versi terbaru"
-                                        }
-                                    }.onFailure {
-                                        updateStatusText = "Gagal memeriksa (periksa internet)"
-                                    }
-                                }
-                            },
-                            enabled = !isCheckingUpdate,
-                            colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
-                        ) {
-                            if (isCheckingUpdate) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = KasirOnGreen, strokeWidth = 2.dp)
-                                Spacer(Modifier.width(6.dp))
+                // Group 1: Perangkat & Struk Kasir
+                SettingGroupCard(title = "Perangkat & Cetak Struk") {
+                    SettingTile(
+                        icon = Icons.Filled.Print,
+                        iconTint = KasirPrimary,
+                        iconContainerColor = KasirPrimaryContainer,
+                        title = "Printer Thermal Kasir",
+                        subtitle = if (isPrinterConnected) "Printer terhubung dan siap mencetak" else "Belum terhubung · Tap untuk atur printer",
+                        trailing = {
+                            Button(
+                                onClick = { navController.navigate(NavRoutes.PRINTER) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = KasirPrimaryContainer,
+                                    contentColor = KasirPrimary
+                                ),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                            ) {
+                                Text("Atur Printer", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                             }
-                            Text(if (isCheckingUpdate) "Memeriksa..." else "Periksa Update")
                         }
-                    }
-                }
-            }
+                    )
 
-            // Section: Tampilan & Tema
-            val sessionManager = remember { SessionManager(context) }
-            val sessionData by sessionManager.sessionDataFlow.collectAsState(
-                initial = SessionData(
-                    serverUrl = "",
-                    currentUserId = "",
-                    currentUserName = "",
-                    isAdmin = false,
-                    token = "",
-                    isDarkTheme = false
-                )
-            )
+                    SettingDivider()
 
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = KasirSurfaceCard,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.DarkMode, contentDescription = null, tint = KasirPrimary)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Tampilan & Tema", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Tema Gelap (Night Counter)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                            Text(
-                                "Mengurangi silau saat bertugas di malam hari.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                    SettingTile(
+                        icon = Icons.Filled.Receipt,
+                        iconTint = KasirCash,
+                        iconContainerColor = KasirCashContainer,
+                        title = "Cetak Struk Mulai Sewa",
+                        subtitle = "Cetak otomatis saat sewa baru dimulai",
+                        trailing = {
+                            Switch(
+                                checked = uiState.printMulai,
+                                onCheckedChange = { viewModel.togglePrintMulai(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = KasirPrimary
+                                )
                             )
                         }
-                        Spacer(Modifier.width(8.dp))
-                        Switch(
-                            checked = sessionData.isDarkTheme,
-                            onCheckedChange = { isDark ->
-                                checkUpdateScope.launch {
-                                    sessionManager.setDarkTheme(isDark)
+                    )
+
+                    SettingDivider()
+
+                    SettingTile(
+                        icon = Icons.AutoMirrored.Filled.ReceiptLong,
+                        iconTint = KasirQris,
+                        iconContainerColor = KasirQrisContainer,
+                        title = "Cetak Struk Selesai Sewa",
+                        subtitle = "Cetak otomatis saat pembayaran diverifikasi",
+                        trailing = {
+                            Switch(
+                                checked = uiState.printSelesai,
+                                onCheckedChange = { viewModel.togglePrintSelesai(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = KasirPrimary
+                                )
+                            )
+                        }
+                    )
+                }
+
+                // Group 2: Tampilan & Kenyamanan
+                SettingGroupCard(title = "Tampilan") {
+                    SettingTile(
+                        icon = Icons.Filled.DarkMode,
+                        iconTint = KasirAccent,
+                        iconContainerColor = KasirAccentContainer,
+                        title = "Tema Gelap (Night Counter)",
+                        subtitle = "Mengurangi silau saat bertugas di malam hari",
+                        trailing = {
+                            Switch(
+                                checked = sessionData.isDarkTheme,
+                                onCheckedChange = { isDark ->
+                                    checkUpdateScope.launch {
+                                        sessionManager.setDarkTheme(isDark)
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = KasirPrimary
+                                )
+                            )
+                        }
+                    )
+                }
+
+                // Group 3: Sistem & Pembaruan
+                SettingGroupCard(title = "Sistem & Pembaruan") {
+                    SettingTile(
+                        icon = Icons.Filled.Dns,
+                        iconTint = KasirPrimary,
+                        iconContainerColor = KasirPrimaryContainer,
+                        title = "Server Aktif",
+                        subtitle = ServiceLocator.activeServerUrl,
+                        trailing = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .background(
+                                        color = if (uiState.apiConnected) KasirCashContainer else KasirAccentContainer,
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .background(if (uiState.apiConnected) KasirCash else KasirAccent, CircleShape)
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = if (uiState.apiConnected) "ONLINE" else "OFFLINE",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (uiState.apiConnected) KasirCash else KasirAccent
+                                )
+                            }
+                        }
+                    )
+
+                    SettingDivider()
+
+                    SettingTile(
+                        icon = Icons.Filled.SystemUpdate,
+                        iconTint = KasirCash,
+                        iconContainerColor = KasirCashContainer,
+                        title = "Pembaruan Aplikasi",
+                        subtitle = "Versi v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})",
+                        trailing = {
+                            Button(
+                                onClick = {
+                                    checkUpdateScope.launch {
+                                        isCheckingUpdate = true
+                                        updateStatusText = null
+                                        val res = UpdateManager.checkForUpdates(isManualCheck = true)
+                                        isCheckingUpdate = false
+                                        res.onSuccess { info ->
+                                            if (info?.hasUpdate == true) {
+                                                updateAvailableInfo = info
+                                                updateStatusText = "v${info.latestVersion} tersedia"
+                                                showUpdateDialog = true
+                                            } else {
+                                                updateAvailableInfo = null
+                                                updateStatusText = "Aplikasi versi terbaru"
+                                            }
+                                        }.onFailure {
+                                            updateStatusText = "Gagal (cek internet)"
+                                        }
+                                    }
+                                },
+                                enabled = !isCheckingUpdate,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = KasirPrimary,
+                                    contentColor = KasirOnPrimary
+                                ),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                if (isCheckingUpdate) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        color = KasirOnPrimary,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(Modifier.width(6.dp))
                                 }
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = KasirPrimary
-                            )
+                                Text("Periksa", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                            }
+                        }
+                    )
+
+                    updateStatusText?.let { msg ->
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = msg,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (updateAvailableInfo != null) KasirCash else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(start = 50.dp)
                         )
                     }
                 }
-            }
 
-            // Section 1: Cetak Struk Options
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = KasirSurfaceCard,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Print, contentDescription = null, tint = KasirGreen)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Pengaturan Cetak Struk", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Cetak Struk Otomatis Saat Mulai Sewa", modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(8.dp))
-                        Switch(
-                            checked = uiState.printMulai,
-                            onCheckedChange = { viewModel.togglePrintMulai(it) },
-                            colors = SwitchDefaults.colors(checkedThumbColor = KasirGreen)
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Cetak Struk Otomatis Saat Selesai Sewa", modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(8.dp))
-                        Switch(
-                            checked = uiState.printSelesai,
-                            onCheckedChange = { viewModel.togglePrintSelesai(it) },
-                            colors = SwitchDefaults.colors(checkedThumbColor = KasirGreen)
-                        )
-                    }
+                // Group 4: Sesi Kasir / Operator
+                SettingGroupCard(title = "Sesi Akun") {
+                    SettingTile(
+                        icon = Icons.AutoMirrored.Filled.Logout,
+                        iconTint = KasirError,
+                        iconContainerColor = KasirErrorContainer,
+                        title = if (isAdmin) "Keluar dari Sesi" else "Keluar dari Shift (${uiState.currentShiftUser ?: "Kasir"})",
+                        subtitle = "Menutup sesi kasir aktif dan kembali ke halaman login",
+                        trailing = {
+                            Button(
+                                onClick = { showLogoutConfirm = true },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                ),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                            ) {
+                                Text("Keluar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    )
                 }
-            }
+            } else {
+                // ═════════════════════════════════════════════════════════════
+                // TAB 1: ADMIN & LAPORAN (Akses: Khusus Admin)
+                // ═════════════════════════════════════════════════════════════
 
-            // Section 2: Ganti PIN Admin
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = KasirSurfaceCard,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                // Section 1: Dashboard Analytics Laporan
+                SettingsAnalyticsSection(
+                    transactions = uiState.transactions,
+                    activeSessionsCount = uiState.activeSessions.size,
+                    currentShiftUser = uiState.currentShiftUser
+                )
+
+                // Section 2: Keamanan PIN Admin
+                SettingGroupCard(title = "Keamanan & Autentikasi") {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Lock, contentDescription = null, tint = KasirGreen)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Ubah PIN Admin", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .background(KasirPrimaryContainer, RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Filled.Lock, contentDescription = null, tint = KasirPrimary, modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text("Ubah PIN Keamanan Admin", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text("Digunakan untuk otorisasi aksi sensitif", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(14.dp))
 
                     var oldPinVisible by remember { mutableStateOf(false) }
                     OutlinedTextField(
@@ -348,7 +408,8 @@ fun SettingsScreen(
                                 )
                             }
                         },
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirPrimary),
+                        shape = RoundedCornerShape(12.dp)
                     )
 
                     Spacer(Modifier.height(8.dp))
@@ -370,15 +431,17 @@ fun SettingsScreen(
                                 )
                             }
                         },
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirGreen)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KasirPrimary),
+                        shape = RoundedCornerShape(12.dp)
                     )
 
-                    pinMessage?.let {
+                    pinMessage?.let { msg ->
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            it,
-                            color = if (pinError) MaterialTheme.colorScheme.error else KasirGreen,
-                            style = MaterialTheme.typography.bodySmall
+                            text = msg,
+                            color = if (pinError) MaterialTheme.colorScheme.error else KasirCash,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium
                         )
                     }
 
@@ -399,116 +462,92 @@ fun SettingsScreen(
                         },
                         enabled = oldPin.isNotBlank() && newPin.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = KasirPrimary),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Simpan PIN Baru")
+                        Text("Simpan PIN Baru", fontWeight = FontWeight.Bold)
                     }
                 }
-            }
 
-            // Section 3: Backup Database (kasir-db backup_db)
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = KasirSurfaceCard,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.CloudDownload, contentDescription = null, tint = KasirGreen)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Backup Database", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    }
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Text(
-                        "Buat salinan manual database SQLite di server (folder backups).",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                // Section 3: Cadangan Database
+                SettingGroupCard(title = "Pemeliharaan Database") {
+                    SettingTile(
+                        icon = Icons.Filled.CloudDownload,
+                        iconTint = KasirCash,
+                        iconContainerColor = KasirCashContainer,
+                        title = "Cadangan Database Server",
+                        subtitle = "Buat salinan SQLite server ke folder backups",
+                        trailing = {
+                            Button(
+                                onClick = {
+                                    backupLoading = true
+                                    viewModel.backupDatabase { ok, msg ->
+                                        backupLoading = false
+                                        backupError = !ok
+                                        backupMessage = msg
+                                    }
+                                },
+                                enabled = !backupLoading,
+                                colors = ButtonDefaults.buttonColors(containerColor = KasirCash, contentColor = KasirOnCash),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                            ) {
+                                if (backupLoading) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        color = KasirOnCash,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                }
+                                Text(if (backupLoading) "Memproses..." else "Backup", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
                     )
 
-                    Spacer(Modifier.height(12.dp))
-
-                    Button(
-                        onClick = {
-                            backupLoading = true
-                            viewModel.backupDatabase { ok, msg ->
-                                backupLoading = false
-                                backupError = !ok
-                                backupMessage = msg
-                            }
-                        },
-                        enabled = !backupLoading,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
-                    ) {
-                        if (backupLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                color = KasirOnGreen,
-                                strokeWidth = 2.dp
-                            )
-                            Spacer(Modifier.width(8.dp))
-                        }
-                        Text(if (backupLoading) "Mem-backup..." else "Backup Manual Sekarang")
-                    }
-
-                    backupMessage?.let {
+                    backupMessage?.let { msg ->
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            it,
-                            color = if (backupError) KasirError else KasirGreen,
-                            style = MaterialTheme.typography.bodySmall
+                            text = msg,
+                            color = if (backupError) KasirError else KasirCash,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(start = 50.dp)
                         )
                     }
                 }
-            }
 
-            // Logout section
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = KasirSurfaceCard,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "Sesi Akun",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                // Section 4: Sesi Admin
+                SettingGroupCard(title = "Sesi Admin") {
+                    SettingTile(
+                        icon = Icons.AutoMirrored.Filled.Logout,
+                        iconTint = KasirError,
+                        iconContainerColor = KasirErrorContainer,
+                        title = "Keluar dari Sesi Admin",
+                        subtitle = "Sesi admin akan ditutup dan kembali ke halaman login",
+                        trailing = {
+                            Button(
+                                onClick = { showLogoutConfirm = true },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer
+                                ),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                            ) {
+                                Text("Keluar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
                     )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "Keluar dari sesi admin dan kembali ke halaman login.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = { showLogoutConfirm = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text("Keluar dari Sesi Admin", fontWeight = FontWeight.SemiBold)
-                    }
                 }
             }
         }
     }
 
+    // ── Dialog Konfirmasi Logout ─────────────────────────────────────────────
     if (showLogoutConfirm) {
         AlertDialog(
             onDismissRequest = { showLogoutConfirm = false },
-            title = { Text("Keluar dari Sesi Admin?") },
-            text = { Text("Sesi admin akan ditutup dan kembali ke halaman login.") },
+            title = { Text(if (isAdmin) "Keluar dari Sesi Admin?" else "Keluar dari Shift Kasir?") },
+            text = { Text("Sesi operasional ${uiState.currentShiftUser ?: "kasir"} akan ditutup dan kembali ke halaman login.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -528,6 +567,7 @@ fun SettingsScreen(
         )
     }
 
+    // ── Dialog Catatan Pembaruan ─────────────────────────────────────────────
     if (showUpdateDialog && updateAvailableInfo != null) {
         val update = updateAvailableInfo!!
         AlertDialog(
@@ -559,7 +599,7 @@ fun SettingsScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(update.downloadUrl))
                         context.startActivity(intent)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen)
+                    colors = ButtonDefaults.buttonColors(containerColor = KasirPrimary)
                 ) {
                     Text("Unduh Update")
                 }
@@ -571,4 +611,92 @@ fun SettingsScreen(
             }
         )
     }
+}
+
+@Composable
+private fun SettingGroupCard(
+    title: String,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = KasirPrimary,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.5.sp,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+        )
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = KasirSurfaceCard,
+            border = BorderStroke(1.dp, KasirLine.copy(alpha = 0.6f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingTile(
+    icon: ImageVector,
+    iconTint: Color = KasirPrimary,
+    iconContainerColor: Color = KasirPrimaryContainer,
+    title: String,
+    subtitle: String,
+    trailing: @Composable () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .background(iconContainerColor, RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = KasirOnSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        trailing()
+    }
+}
+
+@Composable
+private fun SettingDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(vertical = 12.dp),
+        color = KasirLine.copy(alpha = 0.5f)
+    )
 }
