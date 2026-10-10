@@ -103,7 +103,7 @@ fun DashboardScreen(
     var selectedQty by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var searchQuery by remember { mutableStateOf("") }
     var isSortAscending by remember { mutableStateOf(false) }
-    var showLogoutConfirm by remember { mutableStateOf(false) }
+    // showLogoutConfirm removed: logout is handled in Settings or Settlement
     // 0: Sewa Baru, 1: Sesi Aktif — swipeable via HorizontalPager.
     val pagerState = rememberPagerState(pageCount = { 2 })
     val pagerScope = rememberCoroutineScope()
@@ -150,6 +150,8 @@ fun DashboardScreen(
             viewModel.setTab(tab)
             if (tab == "history") {
                 navController.navigate(NavRoutes.POS) { launchSingleTop = true }
+            } else if (tab == "settlement") {
+                navController.navigate(NavRoutes.SETTLEMENT) { launchSingleTop = true }
             }
         },
         topBar = {
@@ -212,18 +214,8 @@ fun DashboardScreen(
                             Icon(Icons.Filled.Group, contentDescription = "Kelola Kasir")
                         }
                     }
-                    IconButton(onClick = { navController.navigate(NavRoutes.PRINTER) }) {
-                        Icon(Icons.Filled.Print, contentDescription = "Printer")
-                    }
                     IconButton(onClick = { navController.navigate(NavRoutes.SETTINGS) }) {
                         Icon(Icons.Filled.Settings, contentDescription = "Pengaturan")
-                    }
-                    IconButton(onClick = { showLogoutConfirm = true }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Keluar dari Sesi",
-                            tint = KasirError
-                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = KasirSurfaceVariant)
@@ -356,29 +348,6 @@ fun DashboardScreen(
         )
     }
 
-    if (showLogoutConfirm) {
-        AlertDialog(
-            onDismissRequest = { showLogoutConfirm = false },
-            title = { Text("Keluar dari Sesi?") },
-            text = { Text("Sesi ${uiState.currentShiftUser ?: "kasir"} akan ditutup dan kembali ke halaman login.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showLogoutConfirm = false
-                        viewModel.logout()
-                        navController.navigate(NavRoutes.LOGIN) { popUpTo(0) { inclusive = true } }
-                    }
-                ) {
-                    Text("Keluar", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutConfirm = false }) {
-                    Text("Batal")
-                }
-            }
-        )
-    }
 }
 
 @Composable

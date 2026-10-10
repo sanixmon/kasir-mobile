@@ -10,6 +10,9 @@ import com.kasir.mobile.data.model.LoginCashierResponse
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.TransactionDto
 import com.kasir.mobile.data.model.VerifyAdminResponse
+import com.kasir.mobile.data.model.GetSettlementsResponse
+import com.kasir.mobile.data.model.SettlementDto
+import com.kasir.mobile.data.model.SettlementResponse
 
 interface KasirRepository {
     suspend fun fetchAllData(): Result<FetchAllDataResponse>
@@ -28,4 +31,7 @@ interface KasirRepository {
     suspend fun saveUser(username: String, password: String, role: String): Result<ActionSuccessResponse>
     suspend fun deleteUser(username: String): Result<ActionSuccessResponse>
     suspend fun backupDatabase(): Result<BackupResponse>
+    suspend fun saveSettlement(settlement: SettlementDto): Result<SettlementResponse>
+    suspend fun getSettlements(limit: Int = 50): Result<GetSettlementsResponse>
+    suspend fun logout(): Result<ActionSuccessResponse>
 }

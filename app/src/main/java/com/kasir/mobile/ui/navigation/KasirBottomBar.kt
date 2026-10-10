@@ -2,6 +2,7 @@ package com.kasir.mobile.ui.navigation
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
@@ -16,7 +17,7 @@ import com.kasir.mobile.ui.theme.KasirSurface
 import com.kasir.mobile.ui.theme.KasirSurfaceVariant
 
 /**
- * Persistent bottom navigation shared by the two main tabs (Dashboard & Riwayat).
+ * Persistent bottom navigation shared by the three main tabs (Dashboard, Riwayat, Settlement).
  * Portrait-only: on landscape the nav is hidden entirely so the tablet content
  * uses the full height.
  */
@@ -37,6 +38,12 @@ fun KasirBottomBar(
             onClick = { onSelectTab("history") },
             icon = { Icon(Icons.Filled.History, contentDescription = "Riwayat") },
             label = { Text("Riwayat", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        )
+        NavigationBarItem(
+            selected = selectedTab == "settlement",
+            onClick = { onSelectTab("settlement") },
+            icon = { Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = "Settlement") },
+            label = { Text("Settlement", maxLines = 1, overflow = TextOverflow.Ellipsis) }
         )
     }
 }

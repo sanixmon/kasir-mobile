@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.kasir.mobile.data.model.TransactionDto
 import com.kasir.mobile.ui.navigation.KasirResponsiveScaffold
+import com.kasir.mobile.ui.navigation.NavRoutes
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
 import com.kasir.mobile.ui.theme.*
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
@@ -109,6 +110,8 @@ fun HistoryScreen(
             viewModel.setTab(tab)
             if (tab == "dashboard") {
                 navController.popBackStack()
+            } else if (tab == "settlement") {
+                navController.navigate(NavRoutes.SETTLEMENT) { launchSingleTop = true }
             }
         },
         topBar = {

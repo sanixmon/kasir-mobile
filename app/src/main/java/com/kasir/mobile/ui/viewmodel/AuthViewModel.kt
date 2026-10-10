@@ -203,10 +203,26 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
             )
         }
     }
-
-    fun logout() {
+    fun logout(onComplete: (() -> Unit)? = null) {
         AuthTokenHolder.clearAll()
-        viewModelScope.launch { sessionManager.clearSession() }
-        _uiState.update { AuthUiState(serverUrl = _uiState.value.serverUrl, isRestoringSession = false) }
+        _uiState.update {
+            AuthUiState(
+                serverUrl = _uiState.value.serverUrl,
+                isRestoringSession = false,
+                isLoggedIn = false,
+                username = "",
+                isAdmin = false,
+                error = null
+            )
+        }
+        viewModelScope.launch {
+            try {
+                ServiceLocator.repository().logout()
+            } catch (_: Exception) {}
+            try {
+                sessionManager.clearSession()
+            } catch (_: Exception) {}
+            onComplete?.invoke()
+        }
     }
 }

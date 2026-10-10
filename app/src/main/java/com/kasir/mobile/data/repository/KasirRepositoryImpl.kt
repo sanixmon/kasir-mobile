@@ -10,6 +10,9 @@ import com.kasir.mobile.data.model.LoginAdminResponse
 import com.kasir.mobile.data.model.LoginCashierResponse
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.VerifyAdminResponse
+import com.kasir.mobile.data.model.GetSettlementsResponse
+import com.kasir.mobile.data.model.SettlementDto
+import com.kasir.mobile.data.model.SettlementResponse
 import com.kasir.mobile.data.remote.KasirApiService
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -131,5 +134,35 @@ class KasirRepositoryImpl(private val apiService: KasirApiService) : KasirReposi
 
     override suspend fun backupDatabase(): Result<BackupResponse> = runCatching {
         apiService.backupDatabase(KasirRpcRequest(action = "backup_db"))
+    }
+
+    override suspend fun saveSettlement(settlement: SettlementDto): Result<SettlementResponse> = runCatching {
+        apiService.saveSettlement(KasirRpcRequest(
+            action = "save_settlement",
+            payload = buildJsonObject {
+                if (settlement.id.isNotBlank()) put("id", settlement.id)
+                put("shift_user", settlement.shiftUser)
+                put("tanggal", settlement.tanggal)
+                put("closed_at", settlement.closedAt)
+                put("total_txns", settlement.totalTxns)
+                put("revenue", settlement.revenue)
+                put("cash", settlement.cash)
+                put("qris", settlement.qris)
+                put("items_summary", settlement.itemsSummary)
+            }
+        ))
+    }
+
+    override suspend fun getSettlements(limit: Int): Result<GetSettlementsResponse> = runCatching {
+        apiService.getSettlements(KasirRpcRequest(
+            action = "get_settlements",
+            payload = buildJsonObject {
+                put("limit", limit)
+            }
+        ))
+    }
+
+    override suspend fun logout(): Result<ActionSuccessResponse> = runCatching {
+        apiService.logout(KasirRpcRequest(action = "logout"))
     }
 }

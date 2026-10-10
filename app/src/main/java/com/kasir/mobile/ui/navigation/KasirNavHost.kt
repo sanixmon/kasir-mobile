@@ -18,22 +18,33 @@ import com.kasir.mobile.ui.screen.history.HistoryScreen
 import com.kasir.mobile.ui.screen.printer.PrinterScreen
 import com.kasir.mobile.ui.screen.settings.SettingsScreen
 import com.kasir.mobile.ui.screen.users.UserManagementScreen
+import com.kasir.mobile.ui.screen.settlement.SettlementScreen
+import com.kasir.mobile.ui.viewmodel.AuthViewModel
 import com.kasir.mobile.ui.viewmodel.KasirViewModel
 
 @Composable
 fun KasirNavHost(navController: NavHostController) {
     val kasirViewModel: KasirViewModel = viewModel()
+    val authViewModel: AuthViewModel = viewModel()
     val kasirUiState by kasirViewModel.uiState.collectAsState()
+
+    val onLogout: () -> Unit = {
+        kasirViewModel.logout()
+        authViewModel.logout()
+        navController.navigate(NavRoutes.LOGIN) {
+            popUpTo(0) { inclusive = true }
+        }
+    }
 
     LaunchedEffect(kasirUiState.sessionExpired) {
         if (kasirUiState.sessionExpired) {
             kasirViewModel.resetSessionExpired()
+            authViewModel.logout()
             navController.navigate(NavRoutes.LOGIN) {
                 popUpTo(0) { inclusive = true }
             }
         }
     }
-
 
     NavHost(
         navController = navController,
@@ -44,10 +55,18 @@ fun KasirNavHost(navController: NavHostController) {
         popExitTransition = { ExitTransition.None }
     ) {
         composable(NavRoutes.LOGIN) {
-            LoginScreen(navController = navController, kasirViewModel = kasirViewModel)
+            LoginScreen(
+                navController = navController,
+                kasirViewModel = kasirViewModel,
+                authViewModel = authViewModel
+            )
         }
         composable(NavRoutes.ADMIN_MENU) {
-            AdminMenuScreen(navController = navController, viewModel = kasirViewModel)
+            AdminMenuScreen(
+                navController = navController,
+                viewModel = kasirViewModel,
+                onLogout = onLogout
+            )
         }
         composable(NavRoutes.DASHBOARD) {
             DashboardScreen(navController = navController, viewModel = kasirViewModel)
@@ -62,7 +81,18 @@ fun KasirNavHost(navController: NavHostController) {
             UserManagementScreen(navController = navController, viewModel = kasirViewModel)
         }
         composable(NavRoutes.SETTINGS) {
-            SettingsScreen(navController = navController, viewModel = kasirViewModel)
+            SettingsScreen(
+                navController = navController,
+                viewModel = kasirViewModel,
+                onLogout = onLogout
+            )
+        }
+        composable(NavRoutes.SETTLEMENT) {
+            SettlementScreen(
+                navController = navController,
+                viewModel = kasirViewModel,
+                onLogout = onLogout
+            )
         }
         composable(NavRoutes.PRINTER) {
             PrinterScreen(navController = navController)

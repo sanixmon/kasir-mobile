@@ -47,3 +47,27 @@ _Avoid_: Omset, sales volume
 **Cash**:
 Physical currency payments collected in the register drawer.
 _Avoid_: Cash fisik, uang tunai
+
+**Receipt Format**:
+The layout, typography, visibility rules, and hardware parameters governing how transaction receipts render on thermal paper.
+_Avoid_: Printer template, struk layout, print config
+
+**Receipt Preview**:
+A live, monospaced on-screen facsimile of the physical thermal receipt rendered before sending commands to a printer.
+_Avoid_: Struk mock, print simulation
+
+**Shift Settlement**:
+The formal closing procedure of an operator's shift that validates financial totals (revenue, cash, QRIS), blocks closing if active sessions remain, records audit history to the server, and prints a thermal settlement receipt.
+_Avoid_: Daily settlement, end of day, simple logout
+
+**Active Session Guard**:
+The operational constraint that strictly forbids a cashier from closing their shift while one or more rental sessions remain active in the field.
+_Avoid_: Force handover, oper sesi, closing paksa
+
+**Settlement Tab**:
+A top-level navigation destination beside History that displays real-time shift metrics, rental item breakdown, and provides the Shift Settlement trigger.
+_Avoid_: Closing tab, ringkasan tab, admin menu
+
+**Item Rental Breakdown**:
+The aggregated quantity and gross rental intake grouped by equipment name across all completed transactions within the current cashier shift.
+_Avoid_: Sales report, rekap produk, inventory log

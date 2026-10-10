@@ -74,8 +74,9 @@ enum class BarcodeType { CODE128, EAN13, CODE39 }
  *  - MULAI      = "Struk Mulai Sewa" (printed when a rental starts)
  *  - SELESAI    = "Struk Selesai Sewa" (printed when a rental is closed/claimed)
  *  - ADDITIONAL = "Struk Tambahan Sewa" (printed when items are added to an active session)
+ *  - SETTLEMENT = "Struk Tutup Shift" (printed when cashier shift is closed)
  */
-enum class ReceiptType { MULAI, SELESAI, ADDITIONAL }
+enum class ReceiptType { MULAI, SELESAI, ADDITIONAL, SETTLEMENT }
 
 data class Receipt(
     val type: ReceiptType,
@@ -99,5 +100,6 @@ data class Receipt(
     val qris: Long? = null,
     val qrText: String? = null,
     val qrCaption: String? = null,
+    val totalTxns: Int = 0,
     val footer: String = "Terima kasih telah berkunjung!"
 )

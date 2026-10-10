@@ -21,6 +21,7 @@ class ReceiptFormatter(
             ReceiptType.MULAI -> "Struk Mulai Sewa"
             ReceiptType.SELESAI -> "Struk Selesai Sewa"
             ReceiptType.ADDITIONAL -> "Struk Tambahan Sewa"
+            ReceiptType.SETTLEMENT -> "Struk Tutup Shift"
         }
 
         // ── Header ──────────────────────────────────────────────────────────
@@ -37,25 +38,31 @@ class ReceiptFormatter(
         if (receipt.type == ReceiptType.MULAI || receipt.type == ReceiptType.ADDITIONAL) {
             e.alignCenter().text("Queue Number: ${receipt.queueNo}").line()
             e.alignLeft().text("Tgl: ${receipt.tanggal} | ${receipt.startTime}").line()
-        }
-        e.text("Shift: ${receipt.shift ?: "-"}").line()
-        e.text("Nama: ${receipt.nama}").line()
-        if (receipt.type == ReceiptType.SELESAI) {
+            e.text("Shift: ${receipt.shift ?: "-"}").line()
+            e.text("Nama: ${receipt.nama}").line()
+        } else if (receipt.type == ReceiptType.SETTLEMENT) {
+            e.text("Tgl Shift: ${receipt.tanggal}").line()
+            e.text("Jam Tutup: ${receipt.endTime ?: "-"}").line()
+            e.text("Petugas: ${receipt.shift ?: "-"}").line()
+            e.text("Total Trx: ${receipt.totalTxns} Selesai").line()
+        } else {
+            e.text("Shift: ${receipt.shift ?: "-"}").line()
+            e.text("Nama: ${receipt.nama}").line()
             e.text("Mulai: ${receipt.startTime} | Selesai: ${receipt.endTime ?: "-"}").line()
             receipt.durasi?.let { e.text("Durasi: $it").line() }
         }
         e.text(dashes).line()
-
         // ── Items ───────────────────────────────────────────────────────────
-        receipt.itemsText.split("\n").forEach { line ->
-            if (line.isBlank()) return@forEach
-            itemLines(line, w).forEach { wrapped -> e.text(wrapped).line() }
+        if (receipt.type != ReceiptType.SETTLEMENT) {
+            receipt.itemsText.split("\n").forEach { line ->
+                if (line.isBlank()) return@forEach
+                itemLines(line, w).forEach { wrapped -> e.text(wrapped).line() }
+            }
+            if (receipt.type == ReceiptType.SELESAI) {
+                receipt.otText?.let { e.text("OT: $it").line() }
+            }
+            e.text(dashes).line()
         }
-        if (receipt.type == ReceiptType.SELESAI) {
-            receipt.otText?.let { e.text("OT: $it").line() }
-        }
-        e.text(dashes).line()
-
         // ── Totals ──────────────────────────────────────────────────────────
         when (receipt.type) {
             ReceiptType.MULAI -> {
@@ -75,6 +82,18 @@ class ReceiptFormatter(
                 e.bold(true).text(twoCol("TOTAL:", rp(receipt.total), w)).bold(false).line()
                 receipt.cash?.takeIf { it > 0 }?.let { e.text(twoCol("Cash:", rp(it), w)).line() }
                 receipt.qris?.takeIf { it > 0 }?.let { e.text(twoCol("QRIS:", rp(it), w)).line() }
+            }
+            ReceiptType.SETTLEMENT -> {
+                if (receipt.totalPokok > 0) {
+                    e.text(twoCol("Sewa Pokok:", rp(receipt.totalPokok), w)).line()
+                }
+                receipt.overtime?.takeIf { it > 0 }?.let {
+                    e.text(twoCol("Overtime:", rp(it), w)).line()
+                }
+                e.text(dashes).line()
+                e.bold(true).text(twoCol("TOTAL OMZET:", rp(receipt.total), w)).bold(false).line()
+                e.text(twoCol("Total Tunai:", rp(receipt.cash ?: 0), w)).line()
+                e.text(twoCol("Total QRIS:", rp(receipt.qris ?: 0), w)).line()
             }
         }
         e.text(dashes).line()

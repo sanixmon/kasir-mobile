@@ -9,4 +9,5 @@ object NavRoutes {
     const val USERS = "users"
     const val SETTINGS = "settings"
     const val PRINTER = "printer"
+    const val SETTLEMENT = "settlement"
 }

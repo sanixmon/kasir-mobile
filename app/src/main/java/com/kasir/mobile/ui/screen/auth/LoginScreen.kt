@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.kasir.mobile.data.ServiceLocator
+import com.kasir.mobile.data.remote.AuthTokenHolder
 import com.kasir.mobile.ui.navigation.NavRoutes
 import com.kasir.mobile.ui.theme.KasirDisplay
 import com.kasir.mobile.ui.theme.KasirError
@@ -57,6 +58,7 @@ fun LoginScreen(
     kasirViewModel: KasirViewModel,
     authViewModel: AuthViewModel = viewModel()
 ) {
+    val uiState by authViewModel.uiState.collectAsState()
     val availableUpdate by UpdateManager.availableUpdate.collectAsState()
     val context = LocalContext.current
 
@@ -64,8 +66,10 @@ fun LoginScreen(
         if (!UpdateManager.dismissedThisSession) {
             UpdateManager.checkForUpdates()
         }
+        if ((AuthTokenHolder.activeToken.isNullOrBlank() || kasirViewModel.uiState.value.currentShiftUser == null) && uiState.isLoggedIn) {
+            authViewModel.resetLoginState()
+        }
     }
-    val uiState by authViewModel.uiState.collectAsState()
     var portal by remember { mutableStateOf("cashier") } // "cashier" | "admin"
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

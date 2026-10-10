@@ -1,0 +1,3 @@
+# 4. Shift Settlement Flow and Active Session Guard
+
+Ending a cashier shift previously relied on an unverified logout dialog that bypassed cash reconciliation and allowed cashiers to abandon active rental units in the field. We decided to establish a dedicated Settlement tab with live revenue and unit rental metrics, enforce an Active Session Guard that strictly forbids shift closure while rental units remain active, persist structured settlement audit records to the server database via RPC, and automatically trigger a thermal receipt containing financial summaries before completing operator logout.

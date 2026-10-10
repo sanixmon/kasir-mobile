@@ -8,6 +8,8 @@ import com.kasir.mobile.data.model.KasirRpcRequest
 import com.kasir.mobile.data.model.LoginAdminResponse
 import com.kasir.mobile.data.model.LoginCashierResponse
 import com.kasir.mobile.data.model.VerifyAdminResponse
+import com.kasir.mobile.data.model.GetSettlementsResponse
+import com.kasir.mobile.data.model.SettlementResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -63,4 +65,13 @@ interface KasirApiService {
 
     @POST("api")
     suspend fun backupDatabase(@Body request: KasirRpcRequest): BackupResponse
+
+    @POST("api")
+    suspend fun saveSettlement(@Body request: KasirRpcRequest): SettlementResponse
+
+    @POST("api")
+    suspend fun getSettlements(@Body request: KasirRpcRequest): GetSettlementsResponse
+
+    @POST("api")
+    suspend fun logout(@Body request: KasirRpcRequest): ActionSuccessResponse
 }

@@ -11,6 +11,7 @@ import com.kasir.mobile.data.model.ItemDto
 import com.kasir.mobile.data.model.SessionDto
 import com.kasir.mobile.data.model.TransactionDto
 import com.kasir.mobile.data.model.UserDto
+import com.kasir.mobile.data.model.SettlementDto
 import com.kasir.mobile.data.printer.Receipt
 import com.kasir.mobile.data.printer.ReceiptType
 import com.kasir.mobile.data.printer.rp
@@ -132,14 +133,9 @@ class KasirViewModel : ViewModel() {
         }
     }
 
-    fun logout() {
+    fun logout(onComplete: (() -> Unit)? = null) {
         stopPolling()
         AuthTokenHolder.clearAll()
-        viewModelScope.launch {
-            try {
-                sessionManager()?.clearSession()
-            } catch (_: Exception) {}
-        }
         _uiState.update {
             it.copy(
                 currentShiftUser = null,
@@ -147,6 +143,15 @@ class KasirViewModel : ViewModel() {
                 activeSessions = emptyList(),
                 transactions = emptyList()
             )
+        }
+        viewModelScope.launch {
+            try {
+                repository().logout()
+            } catch (_: Exception) {}
+            try {
+                sessionManager()?.clearSession()
+            } catch (_: Exception) {}
+            onComplete?.invoke()
         }
     }
 
@@ -527,6 +532,90 @@ class KasirViewModel : ViewModel() {
                             errorMessage = "Gagal cetak struk: ${e.message ?: "printer belum terhubung"}. Hubungkan printer di menu Printer."
                         )
                     }
+                }
+        }
+    }
+
+    /**
+     * "Struk Tutup Shift" (Settlement)
+     */
+    fun printSettlementReceipt(
+        shiftUser: String,
+        tanggal: String,
+        totalTxns: Int,
+        totalRevenue: Long,
+        totalCash: Long,
+        totalQris: Long,
+        totalPokok: Long = 0L,
+        totalOvertime: Long = 0L,
+        onResult: ((Result<Unit>) -> Unit)? = null
+    ) {
+        viewModelScope.launch {
+            val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val receipt = Receipt(
+                type = ReceiptType.SETTLEMENT,
+                shift = shiftUser,
+                tanggal = tanggal,
+                endTime = timeFmt.format(Date()),
+                totalTxns = totalTxns,
+                totalPokok = totalPokok,
+                overtime = totalOvertime,
+                total = totalRevenue,
+                cash = totalCash,
+                qris = totalQris,
+                footer = "CLOSING SHIFT SELESAI"
+            )
+            val result = ServiceLocator.printerRepository().printReceipt(receipt)
+            result
+                .onSuccess {
+                    _uiState.update { it.copy(successMessage = "Struk closing dikirim ke printer") }
+                    onResult?.invoke(Result.success(Unit))
+                }
+                .onFailure { e ->
+                    val errMsg = e.message ?: "Printer belum terhubung"
+                    _uiState.update {
+                        it.copy(errorMessage = "Gagal cetak struk: $errMsg")
+                    }
+                    onResult?.invoke(Result.failure(e))
+                }
+        }
+    }
+
+    /**
+     * Submit settlement to backend SQLite
+     */
+    fun submitSettlement(
+        shiftUser: String,
+        tanggal: String,
+        totalTxns: Int,
+        revenue: Double,
+        cash: Double,
+        qris: Double,
+        itemsSummary: String,
+        onResult: (Result<SettlementDto>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val settlement = SettlementDto(
+                shiftUser = shiftUser,
+                tanggal = tanggal,
+                closedAt = System.currentTimeMillis(),
+                totalTxns = totalTxns,
+                revenue = revenue,
+                cash = cash,
+                qris = qris,
+                itemsSummary = itemsSummary
+            )
+            val repoRes = repository().saveSettlement(settlement)
+            repoRes
+                .onSuccess { resp ->
+                    if (resp.success && resp.settlement != null) {
+                        onResult(Result.success(resp.settlement))
+                    } else {
+                        onResult(Result.failure(Exception(resp.error ?: "Gagal menyimpan settlement")))
+                    }
+                }
+                .onFailure { err ->
+                    onResult(Result.failure(err))
                 }
         }
     }
@@ -994,6 +1083,10 @@ class KasirViewModel : ViewModel() {
 
     fun clearMessages() {
         _uiState.update { it.copy(errorMessage = null, successMessage = null) }
+    }
+
+    fun setErrorMessage(msg: String) {
+        _uiState.update { it.copy(errorMessage = msg) }
     }
 
     /**

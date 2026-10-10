@@ -55,7 +55,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    viewModel: KasirViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: KasirViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    onLogout: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isAdmin = uiState.currentUserRole == "admin"
@@ -552,8 +553,12 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         showLogoutConfirm = false
-                        viewModel.logout()
-                        navController.navigate(NavRoutes.LOGIN) { popUpTo(0) { inclusive = true } }
+                        if (onLogout != null) {
+                            onLogout()
+                        } else {
+                            viewModel.logout()
+                            navController.navigate(NavRoutes.LOGIN) { popUpTo(0) { inclusive = true } }
+                        }
                     }
                 ) {
                     Text("Keluar", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)

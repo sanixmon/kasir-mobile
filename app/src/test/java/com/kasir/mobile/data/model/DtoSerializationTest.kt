@@ -235,4 +235,34 @@ class DtoSerializationTest {
         assertEquals(1725450300000L, session.items[1].startTime)
         assertEquals("qris", session.items[1].payAwal)
     }
+
+    @Test
+    fun testSettlementDtoSerialization() {
+        val jsonStr = """
+            {
+                "id": "stl_001",
+                "shiftUser": "Budi Kasir",
+                "tanggal": "2026-10-10",
+                "closedAt": 1728550000000,
+                "totalTxns": 15,
+                "revenue": 550000.0,
+                "cash": 350000.0,
+                "qris": 200000.0,
+                "itemsSummary": "Scooter Dewasa x5, Stroller x2"
+            }
+        """.trimIndent()
+
+        val dto = json.decodeFromString<SettlementDto>(jsonStr)
+        assertEquals("stl_001", dto.id)
+        assertEquals("Budi Kasir", dto.shiftUser)
+        assertEquals("2026-10-10", dto.tanggal)
+        assertEquals(15, dto.totalTxns)
+        assertEquals(550000.0, dto.revenue, 0.01)
+        assertEquals(350000.0, dto.cash, 0.01)
+        assertEquals(200000.0, dto.qris, 0.01)
+
+        val encoded = json.encodeToString(SettlementDto.serializer(), dto)
+        assertTrue(encoded.contains("stl_001"))
+        assertTrue(encoded.contains("Budi Kasir"))
+    }
 }

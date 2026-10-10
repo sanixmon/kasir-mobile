@@ -83,4 +83,33 @@ class ReceiptFormatterTest {
         assertTrue("Should contain Overtime", decoded.contains("Overtime:"))
         assertTrue("Should contain TOTAL", decoded.contains("TOTAL:"))
     }
+
+    @Test
+    fun testSettlementReceiptFormatting() {
+        val formatter = ReceiptFormatter(PrinterProfile.GENERIC_58MM, GbkPrinterCharset())
+        val receipt = Receipt(
+            type = ReceiptType.SETTLEMENT,
+            shift = "Akbar Kasir",
+            tanggal = "2026-10-10",
+            endTime = "14:00",
+            totalTxns = 8,
+            totalPokok = 350000L,
+            overtime = 50000L,
+            total = 400000L,
+            cash = 250000L,
+            qris = 150000L,
+            footer = "CLOSING SHIFT SELESAI"
+        )
+
+        val commands = formatter.toCommands(receipt)
+        val decoded = String(commands, Charset.forName("CP437"))
+
+        assertTrue("Should contain Struk Tutup Shift", decoded.contains("Struk Tutup Shift"))
+        assertTrue("Should contain Shift date", decoded.contains("2026-10-10"))
+        assertTrue("Should contain Petugas", decoded.contains("Akbar Kasir"))
+        assertTrue("Should contain Total Trx", decoded.contains("8 Selesai"))
+        assertTrue("Should contain TOTAL OMZET", decoded.contains("TOTAL OMZET:"))
+        assertTrue("Should contain Total Tunai", decoded.contains("Total Tunai:"))
+        assertTrue("Should contain Total QRIS", decoded.contains("Total QRIS:"))
+    }
 }
