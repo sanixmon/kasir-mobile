@@ -3,6 +3,7 @@ package com.kasir.mobile.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kasir.mobile.data.ServiceLocator
+import com.kasir.mobile.data.local.SessionManager
 import com.kasir.mobile.data.model.CatalogItem
 import com.kasir.mobile.data.model.DeletionLogDto
 import com.kasir.mobile.data.model.ItemCatalog
@@ -47,7 +48,8 @@ data class KasirUiState(
     val printSelesai: Boolean = true,
     val theme: String = "dark",
     val apiConnected: Boolean = true,
-    val lastSyncTime: String = ""
+    val lastSyncTime: String = "",
+    val sessionExpired: Boolean = false
 )
 
 data class ItemCalcState(
@@ -119,6 +121,7 @@ class KasirViewModel : ViewModel() {
     }
 
     private fun repository(): KasirRepository = ServiceLocator.repository()
+    private fun sessionManager(): SessionManager? = runCatching { ServiceLocator.sessionManager() }.getOrNull()
 
     fun setShiftUser(name: String, role: String = "cashier") {
         _uiState.update {
@@ -130,13 +133,53 @@ class KasirViewModel : ViewModel() {
     }
 
     fun logout() {
+        stopPolling()
         AuthTokenHolder.clearAll()
+        viewModelScope.launch {
+            try {
+                sessionManager()?.clearSession()
+            } catch (_: Exception) {}
+        }
         _uiState.update {
             it.copy(
                 currentShiftUser = null,
-                currentUserRole = null
+                currentUserRole = null,
+                activeSessions = emptyList(),
+                transactions = emptyList()
             )
         }
+    }
+
+    fun handleSessionExpired() {
+        stopPolling()
+        AuthTokenHolder.clearAll()
+        viewModelScope.launch {
+            try {
+                sessionManager()?.clearSession()
+            } catch (_: Exception) {}
+        }
+        _uiState.update {
+            it.copy(
+                isSyncing = false,
+                apiConnected = false,
+                currentShiftUser = null,
+                currentUserRole = null,
+                sessionExpired = true,
+                errorMessage = "Sesi login berakhir. Silakan login kembali."
+            )
+        }
+    }
+
+    fun resetSessionExpired() {
+        _uiState.update { it.copy(sessionExpired = false) }
+    }
+
+    private fun checkIfUnauthorized(e: Throwable?): Boolean {
+        if (e is retrofit2.HttpException && e.code() == 401) {
+            handleSessionExpired()
+            return true
+        }
+        return false
     }
 
     fun setTab(tab: String) {
@@ -187,15 +230,7 @@ class KasirViewModel : ViewModel() {
                         }
                     }
                     .onFailure { e ->
-                        if (e is retrofit2.HttpException && e.code() == 401) {
-                            _uiState.update {
-                                it.copy(
-                                    isSyncing = false,
-                                    apiConnected = false,
-                                    errorMessage = "Sesi login berakhir. Silakan login kembali."
-                                )
-                            }
-                        } else {
+                        if (!checkIfUnauthorized(e)) {
                             _uiState.update {
                                 it.copy(
                                     isSyncing = false,
@@ -247,11 +282,13 @@ class KasirViewModel : ViewModel() {
                     }
                 }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "Gagal memulai sesi: ${e.message ?: "Periksa koneksi ke server"}"
-                        )
+                    if (!checkIfUnauthorized(e)) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal memulai sesi: ${e.message ?: "Periksa koneksi ke server"}"
+                            )
+                        }
                     }
                 }
         }
@@ -427,11 +464,13 @@ class KasirViewModel : ViewModel() {
                     onComplete(true)
                 }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "Gagal menambah item: ${e.message ?: "Koneksi bermasalah"}"
-                        )
+                    if (!checkIfUnauthorized(e)) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal menambah item: ${e.message ?: "Koneksi bermasalah"}"
+                            )
+                        }
                     }
                     onComplete(false)
                 }
@@ -729,11 +768,13 @@ class KasirViewModel : ViewModel() {
                     loadData(showSync = false)
                 }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "Gagal memproses pembayaran: ${e.message ?: "Periksa koneksi ke server"}"
-                        )
+                    if (!checkIfUnauthorized(e)) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal memproses pembayaran: ${e.message ?: "Periksa koneksi ke server"}"
+                            )
+                        }
                     }
                 }
         }
@@ -770,6 +811,9 @@ class KasirViewModel : ViewModel() {
 
             val deleteRes = repository().deleteTxn(txn.id, txn.no)
             val logRes = repository().addDeletionLog(log)
+            if (checkIfUnauthorized(deleteRes.exceptionOrNull()) || checkIfUnauthorized(logRes.exceptionOrNull())) {
+                return@launch
+            }
             val delSuccess = deleteRes.isSuccess && (deleteRes.getOrNull()?.success == true)
             when {
                 !delSuccess -> {
@@ -822,11 +866,13 @@ class KasirViewModel : ViewModel() {
                     }
                 }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "Gagal membersihkan riwayat: ${e.message ?: "Periksa koneksi ke server"}"
-                        )
+                    if (!checkIfUnauthorized(e)) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal membersihkan riwayat: ${e.message ?: "Periksa koneksi ke server"}"
+                            )
+                        }
                     }
                 }
         }
@@ -862,11 +908,13 @@ class KasirViewModel : ViewModel() {
                     activeEditSession.value = null
                 }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "Gagal memperbarui sesi: ${e.message ?: "Periksa koneksi ke server"}"
-                        )
+                    if (!checkIfUnauthorized(e)) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Gagal memperbarui sesi: ${e.message ?: "Periksa koneksi ke server"}"
+                            )
+                        }
                     }
                 }
         }
@@ -904,8 +952,10 @@ class KasirViewModel : ViewModel() {
                     _uiState.update { it.copy(deletionLogs = res.logs) }
                 }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(errorMessage = "Gagal memuat log penghapusan: ${e.message ?: "Periksa koneksi ke server"}")
+                    if (!checkIfUnauthorized(e)) {
+                        _uiState.update {
+                            it.copy(errorMessage = "Gagal memuat log penghapusan: ${e.message ?: "Periksa koneksi ke server"}")
+                        }
                     }
                 }
         }
@@ -991,7 +1041,9 @@ class KasirViewModel : ViewModel() {
                     }
                 }
                 .onFailure { e ->
-                    onResult(false, "Gagal terhubung ke server: ${e.message ?: "Periksa URL server"}")
+                    if (!checkIfUnauthorized(e)) {
+                        onResult(false, "Gagal terhubung ke server: ${e.message ?: "Periksa URL server"}")
+                    }
                 }
         }
     }
@@ -1023,8 +1075,10 @@ class KasirViewModel : ViewModel() {
                     }
                 }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(errorMessage = "Gagal terhubung ke server: ${e.message ?: "Periksa URL server"}")
+                    if (!checkIfUnauthorized(e)) {
+                        _uiState.update {
+                            it.copy(errorMessage = "Gagal terhubung ke server: ${e.message ?: "Periksa URL server"}")
+                        }
                     }
                 }
         }

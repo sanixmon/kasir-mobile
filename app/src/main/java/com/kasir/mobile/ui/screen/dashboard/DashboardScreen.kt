@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -102,6 +103,7 @@ fun DashboardScreen(
     var selectedQty by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var searchQuery by remember { mutableStateOf("") }
     var isSortAscending by remember { mutableStateOf(false) }
+    var showLogoutConfirm by remember { mutableStateOf(false) }
     // 0: Sewa Baru, 1: Sesi Aktif — swipeable via HorizontalPager.
     val pagerState = rememberPagerState(pageCount = { 2 })
     val pagerScope = rememberCoroutineScope()
@@ -215,6 +217,13 @@ fun DashboardScreen(
                     }
                     IconButton(onClick = { navController.navigate(NavRoutes.SETTINGS) }) {
                         Icon(Icons.Filled.Settings, contentDescription = "Pengaturan")
+                    }
+                    IconButton(onClick = { showLogoutConfirm = true }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Keluar dari Sesi",
+                            tint = KasirError
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = KasirSurfaceVariant)
@@ -344,6 +353,30 @@ fun DashboardScreen(
             session = session,
             viewModel = viewModel,
             onClose = { viewModel.activeAddItemSession.value = null }
+        )
+    }
+
+    if (showLogoutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirm = false },
+            title = { Text("Keluar dari Sesi?") },
+            text = { Text("Sesi ${uiState.currentShiftUser ?: "kasir"} akan ditutup dan kembali ke halaman login.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutConfirm = false
+                        viewModel.logout()
+                        navController.navigate(NavRoutes.LOGIN) { popUpTo(0) { inclusive = true } }
+                    }
+                ) {
+                    Text("Keluar", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirm = false }) {
+                    Text("Batal")
+                }
+            }
         )
     }
 }

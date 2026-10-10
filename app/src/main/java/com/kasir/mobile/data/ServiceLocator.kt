@@ -3,6 +3,7 @@ package com.kasir.mobile.data
 import android.content.Context
 import com.kasir.mobile.BuildConfig
 import com.kasir.mobile.data.printer.BluetoothPrinterRepository
+import com.kasir.mobile.data.local.SessionManager
 import com.kasir.mobile.data.printer.PrinterRepository
 import com.kasir.mobile.data.remote.RetrofitClient
 import com.kasir.mobile.data.repository.KasirRepository
@@ -28,6 +29,9 @@ object ServiceLocator {
     @Volatile
     private var printerRepositoryInstance: PrinterRepository? = null
 
+    @Volatile
+    private var sessionManagerInstance: SessionManager? = null
+
     private val repositoryCache = ConcurrentHashMap<String, KasirRepository>()
 
     /** Call once from Application.onCreate() so the printer module can resolve a Context. */
@@ -42,6 +46,17 @@ object ServiceLocator {
             printerRepositoryInstance ?: BluetoothPrinterRepository(ctx).also { printerRepositoryInstance = it }
         }
     }
+    fun sessionManager(): SessionManager {
+        val ctx = appContext ?: throw IllegalStateException("ServiceLocator.init(context) belum dipanggil")
+        return sessionManagerInstance ?: synchronized(this) {
+            sessionManagerInstance ?: SessionManager(ctx).also { sessionManagerInstance = it }
+        }
+    }
+
+    fun setSessionManagerForTesting(sm: SessionManager?) {
+        sessionManagerInstance = sm
+    }
+
 
     fun repository(): KasirRepository = repositoryCache.getOrPut(activeServerUrl) {
         KasirRepositoryImpl(RetrofitClient.apiService(activeServerUrl))

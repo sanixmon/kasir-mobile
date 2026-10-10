@@ -3,6 +3,9 @@ package com.kasir.mobile.ui.navigation
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -20,6 +23,17 @@ import com.kasir.mobile.ui.viewmodel.KasirViewModel
 @Composable
 fun KasirNavHost(navController: NavHostController) {
     val kasirViewModel: KasirViewModel = viewModel()
+    val kasirUiState by kasirViewModel.uiState.collectAsState()
+
+    LaunchedEffect(kasirUiState.sessionExpired) {
+        if (kasirUiState.sessionExpired) {
+            kasirViewModel.resetSessionExpired()
+            navController.navigate(NavRoutes.LOGIN) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
 
     NavHost(
         navController = navController,

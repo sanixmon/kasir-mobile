@@ -7,6 +7,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Print
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.kasir.mobile.ui.navigation.NavRoutes
 import com.kasir.mobile.data.ServiceLocator
 import com.kasir.mobile.ui.theme.KasirError
 import com.kasir.mobile.ui.theme.KasirGreen
@@ -48,6 +50,7 @@ fun SettingsScreen(
     var backupMessage by remember { mutableStateOf<String?>(null) }
     var backupError by remember { mutableStateOf(false) }
     var backupLoading by remember { mutableStateOf(false) }
+    var showLogoutConfirm by remember { mutableStateOf(false) }
 
     val isAdmin = uiState.currentUserRole == "admin"
 
@@ -318,6 +321,68 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            // Logout section
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = KasirSurfaceCard,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Sesi Akun",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Keluar dari sesi admin dan kembali ke halaman login.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = { showLogoutConfirm = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Keluar dari Sesi Admin", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
         }
+    }
+
+    if (showLogoutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirm = false },
+            title = { Text("Keluar dari Sesi Admin?") },
+            text = { Text("Sesi admin akan ditutup dan kembali ke halaman login.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showLogoutConfirm = false
+                        viewModel.logout()
+                        navController.navigate(NavRoutes.LOGIN) { popUpTo(0) { inclusive = true } }
+                    }
+                ) {
+                    Text("Keluar", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirm = false }) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 }

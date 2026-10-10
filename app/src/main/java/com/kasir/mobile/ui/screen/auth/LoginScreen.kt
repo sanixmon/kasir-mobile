@@ -73,6 +73,26 @@ fun LoginScreen(
         }
     }
 
+    if (uiState.isRestoringSession) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(KasirSurface),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CircularProgressIndicator(color = KasirGreen)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Memeriksa sesi...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = KasirTextLow
+                )
+            }
+        }
+        return
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()

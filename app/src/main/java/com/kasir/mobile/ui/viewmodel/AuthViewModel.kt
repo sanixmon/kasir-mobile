@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 
 data class AuthUiState(
     val isLoading: Boolean = false,
+    val isRestoringSession: Boolean = true,
     val isLoggedIn: Boolean = false,
     val error: String? = null,
     val username: String = "",
@@ -34,19 +35,57 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
     init {
         // Restore the last used server URL and persisted login token
         viewModelScope.launch {
-            val session = sessionManager.sessionDataFlow.first()
-            val effectiveUrl = session.serverUrl.ifBlank { ServiceLocator.DEFAULT_SERVER_URL }
-            _uiState.update { it.copy(serverUrl = effectiveUrl) }
-            if (session.token.isNotBlank() && session.currentUserName.isNotBlank()) {
-                AuthTokenHolder.loginToken = session.token
-                ServiceLocator.setServerUrl(effectiveUrl)
-                _uiState.update {
-                    it.copy(
-                        isLoggedIn = true,
-                        username = session.currentUserName,
-                        isAdmin = session.isAdmin
-                    )
+            try {
+                val session = sessionManager.sessionDataFlow.first()
+                val effectiveUrl = session.serverUrl.ifBlank { ServiceLocator.DEFAULT_SERVER_URL }
+                _uiState.update { it.copy(serverUrl = effectiveUrl) }
+                if (session.token.isNotBlank() && session.currentUserName.isNotBlank()) {
+                    AuthTokenHolder.loginToken = session.token
+                    ServiceLocator.setServerUrl(effectiveUrl)
+                    // Verify persisted token with server before auto-logging in
+                    val result = ServiceLocator.repository().fetchAllData()
+                    if (result.isSuccess) {
+                        _uiState.update {
+                            it.copy(
+                                isRestoringSession = false,
+                                isLoggedIn = true,
+                                username = session.currentUserName,
+                                isAdmin = session.isAdmin
+                            )
+                        }
+                    } else {
+                        val error = result.exceptionOrNull()
+                        if (error is retrofit2.HttpException && error.code() == 401) {
+                            // Token rejected by server — session expired!
+                            AuthTokenHolder.clearAll()
+                            sessionManager.clearSession()
+                            _uiState.update {
+                                it.copy(
+                                    isRestoringSession = false,
+                                    isLoggedIn = false,
+                                    username = "",
+                                    isAdmin = false,
+                                    error = "Sesi login berakhir. Silakan login kembali."
+                                )
+                            }
+                        } else {
+                            // Non-401 failure (e.g. offline POS / network issue):
+                            // Retain cached session since server didn't explicitly reject token
+                            _uiState.update {
+                                it.copy(
+                                    isRestoringSession = false,
+                                    isLoggedIn = true,
+                                    username = session.currentUserName,
+                                    isAdmin = session.isAdmin
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    _uiState.update { it.copy(isRestoringSession = false) }
                 }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isRestoringSession = false) }
             }
         }
     }
@@ -153,9 +192,21 @@ class AuthViewModel(private val app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun resetLoginState(errorMessage: String? = null) {
+        _uiState.update {
+            it.copy(
+                isLoggedIn = false,
+                isRestoringSession = false,
+                username = "",
+                isAdmin = false,
+                error = errorMessage
+            )
+        }
+    }
+
     fun logout() {
         AuthTokenHolder.clearAll()
         viewModelScope.launch { sessionManager.clearSession() }
-        _uiState.update { AuthUiState(serverUrl = _uiState.value.serverUrl) }
+        _uiState.update { AuthUiState(serverUrl = _uiState.value.serverUrl, isRestoringSession = false) }
     }
 }
