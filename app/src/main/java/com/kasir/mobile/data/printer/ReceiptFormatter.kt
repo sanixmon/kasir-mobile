@@ -53,7 +53,7 @@ class ReceiptFormatter(
         }
         e.text(dashes).line()
         // ── Items ───────────────────────────────────────────────────────────
-        if (receipt.type != ReceiptType.SETTLEMENT) {
+        if (receipt.itemsText.isNotBlank()) {
             receipt.itemsText.split("\n").forEach { line ->
                 if (line.isBlank()) return@forEach
                 itemLines(line, w).forEach { wrapped -> e.text(wrapped).line() }
@@ -84,14 +84,19 @@ class ReceiptFormatter(
                 receipt.qris?.takeIf { it > 0 }?.let { e.text(twoCol("QRIS:", rp(it), w)).line() }
             }
             ReceiptType.SETTLEMENT -> {
+                var hadSubtotal = false
                 if (receipt.totalPokok > 0) {
                     e.text(twoCol("Sewa Pokok:", rp(receipt.totalPokok), w)).line()
+                    hadSubtotal = true
                 }
                 receipt.overtime?.takeIf { it > 0 }?.let {
                     e.text(twoCol("Overtime:", rp(it), w)).line()
+                    hadSubtotal = true
                 }
-                e.text(dashes).line()
-                e.bold(true).text(twoCol("TOTAL OMZET:", rp(receipt.total), w)).bold(false).line()
+                if (hadSubtotal) {
+                    e.text(dashes).line()
+                }
+                e.bold(true).text(twoCol("TOTAL REVENUE:", rp(receipt.total), w)).bold(false).line()
                 e.text(twoCol("Total Tunai:", rp(receipt.cash ?: 0), w)).line()
                 e.text(twoCol("Total QRIS:", rp(receipt.qris ?: 0), w)).line()
             }

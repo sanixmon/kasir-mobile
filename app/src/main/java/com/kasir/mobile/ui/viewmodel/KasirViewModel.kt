@@ -548,6 +548,7 @@ class KasirViewModel : ViewModel() {
         totalQris: Long,
         totalPokok: Long = 0L,
         totalOvertime: Long = 0L,
+        itemsText: String = "",
         onResult: ((Result<Unit>) -> Unit)? = null
     ) {
         viewModelScope.launch {
@@ -557,6 +558,7 @@ class KasirViewModel : ViewModel() {
                 shift = shiftUser,
                 tanggal = tanggal,
                 endTime = timeFmt.format(Date()),
+                itemsText = itemsText,
                 totalTxns = totalTxns,
                 totalPokok = totalPokok,
                 overtime = totalOvertime,

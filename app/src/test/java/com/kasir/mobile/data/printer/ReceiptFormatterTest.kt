@@ -108,7 +108,37 @@ class ReceiptFormatterTest {
         assertTrue("Should contain Shift date", decoded.contains("2026-10-10"))
         assertTrue("Should contain Petugas", decoded.contains("Akbar Kasir"))
         assertTrue("Should contain Total Trx", decoded.contains("8 Selesai"))
-        assertTrue("Should contain TOTAL OMZET", decoded.contains("TOTAL OMZET:"))
+        assertTrue("Should contain TOTAL REVENUE", decoded.contains("TOTAL REVENUE:"))
+        assertTrue("Should contain Total Tunai", decoded.contains("Total Tunai:"))
+        assertTrue("Should contain Total QRIS", decoded.contains("Total QRIS:"))
+    }
+
+    @Test
+    fun testSettlementReceiptWithItemsFormatting() {
+        val formatter = ReceiptFormatter(PrinterProfile.GENERIC_58MM, GbkPrinterCharset())
+        val receipt = Receipt(
+            type = ReceiptType.SETTLEMENT,
+            shift = "Budi Kasir",
+            tanggal = "2026-10-28",
+            endTime = "18:00",
+            itemsText = "Scooter Dewasa x1  Rp 50.000\nScooter Jumbo x2  Rp 120.000",
+            totalTxns = 3,
+            totalPokok = 170000L,
+            overtime = 0L,
+            total = 170000L,
+            cash = 170000L,
+            qris = 0L,
+            footer = "CLOSING SHIFT SELESAI"
+        )
+
+        val commands = formatter.toCommands(receipt)
+        val decoded = String(commands, Charset.forName("CP437"))
+
+        assertTrue("Should contain Struk Tutup Shift", decoded.contains("Struk Tutup Shift"))
+        assertTrue("Should contain Petugas", decoded.contains("Budi Kasir"))
+        assertTrue("Should contain Scooter Dewasa x1", decoded.contains("Scooter Dewasa x1"))
+        assertTrue("Should contain Scooter Jumbo x2", decoded.contains("Scooter Jumbo x2"))
+        assertTrue("Should contain TOTAL REVENUE", decoded.contains("TOTAL REVENUE:"))
         assertTrue("Should contain Total Tunai", decoded.contains("Total Tunai:"))
         assertTrue("Should contain Total QRIS", decoded.contains("Total QRIS:"))
     }

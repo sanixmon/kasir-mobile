@@ -138,7 +138,7 @@ fun SettingsAnalyticsSection(
             // ── 4 stat tiles (2×2) ────────────────────────────────────────
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 AnalyticsStatCard(
-                    label = "Total Omzet Shift Ini",
+                    label = "Total Revenue Shift Ini",
                     value = idrFormat.format(todayRevenue),
                     valueColor = KasirOnSurface,
                     sub = "${todayTxns.size} Transaksi Selesai",

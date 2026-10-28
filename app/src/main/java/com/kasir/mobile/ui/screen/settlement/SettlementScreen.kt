@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.kasir.mobile.data.model.ItemCatalog
 import com.kasir.mobile.data.model.TransactionDto
+import com.kasir.mobile.data.printer.rp
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
 import com.kasir.mobile.ui.navigation.KasirResponsiveScaffold
 import com.kasir.mobile.ui.navigation.NavRoutes
@@ -46,8 +47,8 @@ fun parseAggregatedItems(txns: List<TransactionDto>): List<AggregatedRentalItem>
             txn.items.split(",").forEach { rawPart ->
                 val part = rawPart.trim()
                 if (part.isNotBlank()) {
-                    val code = part.substringBefore("×").substringBefore("x").trim()
-                    val qty = part.substringAfter("×").substringAfter("x").trim().toIntOrNull() ?: 1
+                    val code = part.substringBefore("×").substringBefore("x").substringBefore("X").trim().uppercase(Locale.getDefault())
+                    val qty = part.substringAfter("×").substringAfter("x").substringAfter("X").trim().toIntOrNull() ?: 1
                     if (code.isNotBlank()) {
                         map[code] = (map[code] ?: 0) + qty
                     }
@@ -92,20 +93,38 @@ fun SettlementScreen(
     // Filter transactions for current cashier shift
     val shiftTxns = remember(uiState.transactions, uiState.currentShiftUser, todayShift, isAdmin) {
         uiState.transactions.filter { t ->
-            val matchesUser = if (isAdmin) true else t.shift.equals(uiState.currentShiftUser, ignoreCase = true)
+            val matchesUser = if (isAdmin) true else t.shift.trim().equals(uiState.currentShiftUser?.trim(), ignoreCase = true)
             val matchesDate = t.tanggal == todayShift || (t.endTime > 0 && ShiftDateUtil.getShiftDate(t.endTime) == todayShift)
             matchesUser && matchesDate
         }
     }
 
     val totalRevenue = remember(shiftTxns) { shiftTxns.sumOf { it.totalAll } }
-    val totalCash = remember(shiftTxns) { shiftTxns.sumOf { it.cash } }
-    val totalQris = remember(shiftTxns) { shiftTxns.sumOf { it.qris } }
+    val totalCash = remember(shiftTxns) {
+        shiftTxns.sumOf { t ->
+            val pokokCash = if (t.payAwal.trim().equals("qris", ignoreCase = true)) 0.0 else t.totalBase
+            pokokCash + t.cash
+        }
+    }
+    val totalQris = remember(shiftTxns) {
+        shiftTxns.sumOf { t ->
+            val pokokQris = if (t.payAwal.trim().equals("qris", ignoreCase = true)) t.totalBase else 0.0
+            pokokQris + t.qris
+        }
+    }
     val totalPokok = remember(shiftTxns) { shiftTxns.sumOf { it.totalBase } }
     val totalOt = remember(shiftTxns) { shiftTxns.sumOf { it.totalOT } }
     val totalTol = remember(shiftTxns) { shiftTxns.sumOf { it.totalTol } }
     val aggregatedItems = remember(shiftTxns) { parseAggregatedItems(shiftTxns) }
-
+    val settlementItemsText = remember(aggregatedItems) {
+        aggregatedItems.joinToString("\n") { item ->
+            if (item.estimatedRevenue > 0) {
+                "${item.name} x${item.totalQty}  ${rp(item.estimatedRevenue.toLong())}"
+            } else {
+                "${item.name} x${item.totalQty}"
+            }
+        }
+    }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var isClosing by remember { mutableStateOf(false) }
     var closingFinished by remember { mutableStateOf(false) }
@@ -522,7 +541,7 @@ fun SettlementScreen(
                     Spacer(Modifier.height(8.dp))
                     Text("Ringkasan yang akan disimpan:")
                     Spacer(Modifier.height(4.dp))
-                    Text("• Total Omzet: ${idrFormat.format(totalRevenue)}", fontWeight = FontWeight.SemiBold)
+                    Text("• Total Revenue: ${idrFormat.format(totalRevenue)}", fontWeight = FontWeight.SemiBold)
                     Text("• Penerimaan Tunai: ${idrFormat.format(totalCash)}")
                     Text("• Penerimaan QRIS: ${idrFormat.format(totalQris)}")
                     Text("• Transaksi Selesai: ${shiftTxns.size} transaksi")
@@ -558,7 +577,8 @@ fun SettlementScreen(
                                     totalCash = totalCash.toLong(),
                                     totalQris = totalQris.toLong(),
                                     totalPokok = totalPokok.toLong(),
-                                    totalOvertime = totalOt.toLong()
+                                    totalOvertime = totalOt.toLong(),
+                                    itemsText = settlementItemsText
                                 ) { printResult ->
                                     isClosing = false
                                     closingFinished = true
@@ -663,7 +683,8 @@ fun SettlementScreen(
                             totalCash = totalCash.toLong(),
                             totalQris = totalQris.toLong(),
                             totalPokok = totalPokok.toLong(),
-                            totalOvertime = totalOt.toLong()
+                            totalOvertime = totalOt.toLong(),
+                            itemsText = settlementItemsText
                         ) { res ->
                             isReprinting = false
                             if (res.isSuccess) {
