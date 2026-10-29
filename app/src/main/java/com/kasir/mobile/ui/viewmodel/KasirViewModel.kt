@@ -443,6 +443,19 @@ class KasirViewModel : ViewModel() {
             repository().editSession(updatedSession)
                 .onSuccess { res ->
                     if (!res.success) {
+                        if (res.status == "ALREADY_CLOSED") {
+                            recentlyClaimedSessionIds.add(session.id)
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    activeSessions = it.activeSessions.filter { s -> s.id != session.id },
+                                    errorMessage = "Sesi ${session.nama} sudah diselesaikan di perangkat lain."
+                                )
+                            }
+                            loadData(showSync = false)
+                            onComplete(false)
+                            return@onSuccess
+                        }
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -982,6 +995,19 @@ class KasirViewModel : ViewModel() {
             repository().editSession(updated)
                 .onSuccess { res ->
                     if (!res.success) {
+                        if (res.status == "ALREADY_CLOSED") {
+                            recentlyClaimedSessionIds.add(updated.id)
+                            _uiState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    activeSessions = it.activeSessions.filter { s -> s.id != updated.id },
+                                    errorMessage = "Sesi ${updated.nama} sudah diselesaikan di perangkat lain."
+                                )
+                            }
+                            activeEditSession.value = null
+                            loadData(showSync = false)
+                            return@onSuccess
+                        }
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
