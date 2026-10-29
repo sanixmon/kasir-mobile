@@ -954,6 +954,26 @@ fun ActiveSessionCard(
                             }
                         }
                     }
+                    if (session.isPartial) {
+                        Spacer(Modifier.width(6.dp))
+                        Surface(
+                            color = KasirAccent.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(4.dp),
+                            border = BorderStroke(1.dp, KasirAccent.copy(alpha = 0.4f))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    "SISA SEBAGIAN (#${session.prevTxnNo ?: "?"})",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = KasirAccent
+                                )
+                            }
+                        }
+                    }
                 }
                 val payColor = if (session.payAwal == "qris") KasirQris else KasirCash
                 Surface(

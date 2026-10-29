@@ -21,8 +21,10 @@ data class FetchAllDataResponse(
 data class ActionSuccessResponse(
     val success: Boolean = false,
     val error: String? = null,
+    val status: String? = null,
     val session: SessionDto? = null,
-    val transaction: TransactionDto? = null
+    val transaction: TransactionDto? = null,
+    val replayed: Boolean? = null
 )
 
 @Serializable

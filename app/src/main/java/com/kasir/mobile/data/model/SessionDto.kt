@@ -10,5 +10,8 @@ data class SessionDto(
     val items: List<ItemDto> = emptyList(),
     val startTime: Long = 0L,
     val tanggal: String = "",
-    val payAwal: String = "cash"
+    val payAwal: String = "cash",
+    val isPartial: Boolean = false,
+    val prevTxnNo: Int? = null,
+    val prevTxnId: String? = null
 )

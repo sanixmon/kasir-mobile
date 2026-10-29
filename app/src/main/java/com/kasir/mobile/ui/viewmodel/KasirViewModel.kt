@@ -254,7 +254,7 @@ class KasirViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val newSession = SessionDto(
-                id = "s-${System.currentTimeMillis().toString(36)}",
+                id = "s-${System.currentTimeMillis().toString(36)}-${java.util.UUID.randomUUID().toString().take(6)}",
                 queueNo = 0,
                 nama = nama,
                 items = items,
@@ -761,7 +761,9 @@ class KasirViewModel : ViewModel() {
             }
 
             // Payload mirrors kasir-db App.jsx handleFinalizePayment
+            val claimId = "clm-${System.currentTimeMillis().toString(36)}-${java.util.UUID.randomUUID().toString().take(8)}"
             val claimPayload = mapOf(
+                "claimId" to claimId,
                 "sessionId" to session.id,
                 "remainingItems" to remainingItemsPayload,
                 "queueNo" to session.queueNo,
@@ -782,14 +784,14 @@ class KasirViewModel : ViewModel() {
                 "qris" to qris,
                 "shift" to (_uiState.value.currentShiftUser ?: "-")
             )
-
             repository().claimSession(claimPayload)
                 .onSuccess { res ->
                     if (!res.success) {
                         val errMsg = res.error ?: "Ditolak server"
-                        val isAlreadyClaimed = errMsg.contains("already claimed", ignoreCase = true) ||
+                        val isAlreadyClaimed = res.status == "ALREADY_CLOSED" ||
+                            errMsg.contains("already claimed", ignoreCase = true) ||
+                            errMsg.contains("sudah diselesaikan", ignoreCase = true) ||
                             errMsg.contains("not found", ignoreCase = true)
-
                         if (isAlreadyClaimed) {
                             // Ghost session cleanup: session is already closed/claimed on server.
                             // Immediately evict it from active sessions so it never blocks the UI.
