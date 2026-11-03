@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -46,7 +46,7 @@ jobs:
       - name: Package Release Assets
         id: package
         run: |
-          VERSION=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -1)
+          VERSION=$(sed -n 's/^ *?: "\([0-9][0-9.]*\)"$/\1/p' app/build.gradle.kts | head -n1)
           TAG="v${VERSION:-1.0.0}-${GITHUB_RUN_NUMBER}"
           mkdir -p release-assets
 

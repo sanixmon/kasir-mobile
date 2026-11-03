@@ -41,18 +41,26 @@ jobs:
 
       - name: Determine tag and release title
         id: vars
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag_name }}
+          INPUT_TITLE: ${{ github.event.inputs.release_title }}
+          IS_TAG_REF: ${{ startsWith(github.ref, 'refs/tags/') }}
         run: |
-          if [ -n "${{ github.event.inputs.tag_name }}" ]; then
-            TAG="${{ github.event.inputs.tag_name }}"
-          elif [ "${{ startsWith(github.ref, 'refs/tags/') }}" = "true" ]; then
+          if [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+          elif [ "$IS_TAG_REF" = "true" ]; then
             TAG="${GITHUB_REF#refs/tags/}"
           else
-            VERSION=$(grep 'versionName = ' app/build.gradle.kts | head -n1 | sed -E 's/.*versionName = "([^"]+)".*/\1/')
+            VERSION=$(sed -n 's/^ *?: "\([0-9][0-9.]*\)"$/\1/p' app/build.gradle.kts | head -n1)
             TAG="v${VERSION:-1.0.2}"
           fi
           
+          if ! printf '%s' "$TAG" | grep -Eq '^v?[0-9]+\.[0-9]+(\.[0-9]+)?([-.][0-9A-Za-z.-]+)?$'; then
+            echo "Invalid tag: $TAG" >&2
+            exit 1
+          fi
           CLEAN_VERSION="${TAG#v}"
-          TITLE="${{ github.event.inputs.release_title }}"
+          TITLE="$INPUT_TITLE"
           if [ -z "$TITLE" ]; then
             TITLE="Kasir Mobile v${CLEAN_VERSION}"
           fi
