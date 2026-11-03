@@ -742,7 +742,7 @@ fun TransactionCard(
                             },
                             fontFamily = KasirMono,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             color = when {
                                 isSplit -> KasirAccent
                                 totalCash > 0 -> KasirCash
@@ -772,7 +772,7 @@ fun TransactionCard(
 
                 IconButton(
                     onClick = onPrint,
-                    modifier = Modifier.size(38.dp)
+                    modifier = Modifier.size(44.dp)
                 ) {
                     Icon(
                         Icons.Filled.Print,

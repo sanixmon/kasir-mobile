@@ -171,7 +171,7 @@ fun SettingsScreen(
                                 ),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                             ) {
-                                Text("Atur Printer", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                Text("Atur Printer", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                             }
                         }
                     )
@@ -321,7 +321,7 @@ fun SettingsScreen(
                                     )
                                     Spacer(Modifier.width(6.dp))
                                 }
-                                Text("Periksa", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                Text("Periksa", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                             }
                         }
                     )
@@ -355,7 +355,7 @@ fun SettingsScreen(
                                 ),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                             ) {
-                                Text("Keluar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Keluar", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         }
                     )
@@ -500,7 +500,7 @@ fun SettingsScreen(
                                     )
                                     Spacer(Modifier.width(6.dp))
                                 }
-                                Text(if (backupLoading) "Memproses..." else "Backup", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(if (backupLoading) "Memproses..." else "Backup", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         }
                     )
@@ -534,7 +534,7 @@ fun SettingsScreen(
                                 ),
                                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                             ) {
-                                Text("Keluar", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Keluar", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                         }
                     )

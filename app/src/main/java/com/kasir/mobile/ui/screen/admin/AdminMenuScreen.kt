@@ -428,7 +428,7 @@ private fun StatusTile(
                     text = if (isOnline) "Server Online" else "Server Offline",
                     fontFamily = KasirMono,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     color = if (isOnline) KasirGreen else KasirAccent,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

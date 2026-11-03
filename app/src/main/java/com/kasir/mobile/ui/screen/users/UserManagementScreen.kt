@@ -236,7 +236,7 @@ private fun UserRow(
                             Text(
                                 "Anda",
                                 fontFamily = KasirMono,
-                                fontSize = 10.sp,
+                                fontSize = 12.sp,
                                 color = KasirTextLow,
                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                             )

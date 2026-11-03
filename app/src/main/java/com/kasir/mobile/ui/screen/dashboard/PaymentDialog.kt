@@ -284,18 +284,18 @@ fun PaymentDialog(
                                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             AssistChip(
                                                 onClick = { cashAmt = grand },
-                                                label = { Text("Uang Pas", fontSize = 11.sp) }
+                                                label = { Text("Uang Pas", fontSize = 13.sp) }
                                             )
                                             if (grand <= 50000.0) {
                                                 AssistChip(
                                                     onClick = { cashAmt = 50000.0 },
-                                                    label = { Text("Rp 50.000", fontSize = 11.sp) }
+                                                    label = { Text("Rp 50.000", fontSize = 13.sp) }
                                                 )
                                             }
                                             if (grand <= 100000.0) {
                                                 AssistChip(
                                                     onClick = { cashAmt = 100000.0 },
-                                                    label = { Text("Rp 100.000", fontSize = 11.sp) }
+                                                    label = { Text("Rp 100.000", fontSize = 13.sp) }
                                                 )
                                             }
                                         }
@@ -576,18 +576,18 @@ fun PaymentDialog(
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 AssistChip(
                                     onClick = { cashAmt = grand },
-                                    label = { Text("Uang Pas", fontSize = 11.sp) }
+                                    label = { Text("Uang Pas", fontSize = 13.sp) }
                                 )
                                 if (grand <= 50000.0) {
                                     AssistChip(
                                         onClick = { cashAmt = 50000.0 },
-                                        label = { Text("Rp 50.000", fontSize = 11.sp) }
+                                        label = { Text("Rp 50.000", fontSize = 13.sp) }
                                     )
                                 }
                                 if (grand <= 100000.0) {
                                     AssistChip(
                                         onClick = { cashAmt = 100000.0 },
-                                        label = { Text("Rp 100.000", fontSize = 11.sp) }
+                                        label = { Text("Rp 100.000", fontSize = 13.sp) }
                                     )
                                 }
                             }

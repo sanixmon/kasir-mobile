@@ -26,7 +26,7 @@ val KasirDarkSurfaceCard = Color(0xFF171E27)    // cards, inputs, dialogs
 val KasirDarkLine = Color(0xFF26303C)           // dividers, outlines
 val KasirDarkOnSurface = Color(0xFFE6EDF3)      // primary text
 val KasirDarkOnSurfaceVariant = Color(0xFF94A3B8) // secondary text
-val KasirDarkTextLow = Color(0xFF5B6B7B)        // captions, metadata
+val KasirDarkTextLow = Color(0xFF7D8EA0)        // captions, metadata (>=5:1 on dark surfaces)
 
 val KasirDarkPrimary = Color(0xFF3E5CFF)        // primary signal (blue)
 val KasirDarkPrimaryDark = Color(0xFF2E4ED8)    // primary pressed

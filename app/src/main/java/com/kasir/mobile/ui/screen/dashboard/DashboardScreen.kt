@@ -581,7 +581,7 @@ private fun SewaPaymentSelector(
             Text(
                 "Cash",
                 fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
+                fontSize = 14.sp,
                 color = if (payAwal == "cash") KasirCash else KasirOnSurfaceVariant
             )
         }
@@ -605,7 +605,7 @@ private fun SewaPaymentSelector(
             Text(
                 "QRIS",
                 fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
+                fontSize = 14.sp,
                 color = if (payAwal == "qris") KasirQris else KasirOnSurfaceVariant
             )
         }
@@ -791,7 +791,7 @@ fun ItemCatalogCard(
                     text = item.code,
                     fontFamily = KasirMono,
                     fontWeight = FontWeight.Bold,
-                    fontSize = if (compact) 10.sp else 12.sp,
+                    fontSize = if (compact) 11.sp else 13.sp,
                     color = if (selected) KasirGreen else KasirOnSurfaceVariant
                 )
             Text(
@@ -812,14 +812,14 @@ fun ItemCatalogCard(
                 text = idrFormat.format(item.priceHour),
                 fontFamily = KasirMono,
                 fontWeight = FontWeight.Bold,
-                fontSize = if (compact) 10.sp else 11.sp,
+                fontSize = if (compact) 12.sp else 13.sp,
                 color = KasirGreen
             )
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (compact) 40.dp else 48.dp)
+                    .height(if (compact) 44.dp else 48.dp)
                     .clip(RoundedCornerShape(10.dp))
             ) {
                 // Decrease — left half of the card itself
@@ -967,16 +967,16 @@ fun ActiveSessionCard(
                         Surface(color = KasirError.copy(alpha = 0.15f), shape = RoundedCornerShape(4.dp)) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                             ) {
                                 Icon(
                                     Icons.Filled.Warning,
                                     contentDescription = null,
                                     tint = KasirError,
-                                    modifier = Modifier.size(10.dp)
+                                    modifier = Modifier.size(12.dp)
                                 )
                                 Spacer(Modifier.width(2.dp))
-                                Text("ZOMBIE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = KasirError)
+                                Text("ZOMBIE", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = KasirError)
                             }
                         }
                     }
@@ -989,11 +989,11 @@ fun ActiveSessionCard(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                             ) {
                                 Text(
                                     "SISA SEBAGIAN (#${session.prevTxnNo ?: "?"})",
-                                    fontSize = 9.sp,
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = KasirAccent
                                 )
@@ -1029,7 +1029,7 @@ fun ActiveSessionCard(
                         Text(
                             "${item.code}×${item.qty}",
                             fontFamily = KasirMono,
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                             color = KasirOnSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )

@@ -190,10 +190,10 @@ private val KasirTypography = Typography(
     // Body — system sans stays quiet and legible
     bodyLarge = TextStyle(fontFamily = KasirBody, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp),
     bodyMedium = TextStyle(fontFamily = KasirBody, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp),
-    bodySmall = TextStyle(fontFamily = KasirBody, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 16.sp),
+    bodySmall = TextStyle(fontFamily = KasirBody, fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 18.sp),
     labelLarge = TextStyle(fontFamily = KasirBody, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
-    labelMedium = TextStyle(fontFamily = KasirBody, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.2.sp),
-    labelSmall = TextStyle(fontFamily = KasirBody, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 0.4.sp),
+    labelMedium = TextStyle(fontFamily = KasirBody, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 18.sp, letterSpacing = 0.2.sp),
+    labelSmall = TextStyle(fontFamily = KasirBody, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.3.sp),
 )
 
 /**

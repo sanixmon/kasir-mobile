@@ -280,8 +280,8 @@ private fun SessionInfoBadge(session: SessionDto) {
                     fontFamily = KasirMono,
                     fontWeight = FontWeight.Bold,
                     color = KasirAccent,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                 )
             }
             Spacer(Modifier.width(10.dp))
@@ -321,7 +321,7 @@ private fun ItemCatalogList(
                                 fontFamily = KasirMono,
                                 fontWeight = FontWeight.Bold,
                                 color = KasirAccent,
-                                fontSize = 12.sp
+                                fontSize = 13.sp
                             )
                             Spacer(Modifier.width(6.dp))
                             Text(item.name, fontWeight = FontWeight.SemiBold, color = KasirOnSurface, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -338,10 +338,10 @@ private fun ItemCatalogList(
                         FilledTonalIconButton(
                             onClick = { onChgQty(item.code, -1) },
                             enabled = qty > 0 && !isSubmitting,
-                            modifier = Modifier.size(34.dp),
+                            modifier = Modifier.size(44.dp),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Filled.Remove, contentDescription = "Kurangi", modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.Remove, contentDescription = "Kurangi", modifier = Modifier.size(20.dp))
                         }
 
                         Text(
@@ -356,14 +356,14 @@ private fun ItemCatalogList(
                         FilledTonalIconButton(
                             onClick = { onChgQty(item.code, 1) },
                             enabled = !isSubmitting,
-                            modifier = Modifier.size(34.dp),
+                            modifier = Modifier.size(44.dp),
                             shape = RoundedCornerShape(8.dp),
                             colors = IconButtonDefaults.filledTonalIconButtonColors(
                                 containerColor = if (qty > 0) KasirAccent else KasirSurfaceVariant,
                                 contentColor = if (qty > 0) KasirOnAccent else KasirOnSurface
                             )
                         ) {
-                            Icon(Icons.Filled.Add, contentDescription = "Tambah", modifier = Modifier.size(16.dp))
+                            Icon(Icons.Filled.Add, contentDescription = "Tambah", modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -469,18 +469,18 @@ private fun CashHandlingSection(
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             AssistChip(
                 onClick = { onCashGivenChange(totalAdditional.toLong().toString()) },
-                label = { Text("Uang Pas", fontSize = 11.sp) }
+                label = { Text("Uang Pas", fontSize = 13.sp) }
             )
             if (totalAdditional <= 50000.0) {
                 AssistChip(
                     onClick = { onCashGivenChange("50000") },
-                    label = { Text("Rp 50.000", fontSize = 11.sp) }
+                    label = { Text("Rp 50.000", fontSize = 13.sp) }
                 )
             }
             if (totalAdditional <= 100000.0) {
                 AssistChip(
                     onClick = { onCashGivenChange("100000") },
-                    label = { Text("Rp 100.000", fontSize = 11.sp) }
+                    label = { Text("Rp 100.000", fontSize = 13.sp) }
                 )
             }
         }
