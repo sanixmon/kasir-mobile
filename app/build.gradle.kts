@@ -51,7 +51,7 @@ android {
 
     val computedVersionName: String = (project.findProperty("versionName") as? String)
         ?: System.getenv("VERSION_NAME")
-        ?: "1.0.9"
+        ?: "1.0.10"
     defaultConfig {
         applicationId = "com.kasir.mobile"
         minSdk = 24
