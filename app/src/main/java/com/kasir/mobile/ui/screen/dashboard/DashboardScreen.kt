@@ -335,7 +335,7 @@ fun DashboardScreen(
         EditActiveSessionDialog(
             session = session,
             viewModel = viewModel,
-            onClose = { viewModel.activeEditSession.value = null }
+            onClose = { viewModel.closeEditSession() }
         )
     }
 

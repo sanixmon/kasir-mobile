@@ -58,7 +58,14 @@ object ServiceLocator {
     }
 
 
-    fun repository(): KasirRepository = repositoryCache.getOrPut(activeServerUrl) {
+    @Volatile
+    private var repositoryOverride: KasirRepository? = null
+
+    fun setRepositoryForTesting(repo: KasirRepository?) {
+        repositoryOverride = repo
+    }
+
+    fun repository(): KasirRepository = repositoryOverride ?: repositoryCache.getOrPut(activeServerUrl) {
         KasirRepositoryImpl(RetrofitClient.apiService(activeServerUrl))
     }
 

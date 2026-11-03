@@ -90,8 +90,15 @@ class KasirViewModel : ViewModel() {
     var activeAddItemSession = MutableStateFlow<SessionDto?>(null)
 
     // Admin PIN verification gate (non-null value = PIN dialog shown; the lambda
-    // is the protected action to run once the PIN is verified)
-    var pendingAdminAction = MutableStateFlow<(() -> Unit)?>(null)
+    // is the protected action to run once the PIN is verified). It suspends until
+    // the protected request has completed so the escalation token stays attached
+    // for the whole network call.
+    var pendingAdminAction = MutableStateFlow<(suspend () -> Unit)?>(null)
+
+    // Escalation token granted by the PIN dialog for the edit-session flow. The
+    // edit request happens later (when the dialog is saved), so it is kept here
+    // instead of in AuthTokenHolder, where it would also tag polling requests.
+    private var editEscalationToken: String? = null
     var adminPinError = MutableStateFlow<String?>(null)
 
     private val syncingNow = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -890,12 +897,12 @@ class KasirViewModel : ViewModel() {
         if (_uiState.value.currentUserRole == "admin") {
             performDeleteTransaction(txn)
         } else {
-            pendingAdminAction.value = { performDeleteTransaction(txn) }
+            pendingAdminAction.value = { performDeleteTransaction(txn).join() }
         }
     }
 
-    private fun performDeleteTransaction(txn: TransactionDto) {
-        viewModelScope.launch {
+    private fun performDeleteTransaction(txn: TransactionDto): Job {
+        return viewModelScope.launch {
             val log = DeletionLogDto(
                 id = System.currentTimeMillis(),
                 txnId = txn.id,
@@ -945,12 +952,12 @@ class KasirViewModel : ViewModel() {
         if (_uiState.value.currentUserRole == "admin") {
             performClearAllHistory()
         } else {
-            pendingAdminAction.value = { performClearAllHistory() }
+            pendingAdminAction.value = { performClearAllHistory().join() }
         }
     }
 
-    private fun performClearAllHistory() {
-        viewModelScope.launch {
+    private fun performClearAllHistory(): Job {
+        return viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             repository().clearAllTxns()
                 .onSuccess { res ->
@@ -986,13 +993,31 @@ class KasirViewModel : ViewModel() {
 
     /** Mirrors kasir-db: editing an active session always requires admin PIN first. */
     fun requestEditSession(session: SessionDto) {
-        pendingAdminAction.value = { activeEditSession.value = session }
+        pendingAdminAction.value = {
+            editEscalationToken = AuthTokenHolder.escalationToken
+            activeEditSession.value = session
+        }
+    }
+
+    /** Closes the edit dialog and drops the escalation token granted for it. */
+    fun closeEditSession() {
+        activeEditSession.value = null
+        editEscalationToken = null
     }
 
     fun saveEditedSession(updated: SessionDto) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            repository().editSession(updated)
+            // Re-attach the admin escalation token granted when the dialog was
+            // opened, only for the duration of this request.
+            val escToken = editEscalationToken
+            if (escToken != null) AuthTokenHolder.setEscalation(escToken)
+            val result = try {
+                repository().editSession(updated)
+            } finally {
+                if (escToken != null) AuthTokenHolder.clearEscalation()
+            }
+            result
                 .onSuccess { res ->
                     if (!res.success) {
                         if (res.status == "ALREADY_CLOSED") {
@@ -1004,7 +1029,7 @@ class KasirViewModel : ViewModel() {
                                     errorMessage = "Sesi ${updated.nama} sudah diselesaikan di perangkat lain."
                                 )
                             }
-                            activeEditSession.value = null
+                            closeEditSession()
                             loadData(showSync = false)
                             return@onSuccess
                         }
@@ -1024,10 +1049,20 @@ class KasirViewModel : ViewModel() {
                             successMessage = "Sesi atas nama ${saved.nama} berhasil diperbarui"
                         )
                     }
-                    activeEditSession.value = null
+                    closeEditSession()
                 }
                 .onFailure { e ->
-                    if (!checkIfUnauthorized(e)) {
+                    if (escToken != null && e is retrofit2.HttpException && e.code() == 401) {
+                        // The 10-minute admin escalation expired while the dialog
+                        // was open — that is not a cashier logout.
+                        closeEditSession()
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = "Verifikasi admin kedaluwarsa. Silakan verifikasi ulang untuk mengedit sesi."
+                            )
+                        }
+                    } else if (!checkIfUnauthorized(e)) {
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
@@ -1141,12 +1176,12 @@ class KasirViewModel : ViewModel() {
         if (_uiState.value.currentUserRole == "admin") {
             performSaveCashier(name, password, onResult)
         } else {
-            pendingAdminAction.value = { performSaveCashier(name, password, onResult) }
+            pendingAdminAction.value = { performSaveCashier(name, password, onResult).join() }
         }
     }
 
-    private fun performSaveCashier(username: String, password: String, onResult: (Boolean, String) -> Unit) {
-        viewModelScope.launch {
+    private fun performSaveCashier(username: String, password: String, onResult: (Boolean, String) -> Unit): Job {
+        return viewModelScope.launch {
             repository().saveUser(username, password, "cashier")
                 .onSuccess { res ->
                     if (res.success) {
@@ -1176,12 +1211,12 @@ class KasirViewModel : ViewModel() {
         if (_uiState.value.currentUserRole == "admin") {
             performDeleteCashier(username)
         } else {
-            pendingAdminAction.value = { performDeleteCashier(username) }
+            pendingAdminAction.value = { performDeleteCashier(username).join() }
         }
     }
 
-    private fun performDeleteCashier(username: String) {
-        viewModelScope.launch {
+    private fun performDeleteCashier(username: String): Job {
+        return viewModelScope.launch {
             repository().deleteUser(username)
                 .onSuccess { res ->
                     if (res.success) {
