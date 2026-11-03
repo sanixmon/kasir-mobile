@@ -39,6 +39,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -137,10 +140,24 @@ fun DashboardScreen(
         }
     }
 
-    // Poll the server only while Dashboard is visible (stops on logout / other screens)
-    DisposableEffect(Unit) {
-        viewModel.startPolling()
-        onDispose { viewModel.stopPolling() }
+    // Poll the server only while Dashboard is on screen *and* the app is in the
+    // foreground: stops on logout / other screens and when the app is
+    // backgrounded or the display turns off, resumes on return.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.startPolling()
+                Lifecycle.Event.ON_STOP -> viewModel.stopPolling()
+                else -> Unit
+            }
+        }
+        // addObserver replays ON_START if the lifecycle is already started.
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.stopPolling()
+        }
     }
 
     KasirResponsiveScaffold(
