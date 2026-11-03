@@ -75,8 +75,17 @@ data class PaymentCalcData(
     val grandTotal: Double,
     val otStr: String,
     val otDurStr: String,
-    val endTime: Long
+    val endTime: Long,
+    /**
+     * Idempotency key for claim_session. Generated once per payment dialog and
+     * kept across retries so a request that timed out after the server applied
+     * it can't be recorded twice.
+     */
+    val claimId: String = newClaimId()
 )
+
+private fun newClaimId(): String =
+    "clm-${System.currentTimeMillis().toString(36)}-${java.util.UUID.randomUUID().toString().take(8)}"
 
 class KasirViewModel : ViewModel() {
 
@@ -781,7 +790,7 @@ class KasirViewModel : ViewModel() {
             }
 
             // Payload mirrors kasir-db App.jsx handleFinalizePayment
-            val claimId = "clm-${System.currentTimeMillis().toString(36)}-${java.util.UUID.randomUUID().toString().take(8)}"
+            val claimId = paymentData.claimId
             val claimPayload = mapOf(
                 "claimId" to claimId,
                 "sessionId" to session.id,
