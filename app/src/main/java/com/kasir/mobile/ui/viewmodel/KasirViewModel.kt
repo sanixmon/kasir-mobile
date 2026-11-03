@@ -84,6 +84,14 @@ data class PaymentCalcData(
     val claimId: String = newClaimId()
 )
 
+/**
+ * Identity for a transaction: by id when present, otherwise by number. Matching
+ * on `no` alone is unsafe — locally built fallback transactions all have no = 0.
+ */
+internal fun TransactionDto.isSameTxn(other: TransactionDto): Boolean =
+    if (id.isNotBlank() && other.id.isNotBlank()) id == other.id
+    else no != 0L && no == other.no
+
 private fun newClaimId(): String =
     "clm-${System.currentTimeMillis().toString(36)}-${java.util.UUID.randomUUID().toString().take(8)}"
 
@@ -926,7 +934,7 @@ class KasirViewModel : ViewModel() {
             // Optimistic UI update, then sync with the server
             _uiState.update {
                 it.copy(
-                    transactions = it.transactions.filter { t -> t.id != txn.id && t.no != txn.no },
+                    transactions = it.transactions.filterNot { t -> t.isSameTxn(txn) },
                     deletionLogs = listOf(log) + it.deletionLogs
                 )
             }

@@ -121,3 +121,15 @@ class KasirViewModelAdminEscalationTest {
         assertNull(vm.activeEditSession.value)
     }
 }
+
+class TransactionIdentityTest {
+    @Test
+    fun matchesByIdAndNeverLumpsTogetherZeroNumberedTxns() {
+        val a = TransactionDto(id = "t-a", no = 0)
+        val b = TransactionDto(id = "t-b", no = 0)
+        org.junit.Assert.assertTrue(a.isSameTxn(a.copy()))
+        assertFalse(a.isSameTxn(b))
+        assertFalse(TransactionDto(id = "", no = 0).isSameTxn(TransactionDto(id = "", no = 0)))
+        org.junit.Assert.assertTrue(TransactionDto(id = "", no = 7).isSameTxn(TransactionDto(id = "x", no = 7)))
+    }
+}
