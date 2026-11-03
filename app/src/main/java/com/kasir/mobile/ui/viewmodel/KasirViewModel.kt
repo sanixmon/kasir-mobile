@@ -274,7 +274,16 @@ class KasirViewModel : ViewModel() {
         }
     }
 
-    fun startRental(nama: String, items: List<ItemDto>, payAwal: String) {
+    /**
+     * Starts a rental. [onComplete] reports whether the server accepted it, so
+     * the form is only cleared on success (a failed request keeps the input).
+     */
+    fun startRental(
+        nama: String,
+        items: List<ItemDto>,
+        payAwal: String,
+        onComplete: (Boolean) -> Unit = {}
+    ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             val newSession = SessionDto(
@@ -296,6 +305,7 @@ class KasirViewModel : ViewModel() {
                                 errorMessage = "Gagal memulai sesi: ${res.error ?: "Ditolak server"}"
                             )
                         }
+                        onComplete(false)
                         return@onSuccess
                     }
                     val saved = res.session ?: newSession
@@ -306,6 +316,7 @@ class KasirViewModel : ViewModel() {
                             successMessage = "Sesi sewa atas nama ${saved.nama} berhasil dimulai (Antrian #${saved.queueNo})"
                         )
                     }
+                    onComplete(true)
                     if (_uiState.value.printMulai) {
                         printSessionReceipt(saved, announce = false)
                     }
@@ -319,6 +330,7 @@ class KasirViewModel : ViewModel() {
                             )
                         }
                     }
+                    onComplete(false)
                 }
         }
     }

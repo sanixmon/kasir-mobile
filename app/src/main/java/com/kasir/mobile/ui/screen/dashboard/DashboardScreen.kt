@@ -102,6 +102,7 @@ fun DashboardScreen(
     }
 
     var inputNama by remember { mutableStateOf("") }
+    var isStartingRental by remember { mutableStateOf(false) }
     var payAwal by remember { mutableStateOf("cash") }
     var selectedQty by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var searchQuery by remember { mutableStateOf("") }
@@ -290,12 +291,19 @@ fun DashboardScreen(
                                 val items = ItemCatalog.ITEMS
                                     .filter { (selectedQty[it.code] ?: 0) > 0 }
                                     .map { ItemDto(code = it.code, qty = selectedQty[it.code] ?: 1) }
-                                if (inputNama.isNotBlank() && items.isNotEmpty()) {
-                                    viewModel.startRental(inputNama.trim(), items, payAwal)
-                                    inputNama = ""
-                                    selectedQty = emptyMap()
+                                if (!isStartingRental && inputNama.isNotBlank() && items.isNotEmpty()) {
+                                    isStartingRental = true
+                                    viewModel.startRental(inputNama.trim(), items, payAwal) { ok ->
+                                        isStartingRental = false
+                                        // Keep the input on failure so the cashier can retry.
+                                        if (ok) {
+                                            inputNama = ""
+                                            selectedQty = emptyMap()
+                                        }
+                                    }
                                 }
-                            }
+                            },
+                            isSubmitting = isStartingRental
                         )
                     } else {
                         SesiAktifContent(
@@ -377,7 +385,8 @@ fun SewaBaruContent(
     onQuantityChange: (String, Int) -> Unit,
     idrFormat: NumberFormat,
     onStartRental: () -> Unit,
-    isLandscape: Boolean = false
+    isLandscape: Boolean = false,
+    isSubmitting: Boolean = false
 ) {
     var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
@@ -428,7 +437,7 @@ fun SewaBaruContent(
 
                 Button(
                     onClick = onStartRental,
-                    enabled = inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
+                    enabled = !isSubmitting && inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
                     interactionSource = pressStart.interactionSource,
                     modifier = pressStart.modifier.fillMaxWidth().height(46.dp),
                     shape = RoundedCornerShape(12.dp),
@@ -475,7 +484,7 @@ fun SewaBaruContent(
 
             Button(
                 onClick = onStartRental,
-                enabled = inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
+                enabled = !isSubmitting && inputNama.isNotBlank() && selectedQty.values.any { it > 0 },
                 interactionSource = pressStart.interactionSource,
                 modifier = pressStart.modifier.fillMaxWidth().height(46.dp),
                 shape = RoundedCornerShape(12.dp),
