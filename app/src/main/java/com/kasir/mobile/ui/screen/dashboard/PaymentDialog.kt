@@ -58,6 +58,10 @@ fun PaymentDialog(
     }
 
     val changeVal = (cashAmt - grand).coerceAtLeast(0.0)
+    // Cash received below the bill: show the shortfall and block confirmation.
+    val cashShortfall = if (!isNoOT && payMode == "cash") (grand - cashAmt).coerceAtLeast(0.0) else 0.0
+    val isCashShort = cashShortfall > 0.0
+    val changeTint = if (isCashShort) KasirError else KasirGreen
     val payAwal = paymentData.session.payAwal
     val payAwalColor = if (payAwal == "qris") KasirQris else KasirCash
     val pressCash = rememberPressScale()
@@ -299,7 +303,7 @@ fun PaymentDialog(
                                         Spacer(Modifier.height(10.dp))
 
                                         Surface(
-                                            color = KasirGreen.copy(alpha = 0.15f),
+                                            color = changeTint.copy(alpha = 0.15f),
                                             shape = RoundedCornerShape(8.dp),
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
@@ -308,8 +312,8 @@ fun PaymentDialog(
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text("Kembalian", fontWeight = FontWeight.SemiBold, color = KasirGreen)
-                                                Text(idrFormat.format(changeVal), fontWeight = FontWeight.Bold, color = KasirGreen)
+                                                Text(if (isCashShort) "Uang Kurang" else "Kembalian", fontWeight = FontWeight.SemiBold, color = changeTint)
+                                                Text(idrFormat.format(if (isCashShort) cashShortfall else changeVal), fontWeight = FontWeight.Bold, color = changeTint)
                                             }
                                         }
                                     } else {
@@ -349,7 +353,7 @@ fun PaymentDialog(
                                         val finalQris = if (!isNoOT && payMode == "qris") grand else 0.0
                                         onConfirm(finalCash, finalQris)
                                     },
-                                    enabled = !submitting,
+                                    enabled = !submitting && !isCashShort,
                                     interactionSource = pressConfirm.interactionSource,
                                     modifier = pressConfirm.modifier.fillMaxWidth().height(48.dp),
                                     shape = RoundedCornerShape(12.dp),
@@ -591,7 +595,7 @@ fun PaymentDialog(
                             Spacer(Modifier.height(12.dp))
 
                             Surface(
-                                color = KasirGreen.copy(alpha = 0.15f),
+                                color = changeTint.copy(alpha = 0.15f),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
@@ -600,8 +604,8 @@ fun PaymentDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("Kembalian", fontWeight = FontWeight.SemiBold, color = KasirGreen)
-                                    Text(idrFormat.format(changeVal), fontWeight = FontWeight.Bold, color = KasirGreen)
+                                    Text(if (isCashShort) "Uang Kurang" else "Kembalian", fontWeight = FontWeight.SemiBold, color = changeTint)
+                                    Text(idrFormat.format(if (isCashShort) cashShortfall else changeVal), fontWeight = FontWeight.Bold, color = changeTint)
                                 }
                             }
                         } else {
@@ -639,7 +643,7 @@ fun PaymentDialog(
                             val finalQris = if (!isNoOT && payMode == "qris") grand else 0.0
                             onConfirm(finalCash, finalQris)
                         },
-                        enabled = !submitting,
+                        enabled = !submitting && !isCashShort,
                         interactionSource = pressConfirm.interactionSource,
                         modifier = pressConfirm.modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(12.dp),
