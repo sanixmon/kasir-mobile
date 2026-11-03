@@ -33,7 +33,12 @@ android {
                     "Missing KASIR_SIGNING_PASSWORD. Set it as an env var (CI) " +
                         "or -PKASIR_SIGNING_PASSWORD=... (local)."
                 )
-            storeFile = file("keystore/release.jks")
+            // Keystore path is overridable (KASIR_KEYSTORE_FILE env var or Gradle
+            // property) so the keystore can live outside the repo.
+            val keystorePath = System.getenv("KASIR_KEYSTORE_FILE")
+                ?: (project.findProperty("KASIR_KEYSTORE_FILE") as? String)
+                ?: "keystore/release.jks"
+            storeFile = file(keystorePath)
             storePassword = signingPassword
             keyAlias = "kasir"
             keyPassword = signingPassword
@@ -73,8 +78,12 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             signingConfig = signingConfigs.getByName("release")
         }
     }
