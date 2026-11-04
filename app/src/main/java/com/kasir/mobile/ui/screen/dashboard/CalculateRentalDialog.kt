@@ -64,6 +64,19 @@ fun CalculateRentalDialog(
 
     // Partial return only makes sense when there's more than one unit overall.
     val isMultiItem = session.items.size > 1 || session.items.any { it.qty > 1 }
+    // Opt-in: the common case is "everything comes back", so return controls
+    // stay hidden until the cashier says some units are still in use.
+    var partialMode by remember { mutableStateOf(false) }
+    val onPartialModeChange: (Boolean) -> Unit = { on ->
+        partialMode = on
+        if (!on) {
+            // Turning it off always means "all returned" — no hidden leftover state.
+            paymentCalc = paymentCalc.itemsCalc.fold(paymentCalc) { acc, calc ->
+                viewModel.updateReturnQty(acc, calc.index, calc.item.qty)
+            }
+        }
+    }
+    val itemSectionTitle = if (partialMode) "Pilih Barang yang Dikembalikan" else "Biaya Overtime Per Item"
     val isOT = itemsCalc.any { it.returnQty > 0 && floor(it.itemElapsedMin - it.limitMin) >= 11 }
     val maxOver = itemsCalc.maxOfOrNull { calc ->
         val over = calc.itemElapsedMin - calc.limitMin
@@ -131,19 +144,23 @@ fun CalculateRentalDialog(
                             BaseCostPaidBadge(payAwalColor, session.payAwal, paymentCalc.baseSum, idrFormat)
 
                             Spacer(Modifier.height(14.dp))
-                            Text("Biaya Overtime Per Item", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            if (isMultiItem) {
+                                PartialReturnToggle(checked = partialMode, onCheckedChange = onPartialModeChange)
+                                Spacer(Modifier.height(10.dp))
+                            }
+                            Text(itemSectionTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                             Spacer(Modifier.height(8.dp))
 
                             ItemCalculationList(
                                 itemsCalc = itemsCalc,
-                                isMultiItem = isMultiItem,
+                                showReturnControls = partialMode,
                                 idrFormat = idrFormat,
                                 onReturnQtyChange = { itemIndex, newQty ->
                                     paymentCalc = viewModel.updateReturnQty(paymentCalc, itemIndex, newQty)
                                 }
                             )
 
-                            if (isMultiItem) {
+                            if (partialMode) {
                                 Spacer(Modifier.height(10.dp))
                                 RemainingItemsStatus(itemsCalc = itemsCalc)
                             }
@@ -221,12 +238,16 @@ fun CalculateRentalDialog(
                     OvertimeAlertBanner(isOT, maxOver)
 
                     Spacer(Modifier.height(16.dp))
-                    Text("Biaya Overtime Per Item", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    if (isMultiItem) {
+                        PartialReturnToggle(checked = partialMode, onCheckedChange = onPartialModeChange)
+                        Spacer(Modifier.height(10.dp))
+                    }
+                    Text(itemSectionTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
 
                     ItemCalculationList(
                         itemsCalc = itemsCalc,
-                        isMultiItem = isMultiItem,
+                        showReturnControls = partialMode,
                         idrFormat = idrFormat,
                         onReturnQtyChange = { itemIndex, newQty ->
                             paymentCalc = viewModel.updateReturnQty(paymentCalc, itemIndex, newQty)
@@ -234,7 +255,7 @@ fun CalculateRentalDialog(
                     )
 
                     // Remaining-items status (partial return only)
-                    if (isMultiItem) {
+                    if (partialMode) {
                         Spacer(Modifier.height(10.dp))
                         RemainingItemsStatus(itemsCalc = itemsCalc)
                     }
@@ -304,6 +325,38 @@ private fun BaseCostPaidBadge(
 }
 
 @Composable
+private fun PartialReturnToggle(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Surface(
+        onClick = { onCheckedChange(!checked) },
+        shape = RoundedCornerShape(12.dp),
+        color = if (checked) KasirAccent.copy(alpha = 0.12f) else KasirSurfaceVariant,
+        border = BorderStroke(1.dp, if (checked) KasirAccent.copy(alpha = 0.4f) else KasirLine),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp).heightIn(min = 48.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Ada barang yang masih dipakai?",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = KasirOnSurface
+                )
+                Text(
+                    "Nyalakan kalau tidak semua barang dikembalikan sekarang.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = KasirOnSurfaceVariant
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
+    }
+}
+
+@Composable
 private fun OvertimeAlertBanner(isOT: Boolean, maxOver: Double) {
     Surface(
         color = if (isOT) KasirAccent.copy(alpha = 0.15f) else KasirGreen.copy(alpha = 0.1f),
@@ -337,7 +390,7 @@ private fun OvertimeAlertBanner(isOT: Boolean, maxOver: Double) {
 @Composable
 private fun ItemCalculationList(
     itemsCalc: List<ItemCalcState>,
-    isMultiItem: Boolean,
+    showReturnControls: Boolean,
     idrFormat: NumberFormat,
     onReturnQtyChange: (itemIndex: Int, newQty: Int) -> Unit
 ) {
@@ -386,7 +439,7 @@ private fun ItemCalculationList(
                         )
                     }
 
-                    if (isMultiItem) {
+                    if (showReturnControls) {
                         Spacer(Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Kembalikan:", style = MaterialTheme.typography.labelSmall, color = KasirTextLow)
