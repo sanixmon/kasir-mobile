@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
@@ -108,7 +109,8 @@ fun DashboardScreen(
     var payAwal by remember { mutableStateOf("cash") }
     var selectedQty by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
     var searchQuery by remember { mutableStateOf("") }
-    var isSortAscending by remember { mutableStateOf(false) }
+    // Saveable so the choice survives leaving the Dashboard and coming back.
+    var sessionSort by rememberSaveable { mutableStateOf(SessionSort.MENDESAK) }
     // showLogoutConfirm removed: logout is handled in Settings or Settlement
     // 0: Sewa Baru, 1: Sesi Aktif — swipeable via HorizontalPager.
     val pagerState = rememberPagerState(pageCount = { 2 })
@@ -128,7 +130,7 @@ fun DashboardScreen(
 
     val idrFormat = remember { NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 } }
 
-    val filteredSessions = remember(uiState.activeSessions, searchQuery, isSortAscending) {
+    val filteredSessions = remember(uiState.activeSessions, searchQuery, sessionSort) {
         val filtered = uiState.activeSessions
             .filter { s ->
                 searchQuery.isBlank() ||
@@ -136,11 +138,7 @@ fun DashboardScreen(
                     s.queueNo.toString().contains(searchQuery) ||
                     s.items.any { it.code.contains(searchQuery, ignoreCase = true) }
             }
-        if (isSortAscending) {
-            filtered.sortedBy { it.startTime }
-        } else {
-            filtered.sortedByDescending { it.startTime }
-        }
+        filtered.sortedFor(sessionSort, now = System.currentTimeMillis())
     }
 
     // Poll the server only while Dashboard is on screen *and* the app is in the
@@ -311,8 +309,8 @@ fun DashboardScreen(
                         SesiAktifContent(
                             searchQuery = searchQuery,
                             onSearchQueryChange = { searchQuery = it },
-                            isSortAscending = isSortAscending,
-                            onToggleSort = { isSortAscending = !isSortAscending },
+                            sessionSort = sessionSort,
+                            onToggleSort = { sessionSort = sessionSort.next() },
                             filteredSessions = filteredSessions,
                             onSelesai = { viewModel.activeCheckoutSession.value = it },
                             onPrint = { viewModel.printSessionReceipt(it) },
@@ -618,7 +616,7 @@ private fun SewaPaymentSelector(
 fun SesiAktifContent(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
-    isSortAscending: Boolean = false,
+    sessionSort: SessionSort = SessionSort.MENDESAK,
     onToggleSort: () -> Unit = {},
     filteredSessions: List<SessionDto>,
     onSelesai: (SessionDto) -> Unit,
@@ -641,7 +639,7 @@ fun SesiAktifContent(
     // the list "jump". Re-anchor to the top whenever the sort order changes.
     val listState = rememberLazyListState()
     val gridState = rememberLazyGridState()
-    LaunchedEffect(isSortAscending) {
+    LaunchedEffect(sessionSort) {
         listState.scrollToItem(0)
         gridState.scrollToItem(0)
     }
@@ -735,18 +733,31 @@ fun SesiAktifContent(
             Surface(
                 onClick = onToggleSort,
                 interactionSource = pressSort.interactionSource,
-                modifier = pressSort.modifier.size(56.dp),
+                modifier = pressSort.modifier.height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                color = if (isSortAscending) KasirAccent.copy(alpha = 0.18f) else KasirSurfaceCard,
-                border = BorderStroke(1.dp, if (isSortAscending) KasirAccent else KasirLine),
+                color = KasirSurfaceCard,
+                border = BorderStroke(1.dp, KasirLine),
                 shadowElevation = 6.dp
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
-                        imageVector = if (isSortAscending) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
-                        contentDescription = if (isSortAscending) "Urutkan: Terlama (Ascending)" else "Urutkan: Terbaru (Descending)",
-                        tint = if (isSortAscending) KasirAccent else KasirOnSurfaceVariant,
-                        modifier = Modifier.size(24.dp)
+                        imageVector = when (sessionSort) {
+                            SessionSort.MENDESAK -> Icons.Filled.Timer
+                            SessionSort.TERBARU -> Icons.Filled.ArrowDownward
+                            SessionSort.TERLAMA -> Icons.Filled.ArrowUpward
+                        },
+                        contentDescription = null,
+                        tint = KasirAccent,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        sessionSort.label,
+                        fontWeight = FontWeight.Bold,
+                        color = KasirOnSurface
                     )
                 }
             }
