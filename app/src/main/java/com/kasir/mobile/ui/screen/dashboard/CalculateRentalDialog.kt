@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
@@ -375,8 +376,8 @@ private fun OvertimeAlertBanner(isOT: Boolean, maxOver: Double) {
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                text = if (isOT) "Ada item melewati batas! (${floor(maxOver).toInt()} menit overtime)"
-                else "Durasi dalam batas normal.",
+                text = if (isOT) "Ada barang yang lewat waktu, kena biaya overtime (paling lama ${floor(maxOver).toInt()} menit)"
+                else "Semua barang masih dalam waktu, tidak ada biaya overtime.",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = if (isOT) KasirAccent else KasirGreen,
@@ -398,12 +399,16 @@ private fun ItemCalculationList(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         itemsCalc.forEach { calcItem ->
             val overMin = calcItem.itemElapsedMin - calcItem.limitMin
+            val overMinFloor = floor(overMin).toInt()
             val overStatus = when {
-                overMin <= 0 -> "Normal (${calcItem.itemElapsedMin.toInt()}m)"
-                floor(overMin) < 11 -> "Over ${floor(overMin).toInt()}m — toleransi (${calcItem.itemElapsedMin.toInt()}m)"
-                else -> "Over ${floor(overMin).toInt()}m (${calcItem.itemElapsedMin.toInt()}m)"
+                overMin <= 0 -> "Dipakai ${calcItem.itemElapsedMin.toInt()} menit · masih dalam waktu"
+                overMinFloor < 11 -> "Lewat $overMinFloor menit · belum kena denda (toleransi 10 menit)"
+                else -> "Lewat $overMinFloor menit · kena overtime"
             }
             val isReturned = calcItem.returnQty > 0
+            val stillInUse = calcItem.item.qty - calcItem.returnQty
+            // Dim only the info, never the controls — a dimmed switch looks disabled.
+            val infoAlpha = if (showReturnControls && !isReturned) 0.6f else 1f
 
             Surface(
                 shape = RoundedCornerShape(10.dp),
@@ -413,7 +418,7 @@ private fun ItemCalculationList(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().alpha(infoAlpha),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
@@ -428,8 +433,8 @@ private fun ItemCalculationList(
                             Spacer(Modifier.height(2.dp))
                             Text(
                                 overStatus,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = KasirTextLow
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (overMinFloor >= 11) KasirAccent else KasirOnSurfaceVariant
                             )
                         }
                         Spacer(Modifier.width(8.dp))
@@ -507,30 +512,33 @@ private fun ItemCalculationList(
 
                     Spacer(Modifier.height(6.dp))
 
-                    if (!isReturned) {
+                    if (showReturnControls && stillInUse > 0) {
                         Surface(
                             color = KasirTextLow.copy(alpha = 0.16f),
                             shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(
-                                "TETAP DISEWA (Belum Dikembalikan)",
+                                if (calcItem.item.qty == 1) "MASIH DIPAKAI · timer lanjut"
+                                else "$stillInUse MASIH DIPAKAI · timer lanjut",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = KasirOnSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
-                    } else {
+                        if (isReturned) Spacer(Modifier.height(6.dp))
+                    }
+                    if (isReturned) {
                         val otLabels = buildList {
                             if (calcItem.otFullCount > 0) {
-                                add("${calcItem.otFullCount}× 1Jam (${idrFormat.format(calcItem.catalogDef.priceOT60 * calcItem.returnQty * calcItem.otFullCount)})")
+                                add("${calcItem.otFullCount}× 1 jam (${idrFormat.format(calcItem.catalogDef.priceOT60 * calcItem.returnQty * calcItem.otFullCount)})")
                             }
                             if (calcItem.otHalfCount > 0) {
-                                add("${calcItem.otHalfCount}× ½Jam (${idrFormat.format(calcItem.catalogDef.priceOT30 * calcItem.returnQty * calcItem.otHalfCount)})")
+                                add("${calcItem.otHalfCount}× ½ jam (${idrFormat.format(calcItem.catalogDef.priceOT30 * calcItem.returnQty * calcItem.otHalfCount)})")
                             }
                         }
                         Text(
-                            text = otLabels.joinToString(" + ").ifEmpty { "Tidak ada overtime" },
+                            text = if (otLabels.isEmpty()) "Tidak ada biaya overtime" else "Overtime: " + otLabels.joinToString(" + "),
                             style = MaterialTheme.typography.bodySmall,
                             color = if (otLabels.isNotEmpty()) KasirAccent else KasirOnSurfaceVariant
                         )
