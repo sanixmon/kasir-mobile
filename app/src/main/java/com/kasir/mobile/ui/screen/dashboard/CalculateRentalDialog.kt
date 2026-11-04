@@ -190,6 +190,9 @@ fun CalculateRentalDialog(
                             CheckoutActions(
                                 onClose = onClose,
                                 isOT = paymentCalc.otSum > 0.0,
+                                otSum = paymentCalc.otSum,
+                                allReturned = itemsCalc.all { it.returnQty == it.item.qty },
+                                idrFormat = idrFormat,
                                 canProceed = canProceed,
                                 isSubmitting = isSubmitting,
                                 onCompleteOnTime = onCompleteOnTime?.let { { it(paymentCalc) } },
@@ -269,6 +272,9 @@ fun CalculateRentalDialog(
                     CheckoutActions(
                         onClose = onClose,
                         isOT = paymentCalc.otSum > 0.0,
+                        otSum = paymentCalc.otSum,
+                        allReturned = itemsCalc.all { it.returnQty == it.item.qty },
+                        idrFormat = idrFormat,
                         canProceed = canProceed,
                         isSubmitting = isSubmitting,
                         onCompleteOnTime = onCompleteOnTime?.let { { it(paymentCalc) } },
@@ -622,53 +628,75 @@ private fun PayNowSummaryBox(returnedPokok: Double, otSum: Double, idrFormat: Nu
 private fun CheckoutActions(
     onClose: () -> Unit,
     isOT: Boolean,
+    otSum: Double,
+    allReturned: Boolean,
+    idrFormat: NumberFormat,
     canProceed: Boolean,
     isSubmitting: Boolean = false,
     onCompleteOnTime: (() -> Unit)?,
     onProceedPayment: () -> Unit
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        OutlinedButton(
-            onClick = onClose,
-            modifier = Modifier.weight(1f).height(48.dp),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("Batal", fontWeight = FontWeight.Bold)
+    Column {
+        if (!canProceed) {
+            Text(
+                "Pilih minimal 1 barang yang dikembalikan",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = KasirAccent,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                textAlign = TextAlign.Center
+            )
         }
-        if (!isOT && onCompleteOnTime != null) {
-            Button(
-                onClick = onCompleteOnTime,
-                enabled = canProceed && !isSubmitting,
-                modifier = Modifier.weight(2f).height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(
+                onClick = onClose,
+                modifier = Modifier.weight(1f).height(48.dp),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                if (isSubmitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = KasirOnGreen
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Menyimpan...", fontWeight = FontWeight.Bold)
-                } else {
-                    Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Selesai (Tepat Waktu)", fontWeight = FontWeight.Bold)
-                }
+                Text("Batal", fontWeight = FontWeight.Bold)
             }
-        } else {
-            Button(
-                onClick = onProceedPayment,
-                enabled = canProceed,
-                modifier = Modifier.weight(2f).height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
-            ) {
-                Text(
-                    if (isOT) "Bayar Overtime" else "Lanjut ke Pembayaran",
-                    fontWeight = FontWeight.Bold
-                )
+            if (!isOT && onCompleteOnTime != null) {
+                Button(
+                    onClick = onCompleteOnTime,
+                    enabled = canProceed && !isSubmitting,
+                    modifier = Modifier.weight(2f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
+                ) {
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = KasirOnGreen
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("Menyimpan...", fontWeight = FontWeight.Bold)
+                    } else {
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (allReturned) "Selesai, Tutup Sewa" else "Simpan, Sisa Tetap Jalan",
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            } else {
+                Button(
+                    onClick = onProceedPayment,
+                    enabled = canProceed,
+                    modifier = Modifier.weight(2f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = KasirGreen, contentColor = KasirOnGreen)
+                ) {
+                    Text(
+                        if (isOT) "Bayar ${idrFormat.format(otSum)}" else "Lanjut ke Pembayaran",
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
