@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
@@ -162,10 +161,6 @@ fun CalculateRentalDialog(
                                 }
                             )
 
-                            if (partialMode) {
-                                Spacer(Modifier.height(10.dp))
-                                RemainingItemsStatus(itemsCalc = itemsCalc)
-                            }
                         }
 
                         // Right Column: Overtime alert, Totals, Actions
@@ -187,6 +182,10 @@ fun CalculateRentalDialog(
                             }
 
                             Spacer(Modifier.height(16.dp))
+                            if (partialMode) {
+                                ReturnSummaryLine(itemsCalc)
+                                Spacer(Modifier.height(10.dp))
+                            }
                             CheckoutActions(
                                 onClose = onClose,
                                 isOT = paymentCalc.otSum > 0.0,
@@ -257,10 +256,6 @@ fun CalculateRentalDialog(
                     )
 
                     // Remaining-items status (partial return only)
-                    if (partialMode) {
-                        Spacer(Modifier.height(10.dp))
-                        RemainingItemsStatus(itemsCalc = itemsCalc)
-                    }
 
                     Spacer(Modifier.height(16.dp))
                     OvertimeSummaryBox(paymentCalc.otSum, idrFormat)
@@ -269,6 +264,10 @@ fun CalculateRentalDialog(
                     GrandTotalSummaryBox(paymentCalc.baseSum + paymentCalc.otSum, idrFormat)
 
                     Spacer(Modifier.height(20.dp))
+                    if (partialMode) {
+                        ReturnSummaryLine(itemsCalc)
+                        Spacer(Modifier.height(10.dp))
+                    }
                     CheckoutActions(
                         onClose = onClose,
                         isOT = paymentCalc.otSum > 0.0,
@@ -424,7 +423,7 @@ private fun ItemCalculationList(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                "${calcItem.item.code} - ${calcItem.catalogDef.name} ×${calcItem.item.qty}",
+                                "${calcItem.catalogDef.name} (${calcItem.item.qty} unit)",
                                 fontWeight = FontWeight.Bold,
                                 color = KasirOnSurface,
                                 maxLines = 1,
@@ -549,56 +548,30 @@ private fun ItemCalculationList(
     }
 }
 
+/** One-line confirmation right above the action button: what goes back, what keeps running. */
 @Composable
-private fun RemainingItemsStatus(itemsCalc: List<ItemCalcState>) {
+private fun ReturnSummaryLine(itemsCalc: List<ItemCalcState>) {
+    val returned = itemsCalc.filter { it.returnQty > 0 }
+        .joinToString(", ") { "${it.catalogDef.name} ${it.returnQty}" }
+    val inUse = itemsCalc.filter { it.item.qty - it.returnQty > 0 }
+        .joinToString(", ") { "${it.catalogDef.name} ${it.item.qty - it.returnQty}" }
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = KasirSurfaceVariant,
         border = BorderStroke(1.dp, KasirLine),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.Info, contentDescription = null, tint = KasirOnSurfaceVariant, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(
-                    "Status Sisa Sewa Aktif (Akan Terus Berjalan):",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KasirOnSurfaceVariant
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-            val remaining = itemsCalc.filter { it.item.qty - it.returnQty > 0 }
-            if (remaining.isEmpty()) {
-                Text(
-                    "Semua item dikembalikan (Sesi akan ditutup)",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = KasirGreen
-                )
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    remaining.forEach { calc ->
-                        Surface(
-                            color = KasirAccent.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(6.dp),
-                            border = BorderStroke(1.dp, KasirAccent.copy(alpha = 0.3f))
-                        ) {
-                            Text(
-                                "${calc.item.code} ×${calc.item.qty - calc.returnQty}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = KasirAccent,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
+        Text(
+            text = when {
+                inUse.isEmpty() -> "Semua barang dikembalikan, sewa ditutup."
+                returned.isEmpty() -> "Masih dipakai: $inUse (timer lanjut)"
+                else -> "Dikembalikan: $returned · Masih dipakai: $inUse (timer lanjut)"
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = if (inUse.isEmpty()) KasirGreen else KasirOnSurface,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+        )
     }
 }
 
