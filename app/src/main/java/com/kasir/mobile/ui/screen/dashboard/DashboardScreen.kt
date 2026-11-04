@@ -500,24 +500,43 @@ fun SewaBaruContent(
 
 @Composable
 private fun RealtimeClockDisplay(timeString: String, isLandscape: Boolean) {
+    // Plain high-contrast text colour: amber is the app's overtime/warning
+    // signal and read poorly on the grey surface. HH:mm is what the cashier
+    // glances for, so seconds are smaller and dimmer.
+    val hhmm = timeString.substringBeforeLast(":")
+    val ss = timeString.substringAfterLast(":", "")
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = KasirSurfaceVariant,
+        color = KasirSurfaceCard,
         border = BorderStroke(1.dp, KasirLine),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Box(
-            modifier = Modifier.padding(if (isLandscape) 16.dp else 8.dp),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.padding(
+                horizontal = 16.dp,
+                vertical = if (isLandscape) 10.dp else 8.dp
+            ),
+            horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = timeString,
+                text = hhmm,
                 fontFamily = KasirMono,
                 fontWeight = FontWeight.Bold,
-                fontSize = if (isLandscape) 28.sp else 16.sp,
-                letterSpacing = if (isLandscape) 2.sp else 1.sp,
-                color = KasirAccent
+                fontSize = if (isLandscape) 44.sp else 16.sp,
+                letterSpacing = 1.sp,
+                color = KasirOnSurface,
+                modifier = Modifier.alignByBaseline()
             )
+            if (ss.isNotEmpty()) {
+                Text(
+                    text = ":$ss",
+                    fontFamily = KasirMono,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = if (isLandscape) 22.sp else 16.sp,
+                    color = KasirOnSurfaceVariant,
+                    modifier = Modifier.alignByBaseline()
+                )
+            }
         }
     }
 }
