@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -634,6 +636,16 @@ fun SesiAktifContent(
         }
     }
 
+    // Cards are keyed by session id, so on reorder Lazy* keeps the previously
+    // first card in view — which after a sort flip sits at the bottom, making
+    // the list "jump". Re-anchor to the top whenever the sort order changes.
+    val listState = rememberLazyListState()
+    val gridState = rememberLazyGridState()
+    LaunchedEffect(isSortAscending) {
+        listState.scrollToItem(0)
+        gridState.scrollToItem(0)
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         if (filteredSessions.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -655,6 +667,7 @@ fun SesiAktifContent(
         } else if (columnCount > 1) {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(columnCount),
+                state = gridState,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 76.dp),
@@ -672,6 +685,7 @@ fun SesiAktifContent(
             }
         } else {
             LazyColumn(
+                state = listState,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 76.dp),
                 modifier = Modifier.fillMaxSize()
