@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -441,34 +442,66 @@ private fun ItemCalculationList(
 
                     if (showReturnControls) {
                         Spacer(Modifier.height(8.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Kembalikan:", style = MaterialTheme.typography.labelSmall, color = KasirTextLow)
-                            Spacer(Modifier.width(8.dp))
-                            QtyStepButton(
-                                icon = { Icon(Icons.Filled.Remove, contentDescription = "Kurangi", modifier = Modifier.size(16.dp)) },
-                                enabled = calcItem.returnQty > 0,
-                                onClick = {
-                                    onReturnQtyChange(calcItem.index, calcItem.returnQty - 1)
-                                }
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text(
-                                "${calcItem.returnQty}",
-                                fontFamily = KasirMono,
-                                fontWeight = FontWeight.Bold,
-                                color = KasirOnSurface
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            QtyStepButton(
-                                icon = { Icon(Icons.Filled.Add, contentDescription = "Tambah", modifier = Modifier.size(16.dp)) },
-                                enabled = calcItem.returnQty < calcItem.item.qty,
-                                primary = true,
-                                onClick = {
-                                    onReturnQtyChange(calcItem.index, calcItem.returnQty + 1)
-                                }
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text("/ ${calcItem.item.qty}", style = MaterialTheme.typography.labelSmall, color = KasirTextLow)
+                        if (calcItem.item.qty == 1) {
+                            // A single unit is a yes/no decision — a switch reads better than 0/1 steps.
+                            Row(
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    if (isReturned) "Dikembalikan sekarang" else "Masih dipakai",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = KasirOnSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Switch(
+                                    checked = isReturned,
+                                    onCheckedChange = { on -> onReturnQtyChange(calcItem.index, if (on) 1 else 0) }
+                                )
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Dikembalikan",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = KasirOnSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                QtyStepButton(
+                                    icon = { Icon(Icons.Filled.Remove, contentDescription = "Kurangi", modifier = Modifier.size(22.dp)) },
+                                    enabled = calcItem.returnQty > 0,
+                                    onClick = {
+                                        onReturnQtyChange(calcItem.index, calcItem.returnQty - 1)
+                                    }
+                                )
+                                Text(
+                                    "${calcItem.returnQty}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontFamily = KasirMono,
+                                    fontWeight = FontWeight.Bold,
+                                    color = KasirOnSurface,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.widthIn(min = 40.dp)
+                                )
+                                QtyStepButton(
+                                    icon = { Icon(Icons.Filled.Add, contentDescription = "Tambah", modifier = Modifier.size(22.dp)) },
+                                    enabled = calcItem.returnQty < calcItem.item.qty,
+                                    primary = true,
+                                    onClick = {
+                                        onReturnQtyChange(calcItem.index, calcItem.returnQty + 1)
+                                    }
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "dari ${calcItem.item.qty}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = KasirOnSurfaceVariant
+                                )
+                            }
                         }
                     }
 
@@ -676,10 +709,11 @@ private fun QtyStepButton(
     Surface(
         onClick = onClick,
         enabled = enabled,
-        shape = RoundedCornerShape(7.dp),
+        shape = RoundedCornerShape(10.dp),
         color = if (primary) KasirGreen else KasirSurfaceVariant,
         contentColor = if (primary) KasirOnGreen else KasirOnSurface,
-        modifier = Modifier.size(32.dp)
+        border = if (primary) null else BorderStroke(1.dp, KasirLine),
+        modifier = Modifier.size(48.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
             icon()
