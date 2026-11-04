@@ -84,6 +84,10 @@ fun CalculateRentalDialog(
         if (calc.returnQty > 0 && floor(over) >= 11) over else 0.0
     } ?: 0.0
     val totalReturnQty = itemsCalc.sumOf { it.returnQty }
+    // Display only: the pokok was paid up front for every unit, so the "Lunas"
+    // badge must not shrink when some units stay out. paymentCalc.baseSum (what
+    // this transaction records) is untouched.
+    val paidPokok = itemsCalc.sumOf { it.catalogDef.priceHour * it.item.qty }
     val canProceed = totalReturnQty > 0
 
     Dialog(
@@ -142,7 +146,7 @@ fun CalculateRentalDialog(
                             }
 
                             Spacer(Modifier.height(12.dp))
-                            BaseCostPaidBadge(payAwalColor, session.payAwal, paymentCalc.baseSum, idrFormat)
+                            BaseCostPaidBadge(payAwalColor, session.payAwal, paidPokok, idrFormat)
 
                             Spacer(Modifier.height(14.dp))
                             if (isMultiItem) {
@@ -175,10 +179,7 @@ fun CalculateRentalDialog(
                                 OvertimeAlertBanner(isOT, maxOver)
 
                                 Spacer(Modifier.height(12.dp))
-                                OvertimeSummaryBox(paymentCalc.otSum, idrFormat)
-
-                                Spacer(Modifier.height(8.dp))
-                                GrandTotalSummaryBox(paymentCalc.baseSum + paymentCalc.otSum, idrFormat)
+                                PayNowSummaryBox(paymentCalc.baseSum, paymentCalc.otSum, idrFormat)
                             }
 
                             Spacer(Modifier.height(16.dp))
@@ -233,7 +234,7 @@ fun CalculateRentalDialog(
                     }
 
                     Spacer(Modifier.height(14.dp))
-                    BaseCostPaidBadge(payAwalColor, session.payAwal, paymentCalc.baseSum, idrFormat)
+                    BaseCostPaidBadge(payAwalColor, session.payAwal, paidPokok, idrFormat)
 
                     Spacer(Modifier.height(12.dp))
                     OvertimeAlertBanner(isOT, maxOver)
@@ -258,10 +259,7 @@ fun CalculateRentalDialog(
                     // Remaining-items status (partial return only)
 
                     Spacer(Modifier.height(16.dp))
-                    OvertimeSummaryBox(paymentCalc.otSum, idrFormat)
-
-                    Spacer(Modifier.height(8.dp))
-                    GrandTotalSummaryBox(paymentCalc.baseSum + paymentCalc.otSum, idrFormat)
+                    PayNowSummaryBox(paymentCalc.baseSum, paymentCalc.otSum, idrFormat)
 
                     Spacer(Modifier.height(20.dp))
                     if (partialMode) {
@@ -575,51 +573,47 @@ private fun ReturnSummaryLine(itemsCalc: List<ItemCalcState>) {
     }
 }
 
+/**
+ * What the customer pays now. Pokok was settled at the start, so it's listed
+ * (greyed) only to explain the number — the big figure is the overtime.
+ */
 @Composable
-private fun OvertimeSummaryBox(otSum: Double, idrFormat: NumberFormat) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = KasirSurfaceVariant,
-        border = BorderStroke(1.dp, KasirLine),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Total Tagihan Overtime", fontWeight = FontWeight.SemiBold, color = KasirOnSurfaceVariant)
-            Text(
-                idrFormat.format(otSum),
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = KasirAccent
-            )
-        }
-    }
-}
-
-@Composable
-private fun GrandTotalSummaryBox(grandTotal: Double, idrFormat: NumberFormat) {
+private fun PayNowSummaryBox(returnedPokok: Double, otSum: Double, idrFormat: NumberFormat) {
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = KasirGreen.copy(alpha = 0.12f),
         border = BorderStroke(1.dp, KasirGreen.copy(alpha = 0.35f)),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.padding(14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Total Biaya Keseluruhan", fontWeight = FontWeight.Bold, color = KasirGreen, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.width(8.dp))
-            Text(
-                idrFormat.format(grandTotal),
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = KasirGreen
-            )
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Pokok barang kembali (lunas)", style = MaterialTheme.typography.bodyMedium, color = KasirTextLow, modifier = Modifier.weight(1f))
+                Text(idrFormat.format(returnedPokok), style = MaterialTheme.typography.bodyMedium, color = KasirTextLow)
+            }
+            Spacer(Modifier.height(4.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Overtime", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = KasirOnSurfaceVariant, modifier = Modifier.weight(1f))
+                Text(
+                    idrFormat.format(otSum),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (otSum > 0) KasirAccent else KasirOnSurfaceVariant
+                )
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = KasirGreen.copy(alpha = 0.35f))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Bayar Sekarang", fontWeight = FontWeight.Bold, color = KasirGreen, modifier = Modifier.weight(1f))
+                Text(
+                    idrFormat.format(otSum),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 22.sp,
+                    color = KasirGreen
+                )
+            }
         }
     }
 }
