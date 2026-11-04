@@ -935,23 +935,28 @@ fun ActiveSessionCard(
     val elapsedSec = ((now - safeStart) / 1000).coerceAtLeast(0)
     val timeFormat = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
     val pressSelesai = rememberPressScale()
-    val elapsedMin = elapsedSec / 60
     val isZombie = elapsedSec > 28800 // > 8h
 
-    // Status → one clear color signal: normal (teal) → grace (amber) → overtime (red) → zombie (red + tag)
+    // Status follows the most urgent item's own window (1 jam, or the
+    // package's hours) — same deadline the "Mendesak" sort uses — instead of
+    // a flat 60 min from session start, so a 3-jam package isn't flagged at 71m.
+    // Thresholds match checkout: overtime is charged from 11 min past the window.
+    val deadline = session.deadline(now)
+    val overMin = Math.floorDiv(now - deadline.freeUntil, 60_000L)
     val statusColor = when {
         isZombie -> KasirError
-        elapsedMin >= 71 -> KasirError
-        elapsedMin >= 60 -> KasirAccent
+        overMin >= 11 -> KasirError
+        overMin >= 0 -> KasirAccent
         else -> KasirGreen
     }
     val statusLabel = when {
         isZombie -> "ZOMBIE"
-        elapsedMin >= 71 -> "OVERTIME"
-        elapsedMin >= 60 -> "GRACE"
+        overMin >= 11 -> "OVERTIME"
+        overMin >= 0 -> "GRACE"
         else -> "NORMAL"
     }
-    val urgency = (elapsedMin.toFloat() / 60f).coerceIn(0f, 1f)
+    val windowStart = deadline.freeUntil - deadline.windowMs
+    val urgency = ((now - windowStart).toFloat() / deadline.windowMs).coerceIn(0f, 1f)
     // Smooth the status color + urgency bar so threshold crossings (NORMAL →
     // GRACE → OVERTIME) and the per-second timer ticks fade instead of snap.
     val animatedStatusColor by animateColorAsState(targetValue = statusColor, label = "statusColor")
@@ -1107,7 +1112,7 @@ fun ActiveSessionCard(
 
             Spacer(Modifier.height(8.dp))
 
-            // Urgency bar — how much of the free 60-minute window is spent
+            // Urgency bar — how much of the most urgent item's free window is spent
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1146,8 +1151,8 @@ fun ActiveSessionCard(
                     modifier = pressSelesai.modifier.weight(1f).height(42.dp),
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isZombie || elapsedMin >= 71) KasirError else KasirGreen,
-                        contentColor = if (isZombie || elapsedMin >= 71) KasirOnError else KasirOnGreen
+                        containerColor = if (isZombie || overMin >= 11) KasirError else KasirGreen,
+                        contentColor = if (isZombie || overMin >= 11) KasirOnError else KasirOnGreen
                     )
                 ) {
                     Text("Selesai", fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
