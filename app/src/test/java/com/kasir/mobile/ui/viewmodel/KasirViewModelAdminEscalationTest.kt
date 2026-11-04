@@ -62,7 +62,7 @@ class KasirViewModelAdminEscalationTest {
             Result.success(ActionSuccessResponse(success = true))
         }
 
-        val vm = KasirViewModel()
+        val vm = KasirViewModel(testDispatcher)
         vm.setShiftUser("kasir1", "cashier")
         vm.deleteTransaction(TransactionDto(id = "t-1", no = 1))
         vm.verifyAdminPin("1234")
@@ -82,7 +82,7 @@ class KasirViewModelAdminEscalationTest {
         }
         val session = SessionDto(id = "s-1", nama = "Budi")
 
-        val vm = KasirViewModel()
+        val vm = KasirViewModel(testDispatcher)
         vm.setShiftUser("kasir1", "cashier")
         vm.requestEditSession(session)
         vm.verifyAdminPin("1234")
@@ -108,7 +108,7 @@ class KasirViewModelAdminEscalationTest {
         coEvery { repo.editSession(any()) } returns Result.failure(http401)
         val session = SessionDto(id = "s-1", nama = "Budi")
 
-        val vm = KasirViewModel()
+        val vm = KasirViewModel(testDispatcher)
         vm.setShiftUser("kasir1", "cashier")
         vm.requestEditSession(session)
         vm.verifyAdminPin("1234")

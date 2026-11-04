@@ -19,6 +19,7 @@ import com.kasir.mobile.data.remote.AuthTokenHolder
 import com.kasir.mobile.data.repository.KasirRepository
 import com.kasir.mobile.domain.usecase.OvertimeUtil
 import com.kasir.mobile.domain.usecase.ShiftDateUtil
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -95,7 +96,15 @@ internal fun TransactionDto.isSameTxn(other: TransactionDto): Boolean =
 private fun newClaimId(): String =
     "clm-${System.currentTimeMillis().toString(36)}-${java.util.UUID.randomUUID().toString().take(8)}"
 
-class KasirViewModel : ViewModel() {
+/**
+ * [bgDispatcher] runs the fetch off the main thread. Tests pass their test
+ * dispatcher so init's loadData() can't outlive the test on a real thread and
+ * surface as UncaughtExceptionsBeforeTest in the next one. All params default,
+ * so Kotlin still emits the no-arg constructor that viewModel() needs.
+ */
+class KasirViewModel(
+    private val bgDispatcher: CoroutineDispatcher = Dispatchers.Default
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(KasirUiState())
     val uiState: StateFlow<KasirUiState> = _uiState.asStateFlow()
@@ -228,7 +237,7 @@ class KasirViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 if (showSync) _uiState.update { it.copy(isSyncing = true) }
-                val result = withContext(Dispatchers.Default) {
+                val result = withContext(bgDispatcher) {
                     repository().fetchAllData().map { data ->
                         data.copy(
                             sessions = data.sessions.sortedByDescending { s -> s.startTime },

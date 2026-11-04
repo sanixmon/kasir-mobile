@@ -48,7 +48,7 @@ class KasirViewModelClaimIdempotencyTest {
             sentClaimIds += firstArg<Map<String, Any?>>()["claimId"]
             Result.failure(SocketTimeoutException("timeout"))
         }
-        val vm = KasirViewModel()
+        val vm = KasirViewModel(testDispatcher)
         val payment = vm.preparePayment(SessionDto(id = "s-1", nama = "Budi"))
 
         vm.finalizePayment(payment, cash = 0.0, qris = 0.0)
@@ -62,7 +62,7 @@ class KasirViewModelClaimIdempotencyTest {
 
     @Test
     fun claimIdSurvivesReturnQtyChangesButDiffersPerPayment() {
-        val vm = KasirViewModel()
+        val vm = KasirViewModel(testDispatcher)
         val session = SessionDto(id = "s-1", nama = "Budi")
         val a = vm.preparePayment(session)
         val b = vm.preparePayment(session)

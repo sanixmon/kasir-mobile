@@ -33,7 +33,7 @@ class KasirViewModelSessionTest {
 
     @Test
     fun testLogoutClearsShiftUserRoleAndAuthToken() {
-        val vm = KasirViewModel()
+        val vm = KasirViewModel(testDispatcher)
         vm.setShiftUser("kasir1", "cashier")
         AuthTokenHolder.loginToken = "test-token-123"
 
@@ -51,7 +51,7 @@ class KasirViewModelSessionTest {
 
     @Test
     fun testHandleSessionExpiredSetsFlagAndClearsUser() {
-        val vm = KasirViewModel()
+        val vm = KasirViewModel(testDispatcher)
         vm.setShiftUser("kasir1", "cashier")
         AuthTokenHolder.loginToken = "expired-token-456"
 
@@ -69,7 +69,7 @@ class KasirViewModelSessionTest {
 
     @Test
     fun testResetSessionExpiredClearsFlag() {
-        val vm = KasirViewModel()
+        val vm = KasirViewModel(testDispatcher)
         vm.handleSessionExpired()
         assertTrue(vm.uiState.value.sessionExpired)
 

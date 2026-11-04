@@ -47,7 +47,7 @@ class KasirViewModelStartRentalTest {
     @Test
     fun reportsFailureOnNetworkError() = runTest(testDispatcher) {
         coEvery { repo.addSession(any()) } returns Result.failure(IOException("offline"))
-        val vm = KasirViewModel().apply { togglePrintMulai(false) }
+        val vm = KasirViewModel(testDispatcher).apply { togglePrintMulai(false) }
         val results = mutableListOf<Boolean>()
         startAndCollect(vm, results)
         advanceUntilIdle()
@@ -57,7 +57,7 @@ class KasirViewModelStartRentalTest {
     @Test
     fun reportsFailureWhenServerRejects() = runTest(testDispatcher) {
         coEvery { repo.addSession(any()) } returns Result.success(ActionSuccessResponse(success = false, error = "x"))
-        val vm = KasirViewModel().apply { togglePrintMulai(false) }
+        val vm = KasirViewModel(testDispatcher).apply { togglePrintMulai(false) }
         val results = mutableListOf<Boolean>()
         startAndCollect(vm, results)
         advanceUntilIdle()
@@ -67,7 +67,7 @@ class KasirViewModelStartRentalTest {
     @Test
     fun reportsSuccessWhenServerAccepts() = runTest(testDispatcher) {
         coEvery { repo.addSession(any()) } returns Result.success(ActionSuccessResponse(success = true))
-        val vm = KasirViewModel().apply { togglePrintMulai(false) }
+        val vm = KasirViewModel(testDispatcher).apply { togglePrintMulai(false) }
         val results = mutableListOf<Boolean>()
         startAndCollect(vm, results)
         advanceUntilIdle()
